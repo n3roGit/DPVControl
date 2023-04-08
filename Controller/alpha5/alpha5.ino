@@ -12,7 +12,7 @@ const int MOTOR_STANDBY = 2;
 
 const int MOTOR_MAX_SPEED = 150;
 const int MOTOR_MIN_SPEED = 30;
-const int SPEED_UP_TIME_MS = 6000;
+const int SPEED_UP_TIME_MS = 4000;
 
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED*0.1;
 
