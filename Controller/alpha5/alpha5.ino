@@ -10,11 +10,11 @@ const int MOTOR_OFF = 0;
 const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
-const int MOTOR_MAX_SPEED = 150;
+const int MOTOR_MAX_SPEED = 160;
 const int MOTOR_MIN_SPEED = 30;
 const int SPEED_UP_TIME_MS = 4000;
 
-const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED*0.1;
+const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED*0.05;
 
 
 int leftButtonState = 0;
