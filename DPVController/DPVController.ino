@@ -14,15 +14,16 @@ const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
 const int MOTOR_MAX_SPEED = 160;
-const int MOTOR_MIN_SPEED = 30;
+const int MOTOR_MIN_SPEED = 5;
 const int SPEED_UP_TIME_MS = 4000;
 
+const int SPEED_STEPS = 0.05;
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED*0.05;
 
 
 int leftButtonState = 0;
 int rightButtonState = 0;
-int LeakSensorState = 0;
+int leakSensorState = 0;
 int motorState = MOTOR_OFF;
 int motorSpeed = 0;
 int targetMotorSpeed = MOTOR_MIN_SPEED;
@@ -71,7 +72,7 @@ void updateMotorSpeed(){
 }
 
 void controlMotor(){
-  if((leftButtonState == 1 || rightButtonState == 1) && LeakSensorState == 0){
+  if((leftButtonState == 1 || rightButtonState == 1) && leakSensorState == 0){
     //motor was just turned on
     if (motorState != MOTOR_ON){
       motorStartTime = millis();
@@ -115,9 +116,9 @@ void loop() {
   Serial.print(" right: ");
   Serial.print(rightButtonState);
 
-  LeakSensorState = digitalRead(PIN_LEAK);
+  leakSensorState = digitalRead(PIN_LEAK);
   Serial.print(" leak: ");
-  Serial.print(LeakSensorState);
+  Serial.print(leakSensorState);
 
   Serial.print(" millis: ");
   Serial.print(millis());
