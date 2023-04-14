@@ -71,7 +71,7 @@ void updateMotorSpeed(){
 }
 
 void controlMotor(){
-  if(leftButtonState == 1 || rightButtonState == 1){
+  if((leftButtonState == 1 || rightButtonState == 1) && LeakSensorState == 0){
     //motor was just turned on
     if (motorState != MOTOR_ON){
       motorStartTime = millis();
