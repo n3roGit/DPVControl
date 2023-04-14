@@ -1,16 +1,10 @@
 #include <Servo.h>
-#include <ClickButton.h>
+#include <PinButton.h>
 
-const int buttons = 2; // Nr. of buttons in the array
 
 const int PIN_LEFT_BUTTON = 4;//19; //D2
 const int PIN_RIGHT_BUTTON = 5; //D1
 const int PIN_MOTOR = 0; //D3
-
-ClickButton button[2] = {
-  ClickButton (PIN_LEFT_BUTTON, LOW, CLICKBTN_PULLUP),
-  ClickButton (PIN_RIGHT_BUTTON, LOW, CLICKBTN_PULLUP)
-};
 
 const int MOTOR_OFF = 0;
 const int MOTOR_ON = 1;
@@ -38,17 +32,8 @@ Servo servo;
 
 
 void setup() {
-  
-  for (int i=0; i<buttons; i++)
-  {
-    pinMode(ledPin[i],OUTPUT);  
-
-    // Setup button timers (all in milliseconds / ms)
-    // (These are default if not set, but changeable for convenience)
-    button[i].debounceTime   = 20;   // Debounce timer in ms
-    button[i].multiclickTime = 250;  // Time limit for multi clicks
-    button[i].longClickTime  = 1000; // Time until long clicks register
-  }
+  pinMode(PIN_LEFT_BUTTON, INPUT);
+  pinMode(PIN_RIGHT_BUTTON, INPUT);
 
   Serial.begin(9600);
 
@@ -111,37 +96,8 @@ void controlMotor(){
 }
 
 void loop() {
-   for (int i=0; i<buttons; i++)
-  {
-    // Update state of all buitton
-    button[i].Update();
-  
-    // Save click codes in LEDfunction, as clicks counts are reset at next Update()
-    if (button[i].clicks != 0) LEDfunction[i] = button[i].clicks;
-  
-
-    // Simply toggle LED on single clicks
-    // (Cant use LEDfunction like the others here,
-    //  as it would toggle on and off all the time)
-    if(button[i].clicks == 1) ledState[i] = !ledState[i];
-
-    // blink faster if double clicked
-    if(LEDfunction[i] == 2) ledState[i] = (millis()/500)%2;
-
-    // blink even faster if triple clicked
-    if(LEDfunction[i] == 3) ledState[i] = (millis()/200)%2;
-
-    // slow blink (must hold down button. 1 second long blinks)
-    if(LEDfunction[i] == -1) ledState[i] = (millis()/1000)%2;
-
-    // slower blink (must hold down button. 2 second loong blinks)
-    if(LEDfunction[i] == -2) ledState[i] = (millis()/2000)%2;
-
-    // even slower blink (must hold down button. 3 second looong blinks)
-    if(LEDfunction[i] == -3) ledState[i] = (millis()/3000)%2;
-  }
-  
-
+  leftButton.update();
+  rightButton.update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
   Serial.print("left: ");
