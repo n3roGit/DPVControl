@@ -2,8 +2,11 @@
 #include <PinButton.h>
 
 
-const int PIN_LEFT_BUTTON = 4;//19; //D2
+const int PIN_LEFT_BUTTON = 4; //D2
 const int PIN_RIGHT_BUTTON = 5; //D1
+
+const int PIN_LEAK = 16; //D0
+
 const int PIN_MOTOR = 0; //D3
 
 const int MOTOR_OFF = 0;
@@ -19,6 +22,7 @@ const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED*0.05;
 
 int leftButtonState = 0;
 int rightButtonState = 0;
+int LeakSensorState = 0;
 int motorState = MOTOR_OFF;
 int motorSpeed = 0;
 int targetMotorSpeed = MOTOR_MIN_SPEED;
@@ -26,6 +30,8 @@ int motorStartTime = 0;
 
 PinButton leftButton(PIN_LEFT_BUTTON);
 PinButton rightButton(PIN_RIGHT_BUTTON);
+PinButton LeakSensor(PIN_LEAK);
+
 
 Servo servo;
 
@@ -34,6 +40,7 @@ Servo servo;
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
+  pinMode(PIN_LEAK, INPUT);
 
   Serial.begin(9600);
 
@@ -98,6 +105,7 @@ void controlMotor(){
 void loop() {
   leftButton.update();
   rightButton.update();
+  LeakSensor.update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
   Serial.print("left: ");
@@ -106,6 +114,10 @@ void loop() {
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
   Serial.print(" right: ");
   Serial.print(rightButtonState);
+
+  LeakSensorState = digitalRead(PIN_LEAK);
+  Serial.print(" leak: ");
+  Serial.print(LeakSensorState);
 
   Serial.print(" millis: ");
   Serial.print(millis());
