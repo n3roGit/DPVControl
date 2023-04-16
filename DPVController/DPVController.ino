@@ -15,7 +15,7 @@ const int MOTOR_STANDBY = 2;
 
 //Constants
 const int MOTOR_MAX_SPEED = 160;
-const int MOTOR_MIN_SPEED = 25;
+const int MOTOR_MIN_SPEED = 30;
 const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 5; //Number speed steps
@@ -34,8 +34,8 @@ int targetMotorSpeed = 0; //The desired motor speed
 
 
 //IO
-ClickButton leftButton(PIN_LEFT_BUTTON);
-ClickButton rightButton(PIN_RIGHT_BUTTON);
+ClickButton leftButton(PIN_LEFT_BUTTON, LOW, CLICKBTN_PULLUP);
+ClickButton rightButton(PIN_RIGHT_BUTTON, LOW, CLICKBTN_PULLUP);
 ClickButton LeakSensor(PIN_LEAK);
 Servo servo;
 
@@ -43,6 +43,13 @@ void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
   pinMode(PIN_LEAK, INPUT);
+
+  leftButton.debounceTime   = 20;   
+  leftButton.multiclickTime = 500;  
+  leftButton.longClickTime  = 1000;
+  rightButton.debounceTime   = 20;   
+  rightButton.multiclickTime = 500;  
+  rightButton.longClickTime  = 1000;
 
   Serial.begin(9600);
 
@@ -53,14 +60,16 @@ void setup() {
 }
 
 void updateSpeedSetting(){
-  if (rightButton.clicks == 2){
+  Serial.print(" rightButton.clicks: ");
+  Serial.print(rightButton.clicks);
+  if (rightButton.clicks == -2){
     speedSetting += MOTOR_SPEED_CHANGE;
     if (speedSetting > MOTOR_MAX_SPEED){
       speedSetting = MOTOR_MAX_SPEED;
     }
   }
 
-  if (leftButton.clicks == 2){
+  if (leftButton.clicks == -2){
     speedSetting -= MOTOR_SPEED_CHANGE;
     if (speedSetting < MOTOR_MIN_SPEED){
       speedSetting = MOTOR_MIN_SPEED;
@@ -78,8 +87,8 @@ void controlMotor(){
   }else{
     motorState = MOTOR_OFF;
   }
-  Serial.print(" motorstate: ");
-  Serial.print(motorState);
+  //Serial.print(" motorstate: ");
+  //Serial.print(motorState);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
     //Motor is off
@@ -87,8 +96,8 @@ void controlMotor(){
   }else if (motorState == MOTOR_ON){
     targetMotorSpeed = speedSetting;
   }
-  Serial.print(" targetMotorSpeed: ");
-  Serial.print(targetMotorSpeed);
+  //Serial.print(" targetMotorSpeed: ");
+  //Serial.print(targetMotorSpeed);
 
   setSoftMotorSpeed();
 }
@@ -101,8 +110,8 @@ void setSoftMotorSpeed(){
 
   int timePassedSinceLastChange = millis() - currentMotorTime;
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
-  Serial.print(" speedUp: ");
-  Serial.print(speedUp);
+  //Serial.print(" speedUp: ");
+  //Serial.print(speedUp);
   if (speedUp){
     int maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_UP_TIME_MS ;
     currentMotorSpeed += maxChange;
@@ -113,8 +122,8 @@ void setSoftMotorSpeed(){
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   servo.write(currentMotorSpeed);
-  Serial.print(" currentMotorSpeed: ");
-  Serial.print(currentMotorSpeed);
+  //Serial.print(" currentMotorSpeed: ");
+  //Serial.print(currentMotorSpeed);
   currentMotorTime = millis();
 }
 
@@ -125,19 +134,19 @@ void loop() {
   LeakSensor.Update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
-  Serial.print("left: ");
-  Serial.print(leftButtonState);
+  //Serial.print("left: ");
+  //Serial.print(leftButtonState);
 
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
-  Serial.print(" right: ");
-  Serial.print(rightButtonState);
+  //Serial.print(" right: ");
+  //Serial.print(rightButtonState);
 
   leakSensorState = digitalRead(PIN_LEAK);
-  Serial.print(" leak: ");
-  Serial.print(leakSensorState);
+  //Serial.print(" leak: ");
+  //Serial.print(leakSensorState);
 
-  Serial.print(" millis: ");
-  Serial.print(millis());
+  //Serial.print(" millis: ");
+  //Serial.print(millis());
 
   updateSpeedSetting();
   controlMotor();
