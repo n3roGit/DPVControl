@@ -16,7 +16,8 @@ const int MOTOR_STANDBY = 2;
 const int MOTOR_MAX_SPEED = 160;
 const int MOTOR_MIN_SPEED = 25;
 const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_STEPS = 20; //Number speed steps
+const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
+const int SPEED_STEPS = 5; //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
 
 
@@ -98,16 +99,15 @@ void controlMotor(){
 void setSoftMotorSpeed(){
 
   int timePassedSinceLastChange = millis() - currentMotorTime;
-  int maxChange = timePassedSinceLastChange / SPEED_UP_TIME_MS * MOTOR_MAX_SPEED;
-  Serial.print(" maxChange: ");
-  Serial.print(maxChange);
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
   Serial.print(" speedUp: ");
   Serial.print(speedUp);
   if (speedUp){
+    int maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_UP_TIME_MS ;
     currentMotorSpeed += maxChange;
     currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
   }else{
+    int maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_DOWN_TIME_MS ;
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
