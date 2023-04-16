@@ -59,7 +59,7 @@ void setup() {
 
 }
 
-void log(char* label, int value, boolean doLog){
+void log(const char * label, int value, boolean doLog){
   if (doLog){
     Serial.print(" ");
     Serial.print(label);
