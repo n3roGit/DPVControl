@@ -20,6 +20,7 @@ const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor fr
 const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 5; //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
+const int STANDBY_DELAY_MS = 10/*s*/ * 1000; // Time until the motor goes into standby. 
 
 
 //Variables
@@ -31,6 +32,7 @@ int currentMotorSpeed = 0; //Speed the motor is currently running at
 int currentMotorTime = 0; //Time in MS when we last changed the currentMotorSpeed
 int speedSetting = MOTOR_MIN_SPEED; //The current speed setting. stays the same, even if motor is turned off. 
 int targetMotorSpeed = 0; //The desired motor speed
+int lastActionTime = 0;
 
 
 //IO
@@ -69,23 +71,42 @@ void log(char* label, int value, boolean doLog){
 }
 
 void updateSpeedSetting(){
-  log("rightButton.clicks", rightButton.clicks, true);
-  if (rightButton.clicks == -2){
-    speedSetting += MOTOR_SPEED_CHANGE;
-    if (speedSetting > MOTOR_MAX_SPEED){
-      speedSetting = MOTOR_MAX_SPEED;
+  if (motorState != MOTOR_STANDBY){
+    log("rightButton.clicks", rightButton.clicks, true);
+    if (rightButton.clicks == -2){
+      speedSetting += MOTOR_SPEED_CHANGE;
+      if (speedSetting > MOTOR_MAX_SPEED){
+        speedSetting = MOTOR_MAX_SPEED;
+      }
+    }
+
+    if (leftButton.clicks == -2){
+      speedSetting -= MOTOR_SPEED_CHANGE;
+      if (speedSetting < MOTOR_MIN_SPEED){
+        speedSetting = MOTOR_MIN_SPEED;
+      }
+    }
+
+    log("speedSetting", speedSetting, true);
+  }
+}
+
+void controlStandby(){
+  if (motorState == MOTOR_STANDBY){
+    //Wake up from Standup
+    if (leftButton.clicks == -2 || rightButton.clicks == -2){
+      motorState = MOTOR_OFF;
+    }
+  }else{
+    if (lastActionTime + STANDBY_DELAY_MS > millis()){
+      //Go into standby
+      motorState = MOTOR_STANDBY;
+    }else if(leftButtonState || rightButtonState){
+      //While not in standby, any button click updates the standby counter.
+      lastActionTime = millis();
     }
   }
-
-  if (leftButton.clicks == -2){
-    speedSetting -= MOTOR_SPEED_CHANGE;
-    if (speedSetting < MOTOR_MIN_SPEED){
-      speedSetting = MOTOR_MIN_SPEED;
-    }
-  }
-
-  log("speedSetting", speedSetting, true);
-
+  
 }
 
 void controlMotor(){
@@ -94,7 +115,7 @@ void controlMotor(){
   }else{
     motorState = MOTOR_OFF;
   }
-  log("motorstate", motorState, false);
+  log("motorstate", motorState, true);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
     //Motor is off
