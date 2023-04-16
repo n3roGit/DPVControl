@@ -59,9 +59,17 @@ void setup() {
 
 }
 
+void log(char* label, int value, boolean doLog){
+  if (doLog){
+    Serial.print(" ");
+    Serial.print(label);
+    Serial.print(": ");
+    Serial.print(value);
+  }
+}
+
 void updateSpeedSetting(){
-  Serial.print(" rightButton.clicks: ");
-  Serial.print(rightButton.clicks);
+  log("rightButton.clicks", rightButton.clicks, true);
   if (rightButton.clicks == -2){
     speedSetting += MOTOR_SPEED_CHANGE;
     if (speedSetting > MOTOR_MAX_SPEED){
@@ -76,8 +84,7 @@ void updateSpeedSetting(){
     }
   }
 
-  Serial.print(" speedSetting: ");
-  Serial.print(speedSetting);
+  log("speedSetting", speedSetting, true);
 
 }
 
@@ -87,8 +94,7 @@ void controlMotor(){
   }else{
     motorState = MOTOR_OFF;
   }
-  //Serial.print(" motorstate: ");
-  //Serial.print(motorState);
+  log("motorstate", motorState, false);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
     //Motor is off
