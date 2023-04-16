@@ -13,6 +13,17 @@
 const char* ssid      = "Aquazepp";     // Not needed as this program includes the WiFi manager, see the instructions later
 const char* password  = "Aquazepp"; // Not needed as this program includes the WiFi manager, see the instructions later
 
+AsyncWebServer server(80);
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <title>ESP Web Server</title>
+</head>
+<body>
+  HALLO
+</body>
+</html>
+)rawliteral";
 
 // PIN constants
 const int PIN_LEFT_BUTTON = 4; //D2
@@ -71,15 +82,13 @@ void setup() {
   servo.write(25); // needed for initializing the ESC
   delay(2000);
 
-  AsyncWebServer server(80);
+  
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(IP);
   Serial.println(WiFi.localIP());
-const char index_html[] (
-"TEST"
-  );
+
 
   // Start server
   server.begin();
