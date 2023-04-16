@@ -99,6 +99,8 @@ void setSoftMotorSpeed(){
 
   int timePassedSinceLastChange = millis() - currentMotorTime;
   int maxChange = timePassedSinceLastChange / SPEED_UP_TIME_MS * MOTOR_MAX_SPEED;
+  Serial.print(" maxChange: ");
+  Serial.print(maxChange);
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
   Serial.print(" speedUp: ");
   Serial.print(speedUp);
