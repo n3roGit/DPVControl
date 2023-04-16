@@ -20,7 +20,25 @@ const char index_html[] PROGMEM = R"rawliteral(
   <title>ESP Web Server</title>
 </head>
 <body>
-  HALLO
+<h1>DPVControl&nbsp; &nbsp; &nbsp; &nbsp; v0.1</h1>
+<h2>Wifi</h2>
+<p>SSID: Aquazepp</p>
+<p>Password: Aquazepp</p>
+<h2>Akku</h2>
+<p>Akkuspannung: x Volt</p>
+<p>Ladezustand: x %</p>
+<h2>Sensoren</h2>
+<p>Wassersensor:&nbsp;</p>
+<p>Uptime:&nbsp;</p>
+<p>Schalter Rechts: AUS/AN</p>
+<p>Schalter Links: AUS/AN</p>
+<p>&nbsp;</p>
+<h2>Log:</h2>
+<p>xxxx</p>
+<p>xxxx</p>
+<p>xxxx</p>
+<p>xxxx</p>
+<p>&nbsp;</p>
 </body>
 </html>
 )rawliteral";
