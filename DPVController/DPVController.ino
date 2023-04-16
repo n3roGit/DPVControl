@@ -1,6 +1,15 @@
 #include <Servo.h>
 #include "ClickButton.h"
 
+#include <ESP8266WiFi.h>
+#include <Hash.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+
+
+const char* ssid      = "Aquazepp";     // Not needed as this program includes the WiFi manager, see the instructions later
+const char* password  = "Aquazepp"; // Not needed as this program includes the WiFi manager, see the instructions later
+
 
 // PIN constants
 const int PIN_LEFT_BUTTON = 4; //D2
@@ -59,6 +68,16 @@ void setup() {
   servo.write(25); // needed for initializing the ESC
   delay(2000);
 
+  AsyncWebServer server(80);
+  WiFi.softAP(ssid, password);
+  IPAddress IP = WiFi.softAPIP();
+  Serial.print("AP IP address: ");
+  Serial.println(IP);
+  Serial.println(WiFi.localIP());
+
+
+  // Start server
+  server.begin();
 }
 
 void log(const char * label, int value, boolean doLog){
