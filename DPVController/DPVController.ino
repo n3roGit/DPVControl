@@ -1,5 +1,6 @@
 #include <Servo.h>
-#include <PinButton.h>
+#include "ClickButton.h"
+
 
 // PIN constants
 const int PIN_LEFT_BUTTON = 4; //D2
@@ -33,9 +34,9 @@ int targetMotorSpeed = 0; //The desired motor speed
 
 
 //IO
-PinButton leftButton(PIN_LEFT_BUTTON);
-PinButton rightButton(PIN_RIGHT_BUTTON);
-PinButton LeakSensor(PIN_LEAK);
+ClickButton leftButton(PIN_LEFT_BUTTON);
+ClickButton rightButton(PIN_RIGHT_BUTTON);
+ClickButton LeakSensor(PIN_LEAK);
 Servo servo;
 
 void setup() {
@@ -52,14 +53,14 @@ void setup() {
 }
 
 void updateSpeedSetting(){
-  if (rightButton.isDoubleClick()){
+  if (rightButton.clicks == 2){
     speedSetting += MOTOR_SPEED_CHANGE;
     if (speedSetting > MOTOR_MAX_SPEED){
       speedSetting = MOTOR_MAX_SPEED;
     }
   }
 
-  if (leftButton.isDoubleClick()){
+  if (leftButton.clicks == 2){
     speedSetting -= MOTOR_SPEED_CHANGE;
     if (speedSetting < MOTOR_MIN_SPEED){
       speedSetting = MOTOR_MIN_SPEED;
@@ -119,9 +120,9 @@ void setSoftMotorSpeed(){
 
 
 void loop() {
-  leftButton.update();
-  rightButton.update();
-  LeakSensor.update();
+  leftButton.Update();
+  rightButton.Update();
+  LeakSensor.Update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
   Serial.print("left: ");
