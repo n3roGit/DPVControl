@@ -14,7 +14,7 @@ const int MOTOR_STANDBY = 2;
 
 //Constants
 const int MOTOR_MAX_SPEED = 160;
-const int MOTOR_MIN_SPEED = 5;
+const int MOTOR_MIN_SPEED = 25;
 const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_STEPS = 20; //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
