@@ -83,15 +83,36 @@ void controlMotor(){
     //Motor is off
     targetMotorSpeed = 0;
   }else if (motorState == MOTOR_ON){
-
+    targetMotorSpeed = speedSetting;
   }
-  Serial.print(" currentMotorSpeed: ");
-  Serial.print(currentMotorSpeed);
+  Serial.print(" targetMotorSpeed: ");
+  Serial.print(targetMotorSpeed);
+
+  setSoftMotorSpeed();
 }
 
-
+/**
+* Slowly changes the motor speed to targetMotorSpeed.
+*
+**/
 void setSoftMotorSpeed(){
 
+  int timePassedSinceLastChange = millis() - currentMotorTime;
+  int maxChange = timePassedSinceLastChange / SPEED_UP_TIME_MS * MOTOR_MAX_SPEED;
+  bool speedUp = currentMotorSpeed < targetMotorSpeed;
+  Serial.print(" speedUp: ");
+  Serial.print(speedUp);
+  if (speedUp){
+    currentMotorSpeed += maxChange;
+    currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
+  }else{
+    currentMotorSpeed -= maxChange;
+    currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
+  }
+  servo.write(currentMotorSpeed);
+  Serial.print(" currentMotorSpeed: ");
+  Serial.print(currentMotorSpeed);
+  currentMotorTime = millis();
 }
 
 
