@@ -88,7 +88,9 @@ void setup() {
   Serial.print("AP IP address: ");
   Serial.println(IP);
   Serial.println(WiFi.localIP());
-
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send_P(200, "text/html", index_html);
+  });
 
   // Start server
   server.begin();
