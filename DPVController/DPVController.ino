@@ -25,7 +25,7 @@ int leftButtonState = 0;
 int rightButtonState = 0;
 int leakSensorState = 0;
 int motorState = MOTOR_OFF;
-int motorSpeed = 0;
+int currentMotorSpeed = 0; //Speed the motor is currently running at
 int targetMotorSpeed = MOTOR_MIN_SPEED;
 int motorStartTime = 0;
 
@@ -51,7 +51,7 @@ void setup() {
 
 }
 
-void updateMotorSpeed(){
+void updateTargetMotorSpeed(){
   if (rightButton.isDoubleClick()){
     targetMotorSpeed += MOTOR_SPEED_CHANGE;
     if (targetMotorSpeed > MOTOR_MAX_SPEED){
@@ -87,21 +87,24 @@ void controlMotor(){
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
     //Motor is off
     servo.write(0);
-    motorSpeed = 0;
+    currentMotorSpeed = 0;
+    targetMotorSpeed = 0;
   }else if (motorState == MOTOR_ON){
 
     int diff = millis() - motorStartTime;
     int end_speed_up = SPEED_UP_TIME_MS * targetMotorSpeed / MOTOR_MAX_SPEED;
     if (diff >= end_speed_up){
-      motorSpeed = targetMotorSpeed; 
+      currentMotorSpeed = targetMotorSpeed; 
     }else{
-      motorSpeed = targetMotorSpeed * diff / end_speed_up;
+      currentMotorSpeed = targetMotorSpeed * diff / end_speed_up;
     }
-    servo.write(motorSpeed);
+    servo.write(currentMotorSpeed);
   }
-  Serial.print(" motorSpeed: ");
-  Serial.print(motorSpeed);
+  Serial.print(" currentMotorSpeed: ");
+  Serial.print(currentMotorSpeed);
 }
+
+
 
 void loop() {
   leftButton.update();
@@ -123,7 +126,7 @@ void loop() {
   Serial.print(" millis: ");
   Serial.print(millis());
 
-  updateMotorSpeed();
+  updateTargetMotorSpeed();
   controlMotor();
 
   Serial.println();
