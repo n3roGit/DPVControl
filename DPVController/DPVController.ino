@@ -27,7 +27,7 @@ const int STANDBY_DELAY_MS = 10/*s*/ * 1000; // Time until the motor goes into s
 int leftButtonState = 0;
 int rightButtonState = 0;
 int leakSensorState = 0;
-int motorState = MOTOR_OFF;
+int motorState = MOTOR_STANDBY;
 int currentMotorSpeed = 0; //Speed the motor is currently running at
 int currentMotorTime = 0; //Time in MS when we last changed the currentMotorSpeed
 int speedSetting = MOTOR_MIN_SPEED; //The current speed setting. stays the same, even if motor is turned off. 
@@ -96,24 +96,31 @@ void controlStandby(){
     //Wake up from Standup
     if (leftButton.clicks == -2 || rightButton.clicks == -2){
       motorState = MOTOR_OFF;
+      log("leaving standby", 1, true);
+      lastActionTime = millis();
     }
   }else{
-    if (lastActionTime + STANDBY_DELAY_MS > millis()){
+    if (lastActionTime + STANDBY_DELAY_MS < millis()){
       //Go into standby
+      log("going to standby", millis(), true);
       motorState = MOTOR_STANDBY;
-    }else if(leftButtonState || rightButtonState){
+    }
+    if(leftButtonState || rightButtonState){
       //While not in standby, any button click updates the standby counter.
       lastActionTime = millis();
+      log("update lastActionTime", lastActionTime, true);
     }
   }
   
 }
 
 void controlMotor(){
-  if((leftButtonState == 1 || rightButtonState == 1) && leakSensorState == 0){
-    motorState = MOTOR_ON;
-  }else{
-    motorState = MOTOR_OFF;
+  if (motorState != MOTOR_STANDBY){
+    if((leftButtonState == 1 || rightButtonState == 1) && leakSensorState == 0){
+      motorState = MOTOR_ON;
+    }else{
+      motorState = MOTOR_OFF;
+    }
   }
   log("motorstate", motorState, true);
 
@@ -176,6 +183,7 @@ void loop() {
   //Serial.print(millis());
 
   updateSpeedSetting();
+  controlStandby();
   controlMotor();
 
   Serial.println();
