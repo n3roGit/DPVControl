@@ -15,32 +15,146 @@ const char* password  = "Aquazepp"; // Not needed as this program includes the W
 
 AsyncWebServer server(80);
 const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
+<!DOCTYPE html>
+<html>
 <head>
-  <title>ESP Web Server</title>
+  <title>DPVControl</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    h2 {
+      margin-top: 0.5em;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+
+    .button {
+      background-color: #4CAF50;
+      border: none;
+      color: white;
+      padding: 10px 20px;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 16px;
+      margin: 4px 2px;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      background-color: #3e8e41;
+    }
+
+    #log {
+      height: 200px;
+      overflow-y: scroll;
+      white-space: pre-wrap;
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    #log p:last-child {
+      margin-bottom: 0;
+    }
+  </style>
 </head>
 <body>
-<h1>DPVControl&nbsp; &nbsp; &nbsp; &nbsp; v0.1</h1>
-<h2>Wifi</h2>
-<p>SSID: Aquazepp</p>
-<p>Password: Aquazepp</p>
-<h2>Akku</h2>
-<p>Akkuspannung: x Volt</p>
-<p>Ladezustand: x %</p>
-<h2>Sensoren</h2>
-<p>Wassersensor:&nbsp;</p>
-<p>Uptime:&nbsp;</p>
-<p>Schalter Rechts: AUS/AN</p>
-<p>Schalter Links: AUS/AN</p>
+  <h2>Wifi</h2>
+  <table>
+    <tr>
+      <td>SSID:</td>
+      <td><input type="text" value="Aquazepp"></td>
+      <td><button class="button">Ändern</button></td>
+    </tr>
+    <tr>
+      <td>Password:</td>
+      <td><input type="text" value="Aquazepp"></td>
+      <td><button class="button">Ändern</button></td>
+    </tr>
+  </table>
+
+  <h2>Akku</h2>
+  <table>
+    <tr>
+      <td>Akkuspannung:</td>
+      <td><input type="text" value="52 Volt" readonly></td>
+    </tr>
+    <tr>
+      <td>Ladezustand:</td>
+      <td><input type="text" value="100 %" readonly></td>
+    </tr>
+  </table>
+
+  <h2>Konfiguration</h2>
+  <table>
+    <tr>
+      <td>Min Speed:</td>
+      <td><input type="text" value="30"></td>
+      <td><button class="button">Ändern</button></td>
+    </tr>
+    <tr>
+      <td>Max Speed:</td>
+      <td><input type="text" value="160"></td>
+      <td><button class="button">Ändern</button></td>
+    </tr>
+    <tr>
+      <td>SpinUpTime:</td>
+      <td><input type="text" value="4000 ms"></td>
+      <td><button class="button">Ändern</button></td>
+    </tr>
+    <tr>
+      <td>SpinDownTime:</td>
+      <td><input type="text" value="400 ms"></td>
+      <td><button class="button">Ändern</button></td>
+    </tr>
+    <tr>
+      <td>Speed Steps:</td>
+<td><input type="text" id="speedSteps" value="5"></td>
+<td><button onclick="updateValue('speedSteps')">Ändern</button></td>
+</tr>
+<tr>
+<td>StandBy Time:</td>
+<td><input type="text" id="standbyTime" value="45"></td>
+<td><button onclick="updateValue('standbyTime')">Ändern</button></td>
+</tr>
+</table>
+<h2>Daten</h2>
+<p>Wassersensor: <span id="waterSensorOutput"></span> <button onclick="acknowledge()">ACK</button></p>
+<p>Uptime: <span id="uptimeOutput"></span></p>
+<p>Schalter Rechts: <span id="rightSwitchOutput"></span></p>
+<p>Schalter Links: <span id="leftSwitchOutput"></span></p>
+<p>Speed Preset: <span id="speedPresetOutput"></span></p>
+<p>Aktueller Speed: <span id="currentSpeedOutput"></span></p>
+<p>ESC Ampere: <span id="escAmpereOutput"></span></p>
+<p>ESC Drehzahl: <span id="escRPMOutput"></span></p>
 <p>&nbsp;</p>
 <h2>Log:</h2>
-<p>xxxx</p>
-<p>xxxx</p>
-<p>xxxx</p>
-<p>xxxx</p>
+<div style="border:1px solid black; width:600px; height:200px; overflow:auto;">
+  <div id="logOutput"></div>
+</div>
 <p>&nbsp;</p>
-</body>
-</html>
+<button onclick="restart()">Neustart</button>
+<h4>Version 0.1</h4>
+
+
 )rawliteral";
 
 // PIN constants
