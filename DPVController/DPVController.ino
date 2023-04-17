@@ -180,7 +180,7 @@ const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor f
 const int SPEED_STEPS = 5; //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45/*s*/ * 1000; // Time until the motor goes into standby. 
-const bool EnableLog = false; //Enable/Disable Serial Log
+const bool EnableDebugLog = false; //Enable/Disable Serial Log
 
 //Variables
 int leftButtonState = 0;
@@ -250,6 +250,7 @@ void updateSpeedSetting(){
       if (speedSetting > MOTOR_MAX_SPEED){
         speedSetting = MOTOR_MAX_SPEED;
       }
+      log("speedSetting", speedSetting, true);
     }
 
     if (leftButton.clicks == -2){
@@ -258,9 +259,8 @@ void updateSpeedSetting(){
       if (speedSetting < MOTOR_MIN_SPEED){
         speedSetting = MOTOR_MIN_SPEED;
       }
+      log("speedSetting", speedSetting, true);
     }
-
-    log("speedSetting", speedSetting, EnableLog);
   }
 }
 
@@ -281,7 +281,7 @@ void controlStandby(){
     if(leftButtonState || rightButtonState){
       //While not in standby, any button click updates the standby counter.
       lastActionTime = millis();
-      log("update lastActionTime", lastActionTime, EnableLog);
+      log("update lastActionTime", lastActionTime, EnableDebugLog);
     }
   }
   
@@ -295,7 +295,7 @@ void controlMotor(){
       motorState = MOTOR_OFF;
     }
   }
-  log("motorstate", motorState, EnableLog);
+  log("motorstate", motorState, EnableDebugLog);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
     //Motor is off
@@ -317,8 +317,7 @@ void setSoftMotorSpeed(){
 
   int timePassedSinceLastChange = millis() - currentMotorTime;
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
-  //Serial.print(" speedUp: ");
-  //Serial.print(speedUp);
+  
   if (speedUp){
     int maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_UP_TIME_MS ;
     currentMotorSpeed += maxChange;
@@ -328,9 +327,8 @@ void setSoftMotorSpeed(){
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
+  log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   servo.write(currentMotorSpeed);
-  //Serial.print(" currentMotorSpeed: ");
-  //Serial.print(currentMotorSpeed);
   currentMotorTime = millis();
 }
 
