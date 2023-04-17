@@ -23,6 +23,6 @@
 |            | 2 Klick    | Reaktivierung |
 | 3 Klick    | 3 Klick    |           |
 | 3 Klick    |            | Akkustand |
-|            | 3 Klick    | Licht AN/AUS |
+|            | 3 Klick    | Licht Stufe 1,2,3,AUS |
 | 2 Klick    | halten     | Schrittweise langsamer |
 | halten     | 2 Klick    | Schrittweise schneller |
