@@ -180,7 +180,7 @@ const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor f
 const int SPEED_STEPS = 5; //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45/*s*/ * 1000; // Time until the motor goes into standby. 
-
+const bool EnableLog = false; //Enable/Disable Serial Log
 
 //Variables
 int leftButtonState = 0;
@@ -192,6 +192,7 @@ int currentMotorTime = 0; //Time in MS when we last changed the currentMotorSpee
 int speedSetting = MOTOR_MIN_SPEED; //The current speed setting. stays the same, even if motor is turned off. 
 int targetMotorSpeed = 0; //The desired motor speed
 int lastActionTime = 0;
+
 
 
 //IO
@@ -221,8 +222,7 @@ void setup() {
   
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(IP);
+  log("AP IP address:", IP, true);
   Serial.println(WiFi.localIP());
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html);
@@ -238,13 +238,14 @@ void log(const char * label, int value, boolean doLog){
     Serial.print(label);
     Serial.print(": ");
     Serial.print(value);
+    Serial.println();
   }
 }
 
 void updateSpeedSetting(){
   if (motorState != MOTOR_STANDBY){
-    log("rightButton.clicks", rightButton.clicks, true);
     if (rightButton.clicks == -2){
+      log("rightButton.clicks", rightButton.clicks, true);
       speedSetting += MOTOR_SPEED_CHANGE;
       if (speedSetting > MOTOR_MAX_SPEED){
         speedSetting = MOTOR_MAX_SPEED;
@@ -252,13 +253,14 @@ void updateSpeedSetting(){
     }
 
     if (leftButton.clicks == -2){
+      log("leftButton.clicks", leftButton.clicks, true);
       speedSetting -= MOTOR_SPEED_CHANGE;
       if (speedSetting < MOTOR_MIN_SPEED){
         speedSetting = MOTOR_MIN_SPEED;
       }
     }
 
-    log("speedSetting", speedSetting, true);
+    log("speedSetting", speedSetting, EnableLog);
   }
 }
 
@@ -279,7 +281,7 @@ void controlStandby(){
     if(leftButtonState || rightButtonState){
       //While not in standby, any button click updates the standby counter.
       lastActionTime = millis();
-      log("update lastActionTime", lastActionTime, true);
+      log("update lastActionTime", lastActionTime, EnableLog);
     }
   }
   
@@ -293,7 +295,7 @@ void controlMotor(){
       motorState = MOTOR_OFF;
     }
   }
-  log("motorstate", motorState, true);
+  log("motorstate", motorState, EnableLog);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
     //Motor is off
@@ -357,6 +359,5 @@ void loop() {
   controlStandby();
   controlMotor();
 
-  Serial.println();
 
 }
