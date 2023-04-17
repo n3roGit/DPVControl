@@ -8,7 +8,7 @@
 
 // https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
 
-
+#include "uptime_formatter.h"
 
 const char* ssid      = "Aquazepp";     // Not needed as this program includes the WiFi manager, see the instructions later
 const char* password  = "Aquazepp"; // Not needed as this program includes the WiFi manager, see the instructions later
@@ -357,5 +357,6 @@ void loop() {
   controlStandby();
   controlMotor();
 
+ Serial.println("up " + uptime_formatter::getUptime());
 
 }
