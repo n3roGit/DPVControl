@@ -178,7 +178,7 @@ const int MOTOR_MIN_SPEED = 30;
 const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 5; //Number speed steps
-const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
+const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45/*s*/ * 1000; // Time until the motor goes into standby. 
 const bool EnableDebugLog = false; //Enable/Disable Serial Log
 
@@ -188,7 +188,7 @@ int rightButtonState = 0;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
 int currentMotorSpeed = 0; //Speed the motor is currently running at
-int currentMotorTime = 0; //Time in MS when we last changed the currentMotorSpeed
+float currentMotorTime = 0; //Time in MS when we last changed the currentMotorSpeed
 int speedSetting = MOTOR_MIN_SPEED; //The current speed setting. stays the same, even if motor is turned off. 
 int targetMotorSpeed = 0; //The desired motor speed
 int lastActionTime = 0;
@@ -315,15 +315,15 @@ void controlMotor(){
 **/
 void setSoftMotorSpeed(){
 
-  int timePassedSinceLastChange = millis() - currentMotorTime;
+  float timePassedSinceLastChange = millis() - currentMotorTime;
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
   
   if (speedUp){
-    int maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_UP_TIME_MS ;
+    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_UP_TIME_MS ;
     currentMotorSpeed += maxChange;
     currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
   }else{
-    int maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_DOWN_TIME_MS ;
+    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_DOWN_TIME_MS ;
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
@@ -357,6 +357,7 @@ void loop() {
   controlStandby();
   controlMotor();
 
- Serial.println("up " + uptime_formatter::getUptime());
+ //Serial.println("up " + uptime_formatter::getUptime());
+ delay(25);
 
 }
