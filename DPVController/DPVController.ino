@@ -179,7 +179,7 @@ const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor fr
 const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 5; //Number speed steps
 const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
-const int STANDBY_DELAY_MS = 45/*s*/ * 1000; // Time until the motor goes into standby. 
+const int STANDBY_DELAY_MS = 45/*s*/ * 1000 * 4; // Time until the motor goes into standby. 
 const bool EnableDebugLog = false; //Enable/Disable Serial Log
 
 //Variables
@@ -270,17 +270,17 @@ void controlStandby(){
     if (leftButton.clicks == -2 || rightButton.clicks == -2){
       motorState = MOTOR_OFF;
       log("leaving standby", 1, true);
-      lastActionTime = millis();
+      lastActionTime = micros();
     }
   }else{
-    if (lastActionTime + STANDBY_DELAY_MS < millis()){
+    if (lastActionTime + STANDBY_DELAY_MS < micros()){
       //Go into standby
-      log("going to standby", millis(), true);
+      log("going to standby", micros(), true);
       motorState = MOTOR_STANDBY;
     }
     if(leftButtonState || rightButtonState){
       //While not in standby, any button click updates the standby counter.
-      lastActionTime = millis();
+      lastActionTime = micros();
       log("update lastActionTime", lastActionTime, EnableDebugLog);
     }
   }
@@ -315,7 +315,7 @@ void controlMotor(){
 **/
 void setSoftMotorSpeed(){
 
-  float timePassedSinceLastChange = millis() - currentMotorTime;
+  float timePassedSinceLastChange = micros() - currentMotorTime;
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
   
   if (speedUp){
@@ -329,7 +329,7 @@ void setSoftMotorSpeed(){
   }
   log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   servo.write(currentMotorSpeed);
-  currentMotorTime = millis();
+  currentMotorTime = micros();
 }
 
 
@@ -350,14 +350,14 @@ void loop() {
   //Serial.print(" leak: ");
   //Serial.print(leakSensorState);
 
-  //Serial.print(" millis: ");
-  //Serial.print(millis());
+  //Serial.print(" micros: ");
+  //Serial.print(micros());
 
   updateSpeedSetting();
   controlStandby();
   controlMotor();
 
  //Serial.println("up " + uptime_formatter::getUptime());
- delay(25);
+
 
 }
