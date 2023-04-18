@@ -179,7 +179,7 @@ const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor fr
 const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 5; //Number speed steps
 const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
-const int STANDBY_DELAY_MS = 45/*s*/ * 1000 * 4; // Time until the motor goes into standby. 
+const int STANDBY_DELAY_MS = 45/*s*/ * 1000 * 1000; // Time until the motor goes into standby. 
 const bool EnableDebugLog = false; //Enable/Disable Serial Log
 
 //Variables
