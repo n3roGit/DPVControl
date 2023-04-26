@@ -1,7 +1,7 @@
 # TODO
 
 - **Backwards speed:** 5% - Rückwärts maximal x%. Niemals mehr Leistung.
-- **Siren:** Signalgeber (ggfs. Piep über Motor)
+- **Siren:** Signalgeber (ggfs. Piep über Motor oder Blinken über Frontlampe)
 - **Webinterface:** Basisinformationen abrufen und ggfs. Einstellungen anpassen.
 - **Batteriewarnung:** Lager Piep. Je 10% Akkuladung abgerundet. Ab 30% Rest.
 - **Energy Saver:** 20% - Leistung reduzieren ab X% auf max 50%.
@@ -10,6 +10,9 @@
 - **Gerät muss auch bei Wassereinbruch funktionieren. Es muss aber ein Signal geben, damit man es bemerkt.**
 - **Licht Auf Stufe 1 falls Geschwindigkeit über 80% um überlastung vom Akku zu vermeiden. Bei 100% Leistung Licht aus. Danach wieder ursprünglichen Wert.**
 - **KlickCodes nach Taballe implementieren**
+- **VESC implementieren**
+- **PWM Steuerung für LED Lampe**
+
 
 # KlickCodes
 
