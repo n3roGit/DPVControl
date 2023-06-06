@@ -1,33 +1,35 @@
 # TODO
 
-- **Backwards speed:** 5% - Rückwärts maximal x%. Niemals mehr Leistung.
-- **Siren:** Signalgeber (ggfs. Piep über Motor oder Blinken über Frontlampe)
-- **Webinterface:** Basisinformationen abrufen und ggfs. Einstellungen anpassen.
-- **Batteriewarnung:** Lager Piep. Je 10% Akkuladung abgerundet. Ab 30% Rest.
-- **Energy Saver:** 20% - Leistung reduzieren ab X% auf max 50%.
-- **Notaus:** Bei plötzlichem Anstieg an Strom bzw. Einbruch der Drehzahl direkt stoppen (Hand im Rotor).
-- **Update über WiFi**
-- **Gerät muss auch bei Wassereinbruch funktionieren. Es muss aber ein Signal geben, damit man es bemerkt.**
-- **Licht Auf Stufe 1 falls Geschwindigkeit über 80% um überlastung vom Akku zu vermeiden. Bei 100% Leistung Licht aus. Danach wieder ursprünglichen Wert.**
-- **KlickCodes nach Taballe implementieren**
-- **VESC implementieren**
-- **PWM Steuerung für LED Lampe**
+- **Backwards speed:** 5% - Maximum x% backwards speed. Never exceed this power.
+- **Siren:** Signaling device (possibly beep through motor or blinking through front lamp).
+- **Web interface:** Retrieve basic information and adjust settings if necessary.
+- **Battery warning:** Low battery beep. Every 10% rounded down. From 30% remaining.
+- **Energy Saver:** 20% - Reduce power to a maximum of 50% starting at X%.
+- **Emergency stop:** Immediately stop in case of sudden increase in current or drop in rotation speed (hand in rotor).
+- **Update via WiFi**
+- **Device must function even in case of water ingress. However, there must be a signal to alert the user.**
+- **Light at Level 1 if speed exceeds 80% to prevent battery overload. Light off at 100% power. Then revert to original value.**
+- **Implement click codes according to the table**
+- **Implement VESC**
+- **PWM control for LED lamp**
+- **Convert motor control from servo to VESC library with bidirectional control.**
 
 
-# KlickCodes
+# Click Codes
 
-| Schalter 1 | Schalter 2 | Funktion |
-|:----------:|:----------:|:---------|
-| halten     | halten     | Motor AN |
-| halten     |            | Motor AN |
-|            | halten     | Motor AN |
-| 1 Klick    | 1 Klick    |          |
-|            | 1 Klick    |          |
-| 2 Klick    | 2 Klick    | Richtungswechsel |
-| 2 Klick    |            | Reaktivierung |
-|            | 2 Klick    | Reaktivierung |
-| 3 Klick    | 3 Klick    |           |
-| 3 Klick    |            | Akkustand |
-|            | 3 Klick    | Licht Stufe 1,2,3,AUS |
-| 2 Klick    | halten     | Schrittweise langsamer |
-| halten     | 2 Klick    | Schrittweise schneller |
+| Switch 1 | Switch 2 | Function |
+|:--------:|:--------:|:--------:|
+| Hold     | Hold     | Turn motor ON |
+| Hold     |          | Turn motor ON |
+|          | Hold     | Turn motor ON |
+| 1 Click  | 1 Click  |           |
+|          | 1 Click  |           |
+| 2 Clicks | 2 Clicks | Change direction |
+| 2 Clicks |          | Reactivate |
+|          | 2 Clicks | Reactivate |
+| 3 Clicks | 3 Clicks |           |
+| 3 Clicks |          | Battery level |
+|          | 3 Clicks | Light Level 1, 2, 3, OFF |
+| 2 Clicks | Hold     | Stepwise slower |
+| Hold     | 2 Clicks | Stepwise faster |
+
