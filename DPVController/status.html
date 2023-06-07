@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>DPVControl</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 0;
+                padding: 0;
+            }
+            h2 {
+                margin-top: 0.5em;
+            }
+
+            table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            th,
+            td {
+                text-align: left;
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+
+            tr:hover {
+                background-color: #f5f5f5;
+            }
+
+            .button {
+                background-color: #4caf50;
+                border: none;
+                color: white;
+                padding: 10px 20px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 16px;
+                margin: 4px 2px;
+                cursor: pointer;
+            }
+
+            .button:hover {
+                background-color: #3e8e41;
+            }
+
+            #log {
+                height: 200px;
+                overflow-y: scroll;
+                white-space: pre-wrap;
+                border: 1px solid #ddd;
+                padding: 8px;
+            }
+
+            #log p:last-child {
+                margin-bottom: 0;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>Wifi</h2>
+        <table>
+            <tr>
+                <td>SSID:</td>
+                <td><input type="text" value="Aquazepp" /></td>
+                <td><button class="button">Change</button></td>
+            </tr>
+            <tr>
+                <td>Password:</td>
+                <td><input type="text" value="Aquazepp" /></td>
+                <td><button class="button">Change</button></td>
+            </tr>
+        </table>
+        <h2>Battery</h2>
+        <table>
+            <tr>
+                <td>Battery Voltage:</td>
+                <td><input type="text" value="52 Volts" readonly /></td>
+            </tr>
+            <tr>
+                <td>Charge Level:</td>
+                <td><input type="text" value="100 %" readonly /></td>
+            </tr>
+        </table>
+        <h2>Configuration</h2>
+        <table>
+            <tr>
+                <td>Min Speed:</td>
+                <td><input type="text" value="30" /></td>
+                <td><button class="button">Change</button></td>
+            </tr>
+            <tr>
+                <td>Max Speed:</td>
+                <td><input type="text" value="160" /></td>
+                <td><button class="button">Change</button></td>
+            </tr>
+            <tr>
+                <td>SpinUp Time:</td>
+                <td><input type="text" value="4000 ms" /></td>
+                <td><button class="button">Change</button></td>
+            </tr>
+            <tr>
+                <td>SpinDown Time:</td>
+                <td><input type="text" value="400 ms" /></td>
+                <td><button class="button">Change</button></td>
+            </tr>
+            <tr>
+                <td>Speed Steps:</td>
+                <td><input type="text" id="speedSteps" value="5" /></td>
+                <td><button class="button" onclick="updateValue('speedSteps')">Change</button></td>
+            </tr>
+            <tr>
+                <td>StandBy Time:</td>
+                <td><input type="text" id="standbyTime" value="45" /></td>
+                <td><button class="button" onclick="updateValue('standbyTime')">Change</button></td>
+            </tr>
+        </table>
+
+        <h2>Data</h2>
+        <p>Water Sensor: <span id="waterSensorOutput"></span> <button onclick="acknowledge()">ACK</button></p>
+        <p>Uptime: <span id="uptimeOutput"></span></p>
+        <p>Right Switch: <span id="rightSwitchOutput"></span></p>
+        <p>Left Switch: <span id="leftSwitchOutput"></span></p>
+        <p>Speed Preset: <span id="speedPresetOutput"></span></p>
+        <p>Current Speed: <span id="currentSpeedOutput"></span></p>
+        <p>ESC Ampere: <span id="escAmpereOutput"></span></p>
+        <p>ESC RPM: <span id="escRPMOutput"></span></p>
+        <p>ESC Temperature: <span id="escTempOutput"></span></p>
+
+        <p>&nbsp;</p>
+        <h2>Log:</h2>
+        <div style="border: 1px solid black; width: 600px; height: 200px; overflow: auto;">
+            <div id="logOutput"></div>
+        </div>
+        <p>&nbsp;</p>
+        <button onclick="restart()">Restart</button>
+        <h4>Version 0.1</h4>
+    </body>
+</html>
+)rawliteral";

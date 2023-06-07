@@ -83,69 +83,69 @@ const char index_html[] PROGMEM = R"rawliteral(
             <tr>
                 <td>SSID:</td>
                 <td><input type="text" value="Aquazepp" /></td>
-                <td><button class="button">&Auml;ndern</button></td>
+                <td><button class="button">Change</button></td>
             </tr>
             <tr>
                 <td>Password:</td>
                 <td><input type="text" value="Aquazepp" /></td>
-                <td><button class="button">&Auml;ndern</button></td>
+                <td><button class="button">Change</button></td>
             </tr>
         </table>
-        <h2>Akku</h2>
+        <h2>Battery</h2>
         <table>
             <tr>
-                <td>Akkuspannung:</td>
-                <td><input type="text" value="52 Volt" readonly /></td>
+                <td>Battery Voltage:</td>
+                <td><input type="text" value="52 Volts" readonly /></td>
             </tr>
             <tr>
-                <td>Ladezustand:</td>
+                <td>Charge Level:</td>
                 <td><input type="text" value="100 %" readonly /></td>
             </tr>
         </table>
-        <h2>Konfiguration</h2>
+        <h2>Configuration</h2>
         <table>
             <tr>
                 <td>Min Speed:</td>
                 <td><input type="text" value="30" /></td>
-                <td><button class="button">&Auml;ndern</button></td>
+                <td><button class="button">Change</button></td>
             </tr>
             <tr>
                 <td>Max Speed:</td>
                 <td><input type="text" value="160" /></td>
-                <td><button class="button">&Auml;ndern</button></td>
+                <td><button class="button">Change</button></td>
             </tr>
             <tr>
-                <td>SpinUpTime:</td>
+                <td>SpinUp Time:</td>
                 <td><input type="text" value="4000 ms" /></td>
-                <td><button class="button">&Auml;ndern</button></td>
+                <td><button class="button">Change</button></td>
             </tr>
             <tr>
-                <td>SpinDownTime:</td>
+                <td>SpinDown Time:</td>
                 <td><input type="text" value="400 ms" /></td>
-                <td><button class="button">&Auml;ndern</button></td>
+                <td><button class="button">Change</button></td>
             </tr>
             <tr>
                 <td>Speed Steps:</td>
                 <td><input type="text" id="speedSteps" value="5" /></td>
-                <td><button class="button" onclick="updateValue('speedSteps')">&Auml;ndern</button></td>
+                <td><button class="button" onclick="updateValue('speedSteps')">Change</button></td>
             </tr>
             <tr>
                 <td>StandBy Time:</td>
                 <td><input type="text" id="standbyTime" value="45" /></td>
-                <td><button class="button" onclick="updateValue('standbyTime')">&Auml;ndern</button></td>
+                <td><button class="button" onclick="updateValue('standbyTime')">Change</button></td>
             </tr>
         </table>
 
-        <h2>Daten</h2>
-        <p>Wassersensor: <span id="waterSensorOutput"></span> <button onclick="acknowledge()">ACK</button></p>
+        <h2>Data</h2>
+        <p>Water Sensor: <span id="waterSensorOutput"></span> <button onclick="acknowledge()">ACK</button></p>
         <p>Uptime: <span id="uptimeOutput"></span></p>
-        <p>Schalter Rechts: <span id="rightSwitchOutput"></span></p>
-        <p>Schalter Links: <span id="leftSwitchOutput"></span></p>
+        <p>Right Switch: <span id="rightSwitchOutput"></span></p>
+        <p>Left Switch: <span id="leftSwitchOutput"></span></p>
         <p>Speed Preset: <span id="speedPresetOutput"></span></p>
-        <p>Aktueller Speed: <span id="currentSpeedOutput"></span></p>
+        <p>Current Speed: <span id="currentSpeedOutput"></span></p>
         <p>ESC Ampere: <span id="escAmpereOutput"></span></p>
-        <p>ESC Drehzahl: <span id="escRPMOutput"></span></p>
-        <p>ESC Temperatur: <span id="escTempOutput"></span></p>
+        <p>ESC RPM: <span id="escRPMOutput"></span></p>
+        <p>ESC Temperature: <span id="escTempOutput"></span></p>
 
         <p>&nbsp;</p>
         <h2>Log:</h2>
@@ -153,12 +153,10 @@ const char index_html[] PROGMEM = R"rawliteral(
             <div id="logOutput"></div>
         </div>
         <p>&nbsp;</p>
-        <button onclick="restart()">Neustart</button>
+        <button onclick="restart()">Restart</button>
         <h4>Version 0.1</h4>
     </body>
 </html>
-
-
 )rawliteral";
 
 // PIN constants
