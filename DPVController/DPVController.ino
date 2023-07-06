@@ -5,6 +5,7 @@
 #include <Hash.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <SoftPWM.h>
 
 // https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
 
@@ -164,6 +165,7 @@ const int PIN_LEFT_BUTTON = 4; //D2
 const int PIN_RIGHT_BUTTON = 5; //D1
 const int PIN_LEAK = 16; //D0
 const int PIN_MOTOR = 0; //D3
+const int PIN_LED = 2; //D4
 
 // Values for motorState
 const int MOTOR_OFF = 0;
@@ -179,6 +181,7 @@ const int SPEED_STEPS = 5; //Number speed steps
 const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45/*s*/ * 1000 * 1000; // Time until the motor goes into standby. 
 const bool EnableDebugLog = false; //Enable/Disable Serial Log
+const int LedFadeDelay = 1000;
 
 //Variables
 int leftButtonState = 0;
@@ -190,6 +193,7 @@ float currentMotorTime = 0; //Time in MS when we last changed the currentMotorSp
 int speedSetting = MOTOR_MIN_SPEED; //The current speed setting. stays the same, even if motor is turned off. 
 int targetMotorSpeed = 0; //The desired motor speed
 int lastActionTime = 0;
+
 
 
 
@@ -217,6 +221,9 @@ void setup() {
   servo.write(25); // needed for initializing the ESC
   delay(2000);
 
+  SoftPWMBegin();
+  SoftPWMSet(PIN_LED, 0); // init LED and turn it off
+  SoftPWMSetFadeTime(PIN_LED, LedFadeDelay, LedFadeDelay);
   
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
@@ -357,5 +364,10 @@ void loop() {
 
  //Serial.println("up " + uptime_formatter::getUptime());
 
-
+  //TestLED
+  static byte setValue = 0;
+  setValue += 100;
+  setValue %= 200;
+  SoftPWMSetPercent(PIN_LED, setValue);
+  delay(FADE_DELAY);
 }
