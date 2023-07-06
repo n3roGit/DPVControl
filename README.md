@@ -33,3 +33,8 @@
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
 
+
+
+
+# Pinout
+![ESP8266](https://github.com/n3roGit/DPVControl/blob/main/d1-mini-esp8266-board-sh_fixled.jpg)
