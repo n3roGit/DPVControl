@@ -384,7 +384,7 @@ void setLEDState(int state) {
       brightness = 0;
       break;
   }
-  analogWrite(PIN_LED, brightness);
+  analogWrite(PIN_LED, brightness); // LED-PIN, Brightness 0-255
   log("LED_State", LED_State, true);
 }
 
