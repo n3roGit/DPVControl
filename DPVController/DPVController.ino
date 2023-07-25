@@ -10,8 +10,8 @@
 
 #include "uptime_formatter.h"
 
-const char* ssid      = "Aquazepp";     // Not needed as this program includes the WiFi manager, see the instructions later
-const char* password  = "Aquazepp"; // Not needed as this program includes the WiFi manager, see the instructions later
+const char* ssid = "Aquazepp";      // Not needed as this program includes the WiFi manager, see the instructions later
+const char* password = "Aquazepp";  // Not needed as this program includes the WiFi manager, see the instructions later
 
 AsyncWebServer server(80);
 const char index_html[] PROGMEM = R"rawliteral(
@@ -160,10 +160,11 @@ const char index_html[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 // PIN constants
-const int PIN_LEFT_BUTTON = 4; //D2
-const int PIN_RIGHT_BUTTON = 5; //D1
-const int PIN_LEAK = 16; //D0
-const int PIN_MOTOR = 0; //D3
+const int PIN_LEFT_BUTTON = 4;   //D2
+const int PIN_RIGHT_BUTTON = 5;  //D1
+const int PIN_LEAK = 16;         //D0
+const int PIN_MOTOR = 0;         //D3
+const int PIN_LED = 2;           //D4
 
 // Values for motorState
 const int MOTOR_OFF = 0;
@@ -173,23 +174,26 @@ const int MOTOR_STANDBY = 2;
 //Constants
 const int MOTOR_MAX_SPEED = 160;
 const int MOTOR_MIN_SPEED = 30;
-const int SPEED_UP_TIME_MS = 4000; //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_DOWN_TIME_MS = 400; //time we want to take to  speed the motor from full power to 0.
-const int SPEED_STEPS = 5; //Number speed steps
-const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED/SPEED_STEPS;
-const int STANDBY_DELAY_MS = 45/*s*/ * 1000 * 1000; // Time until the motor goes into standby. 
-const bool EnableDebugLog = false; //Enable/Disable Serial Log
+const int SPEED_UP_TIME_MS = 4000;   //time we want to take to  speed the motor from 0 to  full power.
+const int SPEED_DOWN_TIME_MS = 400;  //time we want to take to  speed the motor from full power to 0.
+const int SPEED_STEPS = 5;           //Number speed steps
+const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
+const int STANDBY_DELAY_MS = 45 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
+const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
+const int LED_Energy_Limiter = 0.8;
 
 //Variables
 int leftButtonState = 0;
 int rightButtonState = 0;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
-int currentMotorSpeed = 0; //Speed the motor is currently running at
-float currentMotorTime = 0; //Time in MS when we last changed the currentMotorSpeed
-int speedSetting = MOTOR_MIN_SPEED; //The current speed setting. stays the same, even if motor is turned off. 
-int targetMotorSpeed = 0; //The desired motor speed
+int currentMotorSpeed = 0;           //Speed the motor is currently running at
+float currentMotorTime = 0;          //Time in MS when we last changed the currentMotorSpeed
+int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same, even if motor is turned off.
+int targetMotorSpeed = 0;            //The desired motor speed
 int lastActionTime = 0;
+int LED_State = 0;
+int LED_State_Last = 0;
 
 
 
@@ -203,26 +207,27 @@ void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
   pinMode(PIN_LEAK, INPUT);
+  pinMode(PIN_LED, OUTPUT);
 
-  leftButton.debounceTime   = 20;   
-  leftButton.multiclickTime = 500;  
-  leftButton.longClickTime  = 1000;
-  rightButton.debounceTime   = 20;   
-  rightButton.multiclickTime = 500;  
-  rightButton.longClickTime  = 1000;
+  leftButton.debounceTime = 20;
+  leftButton.multiclickTime = 500;
+  leftButton.longClickTime = 1000;
+  rightButton.debounceTime = 20;
+  rightButton.multiclickTime = 500;
+  rightButton.longClickTime = 1000;
 
   Serial.begin(9600);
 
   servo.attach(PIN_MOTOR);
-  servo.write(25); // needed for initializing the ESC
+  servo.write(25);  // needed for initializing the ESC
   delay(2000);
 
-  
+
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
   log("AP IP address:", IP, true);
   Serial.println(WiFi.localIP());
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
     request->send_P(200, "text/html", index_html);
   });
 
@@ -230,8 +235,8 @@ void setup() {
   server.begin();
 }
 
-void log(const char * label, int value, boolean doLog){
-  if (doLog){
+void log(const char* label, int value, boolean doLog) {
+  if (doLog) {
     Serial.print(" ");
     Serial.print(label);
     Serial.print(": ");
@@ -240,65 +245,65 @@ void log(const char * label, int value, boolean doLog){
   }
 }
 
-void updateSpeedSetting(){
-  if (motorState != MOTOR_STANDBY){
-    if (rightButton.clicks == -2){
+void updateSpeedSetting() {
+  if (motorState != MOTOR_STANDBY) {
+    if (rightButton.clicks == -2) {
       log("rightButton.clicks", rightButton.clicks, true);
       speedSetting += MOTOR_SPEED_CHANGE;
-      if (speedSetting > MOTOR_MAX_SPEED){
+      if (speedSetting > MOTOR_MAX_SPEED) {
         speedSetting = MOTOR_MAX_SPEED;
       }
       log("speedSetting", speedSetting, true);
     }
 
-    if (leftButton.clicks == -2){
+    if (leftButton.clicks == -2) {
       log("leftButton.clicks", leftButton.clicks, true);
       speedSetting -= MOTOR_SPEED_CHANGE;
-      if (speedSetting < MOTOR_MIN_SPEED){
+      if (speedSetting < MOTOR_MIN_SPEED) {
         speedSetting = MOTOR_MIN_SPEED;
       }
       log("speedSetting", speedSetting, true);
     }
   }
+
 }
 
-void controlStandby(){
-  if (motorState == MOTOR_STANDBY){
+void controlStandby() {
+  if (motorState == MOTOR_STANDBY) {
     //Wake up from Standup
-    if (leftButton.clicks == -2 || rightButton.clicks == -2){
+    if (leftButton.clicks == -2 || rightButton.clicks == -2) {
       motorState = MOTOR_OFF;
       log("leaving standby", 1, true);
       lastActionTime = micros();
     }
-  }else{
-    if (lastActionTime + STANDBY_DELAY_MS < micros()){
+  } else {
+    if (lastActionTime + STANDBY_DELAY_MS < micros()) {
       //Go into standby
       log("going to standby", micros(), true);
       motorState = MOTOR_STANDBY;
     }
-    if(leftButtonState || rightButtonState){
+    if (leftButtonState || rightButtonState) {
       //While not in standby, any button click updates the standby counter.
       lastActionTime = micros();
       log("update lastActionTime", lastActionTime, EnableDebugLog);
     }
   }
-  
 }
 
-void controlMotor(){
-  if (motorState != MOTOR_STANDBY){
-    if((leftButtonState == 1 || rightButtonState == 1) && leakSensorState == 0){
+void controlMotor() {
+  if (motorState != MOTOR_STANDBY) {
+    if ((leftButtonState == 1 || rightButtonState == 1) && leakSensorState == 0) {
       motorState = MOTOR_ON;
-    }else{
+    } else {
       motorState = MOTOR_OFF;
     }
   }
   log("motorstate", motorState, EnableDebugLog);
 
-  if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF){
+  if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
     //Motor is off
     targetMotorSpeed = 0;
-  }else if (motorState == MOTOR_ON){
+  } else if (motorState == MOTOR_ON) {
     targetMotorSpeed = speedSetting;
   }
   //Serial.print(" targetMotorSpeed: ");
@@ -307,27 +312,80 @@ void controlMotor(){
   setSoftMotorSpeed();
 }
 
+void controlLED() {
+
+  if (rightButton.clicks == -3) {
+    log("rightButton.clicks", rightButton.clicks, EnableDebugLog);
+
+    switch (LED_State) {
+      case 0:
+        LED_State = 1;
+        break;
+      case 1:
+        LED_State = 2;
+        break;
+      case 2:
+        LED_State = 3;
+        break;
+      case 3:
+        LED_State = 0;
+        break;
+      default:
+        // If an invalid state is somehow reached, turn the LED off
+        LED_State = 0;
+        break;
+    }
+
+    setLEDState(LED_State);
+  }
+}
+
 /**
 * Slowly changes the motor speed to targetMotorSpeed.
 *
 **/
-void setSoftMotorSpeed(){
+void setSoftMotorSpeed() {
 
   float timePassedSinceLastChange = micros() - currentMotorTime;
   bool speedUp = currentMotorSpeed < targetMotorSpeed;
-  
-  if (speedUp){
-    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_UP_TIME_MS ;
+
+  if (speedUp) {
+    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED / SPEED_UP_TIME_MS;
     currentMotorSpeed += maxChange;
     currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
-  }else{
-    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED  / SPEED_DOWN_TIME_MS ;
+  } else {
+    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED / SPEED_DOWN_TIME_MS;
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   servo.write(currentMotorSpeed);
   currentMotorTime = micros();
+}
+
+void setLEDState(int state) {
+
+  int brightness;
+  switch (state) {
+    case 0:
+      brightness = 0;
+      break;
+    case 1:
+      brightness = 76;  // 30% of 255
+      break;
+    case 2:
+      brightness = 153;  // 60% of 255
+      break;
+    case 3:
+      brightness = 255;
+      break;
+    default:
+      // If an invalid state is provided, assume 0% brightness
+      brightness = 0;
+      break;
+  }
+  analogWrite(PIN_LED, brightness);
+  log("LED_State", LED_State, true);
 }
 
 
@@ -354,8 +412,7 @@ void loop() {
   updateSpeedSetting();
   controlStandby();
   controlMotor();
+  controlLED();
 
- //Serial.println("up " + uptime_formatter::getUptime());
-
-
+  //Serial.println("up " + uptime_formatter::getUptime());
 }
