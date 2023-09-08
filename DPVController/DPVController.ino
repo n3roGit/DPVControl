@@ -229,14 +229,14 @@ int LED_State_Last = 0;
 ClickButton leftButton(PIN_LEFT_BUTTON, LOW, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, LOW, CLICKBTN_PULLUP);
 ClickButton LeakSensor(PIN_LEAK_FRONT);
-ClickButton LeakSensor(PIN_LEAK_BACK);
+//ClickButton LeakSensor(PIN_LEAK_BACK);
 Servo servo;
 
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
   pinMode(PIN_LEAK_FRONT, INPUT);
-  pinMode(PIN_LEAK_BACK, INPUT);
+  //pinMode(PIN_LEAK_BACK, INPUT);
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BEEP, OUTPUT);
 
@@ -327,6 +327,7 @@ void controlStandby() {
       motorState = MOTOR_OFF;
       log("leaving standby", 1, true);
       lastActionTime = micros();
+      beep("2");
     }
   } else {
     if (lastActionTime + STANDBY_DELAY_MS < micros()) {
