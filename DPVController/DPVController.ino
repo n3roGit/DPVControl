@@ -6,6 +6,10 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
 // https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
 
 #include "uptime_formatter.h"
@@ -165,6 +169,12 @@ const int PIN_RIGHT_BUTTON = 5;  //D1
 const int PIN_LEAK = 16;         //D0
 const int PIN_MOTOR = 0;         //D3
 const int PIN_LED = 2;           //D4
+const int PIN_DHT = 14;           //D5
+const int PIN_BEEP = 12;           //D6
+
+
+#define DHTTYPE    DHT22
+DHT_Unified dht(PIN_DHT, DHTTYPE);
 
 // Values for motorState
 const int MOTOR_OFF = 0;
@@ -208,6 +218,7 @@ void setup() {
   pinMode(PIN_RIGHT_BUTTON, INPUT);
   pinMode(PIN_LEAK, INPUT);
   pinMode(PIN_LED, OUTPUT);
+  pinMode(PIN_BEEP, OUTPUT);
 
   leftButton.debounceTime = 20;
   leftButton.multiclickTime = 500;
@@ -233,6 +244,22 @@ void setup() {
 
   // Start server
   server.begin();
+
+  //DHT Initial
+  dht.begin();
+  sensor_t sensor;
+  dht.temperature().getSensor(&sensor);
+  //delayMS = sensor.min_delay / 1000;
+
+  //BEEP Initial
+  digitalWrite(PIN_BEEP, HIGH);
+  delay(1000);
+  digitalWrite(PIN_BEEP, LOW);
+  delay(1000);
+  digitalWrite(PIN_BEEP, HIGH);
+  delay(1000);
+  digitalWrite(PIN_BEEP, LOW);
+  delay(1000);
 }
 
 void log(const char* label, int value, boolean doLog) {
