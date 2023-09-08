@@ -10,6 +10,10 @@
 #include <DHT.h>
 #include <DHT_U.h>
 
+#include <VescUart.h>
+VescUart UART;
+
+
 // https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
 
 #include "uptime_formatter.h"
@@ -227,7 +231,7 @@ void setup() {
   rightButton.multiclickTime = 500;
   rightButton.longClickTime = 1000;
 
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   servo.attach(PIN_MOTOR);
   servo.write(25);  // needed for initializing the ESC
@@ -253,13 +257,25 @@ void setup() {
 
   //BEEP Initial
   digitalWrite(PIN_BEEP, HIGH);
-  delay(1000);
+  delay(600);
   digitalWrite(PIN_BEEP, LOW);
   delay(1000);
   digitalWrite(PIN_BEEP, HIGH);
-  delay(1000);
+  delay(600);
   digitalWrite(PIN_BEEP, LOW);
   delay(1000);
+
+  //VESC UART
+  while (!Serial) {;}
+
+  UART.setSerialPort(&Serial);
+
+  if ( UART.getVescValues() ) {
+  Serial.println(UART.data.rpm);
+  Serial.println(UART.data.inpVoltage);
+  Serial.println(UART.data.ampHours);
+  Serial.println(UART.data.tachometerAbs);
+}
 }
 
 void log(const char* label, int value, boolean doLog) {
