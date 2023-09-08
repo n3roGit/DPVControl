@@ -168,14 +168,28 @@ const char index_html[] PROGMEM = R"rawliteral(
 )rawliteral";
 
 // PIN constants
-const int PIN_LEFT_BUTTON = 4;   //D2
+//D0 = 16
+//D1 = 5
+//D2 = 4
+//D3 = 0 
+//D4 = 2
+//D5 = 14
+//D6 = 12
+//D7 = 13
+//D8 = 15
+const int PIN_LEFT_BUTTON = 16;   //D0
 const int PIN_RIGHT_BUTTON = 5;  //D1
-const int PIN_LEAK = 16;         //D0
-const int PIN_MOTOR = 0;         //D3
+
+const int PIN_LEAK_FRONT = 4;         //D2
+const int PIN_LEAK_BACK = 0;         //D3
+
 const int PIN_LED = 2;           //D4
+
 const int PIN_DHT = 14;           //D5
 const int PIN_BEEP = 12;           //D6
 
+//Motor kommt noch weg
+const int PIN_MOTOR = 15;         //D8
 
 #define DHTTYPE    DHT22
 DHT_Unified dht(PIN_DHT, DHTTYPE);
@@ -214,13 +228,15 @@ int LED_State_Last = 0;
 //IO
 ClickButton leftButton(PIN_LEFT_BUTTON, LOW, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, LOW, CLICKBTN_PULLUP);
-ClickButton LeakSensor(PIN_LEAK);
+ClickButton LeakSensor(PIN_LEAK_FRONT);
+ClickButton LeakSensor(PIN_LEAK_BACK);
 Servo servo;
 
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
-  pinMode(PIN_LEAK, INPUT);
+  pinMode(PIN_LEAK_FRONT, INPUT);
+  pinMode(PIN_LEAK_BACK, INPUT);
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BEEP, OUTPUT);
 
@@ -256,14 +272,7 @@ void setup() {
   //delayMS = sensor.min_delay / 1000;
 
   //BEEP Initial
-  digitalWrite(PIN_BEEP, HIGH);
-  delay(600);
-  digitalWrite(PIN_BEEP, LOW);
-  delay(1000);
-  digitalWrite(PIN_BEEP, HIGH);
-  delay(600);
-  digitalWrite(PIN_BEEP, LOW);
-  delay(1000);
+  beep("11");
 
   //VESC UART
   while (!Serial) {;}
@@ -324,6 +333,7 @@ void controlStandby() {
       //Go into standby
       log("going to standby", micros(), true);
       motorState = MOTOR_STANDBY;
+      beep("22");
     }
     if (leftButtonState || rightButtonState) {
       //While not in standby, any button click updates the standby counter.
@@ -371,8 +381,11 @@ void controlLED() {
         LED_State = 3;
         break;
       case 3:
-        LED_State = 0;
+        LED_State = 4;
         break;
+      case 4:
+        LED_State = 0;
+        break;        
       default:
         // If an invalid state is somehow reached, turn the LED off
         LED_State = 0;
@@ -414,14 +427,17 @@ void setLEDState(int state) {
       brightness = 0;
       break;
     case 1:
-      brightness = 76;  // 30% of 255
+      brightness = 20;  
       break;
     case 2:
-      brightness = 153;  // 60% of 255
+      brightness = 76;  
       break;
     case 3:
-      brightness = 255;
+      brightness = 153;
       break;
+    case 4:
+      brightness = 255;
+      break;      
     default:
       // If an invalid state is provided, assume 0% brightness
       brightness = 0;
@@ -431,6 +447,15 @@ void setLEDState(int state) {
   log("LED_State", LED_State, true);
 }
 
+void beep(const String& sequence) {
+  for (char c : sequence) {
+    int toneDuration = (c == '1') ? 200 : 600; // Dauer des Tons: 200 ms für kurz (1), 600 ms für lang (2)
+    digitalWrite(PIN_BEEP, HIGH);
+    delay(toneDuration);
+    digitalWrite(PIN_BEEP, LOW);
+    delay(400); // Pause zwischen den Tönen (in Millisekunden)
+  }
+}
 
 void loop() {
   leftButton.Update();
@@ -445,7 +470,7 @@ void loop() {
   //Serial.print(" right: ");
   //Serial.print(rightButtonState);
 
-  leakSensorState = digitalRead(PIN_LEAK);
+  leakSensorState = digitalRead(PIN_LEAK_FRONT);
   //Serial.print(" leak: ");
   //Serial.print(leakSensorState);
 
