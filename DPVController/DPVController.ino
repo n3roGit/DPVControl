@@ -189,7 +189,7 @@ const int PIN_DHT = 14;           //D5
 const int PIN_BEEP = 12;           //D6
 
 //Motor kommt noch weg
-const int PIN_MOTOR = 15;         //D8
+const int PIN_MOTOR = 13;         //D8
 
 #define DHTTYPE    DHT22
 DHT_Unified dht(PIN_DHT, DHTTYPE);
@@ -200,11 +200,11 @@ const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
 //Constants
-const int MOTOR_MAX_SPEED = 160;
-const int MOTOR_MIN_SPEED = 30;
+const int MOTOR_MAX_SPEED = 16000;
+const int MOTOR_MIN_SPEED = 2000;
 const int SPEED_UP_TIME_MS = 4000;   //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 400;  //time we want to take to  speed the motor from full power to 0.
-const int SPEED_STEPS = 5;           //Number speed steps
+const int SPEED_STEPS = 10;           //Number speed steps
 const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
@@ -416,7 +416,8 @@ void setSoftMotorSpeed() {
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
-  servo.write(currentMotorSpeed);
+  //servo.write(currentMotorSpeed);
+  UART.setRPM(currentMotorSpeed);
   currentMotorTime = micros();
 }
 
