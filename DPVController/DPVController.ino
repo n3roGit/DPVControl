@@ -1,14 +1,16 @@
-#include <Servo.h>
 #include "ClickButton.h"
 
-#include <ESP8266WiFi.h>
-#include <Hash.h>
-#include <ESPAsyncTCP.h>
-#include <ESPAsyncWebServer.h>
+//#include <ESP8266WiFi.h>
+//#include <Hash.h>
+//#include <ESPAsyncTCP.h>
+//#include <ESPAsyncWebServer.h>
+
+
 
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
 #include <DHT_U.h>
+
 
 #include <VescUart.h>
 VescUart UART;
@@ -21,6 +23,7 @@ VescUart UART;
 const char* ssid = "Aquazepp";      // Not needed as this program includes the WiFi manager, see the instructions later
 const char* password = "Aquazepp";  // Not needed as this program includes the WiFi manager, see the instructions later
 
+/*
 AsyncWebServer server(80);
 const char index_html[] PROGMEM = R"rawliteral(
 
@@ -166,27 +169,30 @@ const char index_html[] PROGMEM = R"rawliteral(
     </body>
 </html>
 )rawliteral";
+*/
 
-// PIN constants
-//D0 = 16
-//D1 = 5
-//D2 = 4
-//D3 = 0 
-//D4 = 2
-//D5 = 14
-//D6 = 12
-//D7 = 13
-//D8 = 15
+/*
+PIN constants
+D0 = 16
+D1 = 5
+D2 = 4
+D3 = 0 //NICHT NUTZEN!
+D4 = 2
+D5 = 14
+D6 = 12
+D7 = 13
+D8 = 15
+*/
 const int PIN_LEFT_BUTTON = 16;   //D0
 const int PIN_RIGHT_BUTTON = 5;  //D1
 
 const int PIN_LEAK_FRONT = 4;         //D2
-const int PIN_LEAK_BACK = 0;         //D3
+const int PIN_LEAK_BACK = 2;         //D4
 
-const int PIN_LED = 2;           //D4
+const int PIN_LED = 14;           //D5
 
-const int PIN_DHT = 14;           //D5
-const int PIN_BEEP = 12;           //D6
+const int PIN_DHT = 12;           //D6
+const int PIN_BEEP = 0;           //D3
 
 //Motor kommt noch weg
 const int PIN_MOTOR = 13;         //D8
@@ -202,8 +208,8 @@ const int MOTOR_STANDBY = 2;
 //Constants
 const int MOTOR_MAX_SPEED = 16000;
 const int MOTOR_MIN_SPEED = 2000;
-const int SPEED_UP_TIME_MS = 4000;   //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_DOWN_TIME_MS = 400;  //time we want to take to  speed the motor from full power to 0.
+const int SPEED_UP_TIME_MS = 80000;   //time we want to take to  speed the motor from 0 to  full power.
+const int SPEED_DOWN_TIME_MS = 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;           //Number speed steps
 const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
@@ -230,7 +236,7 @@ ClickButton leftButton(PIN_LEFT_BUTTON, LOW, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, LOW, CLICKBTN_PULLUP);
 ClickButton LeakSensor(PIN_LEAK_FRONT);
 //ClickButton LeakSensor(PIN_LEAK_BACK);
-Servo servo;
+
 
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
@@ -249,11 +255,9 @@ void setup() {
 
   Serial.begin(115200);
 
-  servo.attach(PIN_MOTOR);
-  servo.write(25);  // needed for initializing the ESC
-  delay(2000);
 
 
+/*
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
   log("AP IP address:", IP, true);
@@ -264,7 +268,7 @@ void setup() {
 
   // Start server
   server.begin();
-
+*/
   //DHT Initial
   dht.begin();
   sensor_t sensor;
@@ -275,16 +279,24 @@ void setup() {
   beep("11");
 
   //VESC UART
-  while (!Serial) {;}
+  Serial1.begin(115200, SERIAL_8N1, 12, 13);
+  while (!Serial1) {;}
+  if(Serial1)
+  {
+    Serial.println("Serial1 successfully set up");
+  }
 
-  UART.setSerialPort(&Serial);
+  UART.setSerialPort(&Serial1);
 
-  if ( UART.getVescValues() ) {
-  Serial.println(UART.data.rpm);
-  Serial.println(UART.data.inpVoltage);
-  Serial.println(UART.data.ampHours);
-  Serial.println(UART.data.tachometerAbs);
-}
+  if ( UART.getVescValues() ) 
+  {
+    Serial.println(UART.data.rpm);
+    Serial.println(UART.data.inpVoltage);
+    Serial.println(UART.data.ampHours);
+    Serial.println(UART.data.tachometerAbs);
+  }
+
+Serial.println("Started!");
 }
 
 void log(const char* label, int value, boolean doLog) {
