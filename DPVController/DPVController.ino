@@ -287,14 +287,14 @@ void setup() {
   beep("11");
 
   //VESC UART
-  SerialUART.begin(115200, SERIAL_8N1, 16, 17);
-  while (!SerialUART) {;}
-  if(SerialUART)
+  Serial2.begin(115200, SERIAL_8N1, 16, 17);
+  while (!Serial2) {;}
+  if(Serial2)
   {
-    Serial.println("SerialUART successfully set up");
+    Serial.println("Serial2 successfully set up");
   }
 
-  UART.setSerialPort(&SerialUART);
+  UART.setSerialPort(&Serial2);
 
   if ( UART.getVescValues() ) 
   {
