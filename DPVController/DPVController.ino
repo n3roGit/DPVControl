@@ -173,29 +173,37 @@ const char index_html[] PROGMEM = R"rawliteral(
 
 /*
 PIN constants
-D0 = 16
-D1 = 5
-D2 = 4
-D3 = 0 //NICHT NUTZEN!
-D4 = 2
-D5 = 14
-D6 = 12
-D7 = 13
-D8 = 15
+34-39 only input without pulldown/up
+
+
+GPIO0: Boot-Modus (boot mode), oft für Flashen verwendet.
+GPIO2: Allgemeiner GPIO-Pin.
+GPIO4, GPIO5, GPIO12, GPIO13: Allgemeine GPIO-Pins, geeignet für Taster als Eingänge.
+GPIO14: Eingang für den DHT22-Sensor (Temperatur und Luftfeuchtigkeit).
+GPIO15: Allgemeiner GPIO-Pin.
+GPIO16: Allgemeiner GPIO-Pin, kann für serielle Kommunikation (RX2) verwendet werden.
+GPIO17: Allgemeiner GPIO-Pin, kann für serielle Kommunikation (TX2) verwendet werden.
+GPIO18: Ausgang für das Schalten eines Beepers oder ähnlicher Geräte.
+GPIO2, GPIO4, GPIO5, GPIO12, GPIO13, GPIO14, GPIO15, GPIO16, GPIO17, GPIO18: PWM-fähige Pins für Pulsweitenmodulation (PWM).
+GPIO19, GPIO21, GPIO22, GPIO23: Allgemeine GPIO-Pins.
+GPIO25, GPIO26, GPIO27, GPIO32, GPIO33, GPIO34, GPIO35: Weitere allgemeine GPIO-Pins.
+
+
 */
-const int PIN_LEFT_BUTTON = 16;   //D0
+
+// https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
+
+const int PIN_LEFT_BUTTON = 4;   //D0
 const int PIN_RIGHT_BUTTON = 5;  //D1
 
-const int PIN_LEAK_FRONT = 4;         //D2
-const int PIN_LEAK_BACK = 2;         //D4
+const int PIN_LEAK_FRONT = 12;         //D2
+const int PIN_LEAK_BACK = 13;         //D4
 
-const int PIN_LED = 14;           //D5
+const int PIN_LED = 2;           //D5
 
-const int PIN_DHT = 12;           //D6
-const int PIN_BEEP = 0;           //D3
+const int PIN_DHT = 14;           //D6
+const int PIN_BEEP = 18;           //D3
 
-//Motor kommt noch weg
-const int PIN_MOTOR = 13;         //D8
 
 #define DHTTYPE    DHT22
 DHT_Unified dht(PIN_DHT, DHTTYPE);
@@ -206,8 +214,8 @@ const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
 //Constants
-const int MOTOR_MAX_SPEED = 16000;
-const int MOTOR_MIN_SPEED = 2000;
+const int MOTOR_MAX_SPEED = 100;
+const int MOTOR_MIN_SPEED = 4;
 const int SPEED_UP_TIME_MS = 80000;   //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;           //Number speed steps
@@ -279,14 +287,14 @@ void setup() {
   beep("11");
 
   //VESC UART
-  Serial1.begin(115200, SERIAL_8N1, 12, 13);
-  while (!Serial1) {;}
-  if(Serial1)
+  SerialUART.begin(115200, SERIAL_8N1, 16, 17);
+  while (!SerialUART) {;}
+  if(SerialUART)
   {
-    Serial.println("Serial1 successfully set up");
+    Serial.println("SerialUART successfully set up");
   }
 
-  UART.setSerialPort(&Serial1);
+  UART.setSerialPort(&SerialUART);
 
   if ( UART.getVescValues() ) 
   {
@@ -429,7 +437,7 @@ void setSoftMotorSpeed() {
   }
   log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   //servo.write(currentMotorSpeed);
-  UART.setRPM(currentMotorSpeed);
+  UART.setCurrent(currentMotorSpeed);
   currentMotorTime = micros();
 }
 
