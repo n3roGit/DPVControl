@@ -1,29 +1,23 @@
 #include "ClickButton.h"
 
-//#include <ESP8266WiFi.h>
-//#include <Hash.h>
-//#include <ESPAsyncTCP.h>
-//#include <ESPAsyncWebServer.h>
+#include <WiFi.h>
+const char* ssid = "Aquazepp";      // Not needed as this program includes the WiFi manager, see the instructions later
+const char* password = "Aquazepp";  // Not needed as this program includes the WiFi manager, see the instructions later
 
+#include "DHTesp.h"
 
-
-#include <Adafruit_Sensor.h>
-#include <DHT.h>
-#include <DHT_U.h>
 
 #include <HardwareSerial.h>
 #include <VescUart.h>
 VescUart UART;
-#define RXD1 16
-#define TXD1 17
+
 
 
 // https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
 
 #include "uptime_formatter.h"
 
-const char* ssid = "Aquazepp";      // Not needed as this program includes the WiFi manager, see the instructions later
-const char* password = "Aquazepp";  // Not needed as this program includes the WiFi manager, see the instructions later
+
 
 /*
 AsyncWebServer server(80);
@@ -174,21 +168,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 */
 
 /*
-PIN constants
-34-39 only input without pulldown/up
-
-
-GPIO0: Boot-Modus (boot mode), oft für Flashen verwendet.
-GPIO2: Allgemeiner GPIO-Pin.
-GPIO4, GPIO5, GPIO12, GPIO13: Allgemeine GPIO-Pins, geeignet für Taster als Eingänge.
-GPIO14: Eingang für den DHT22-Sensor (Temperatur und Luftfeuchtigkeit).
-GPIO15: Allgemeiner GPIO-Pin.
-GPIO16: Allgemeiner GPIO-Pin, kann für serielle Kommunikation (RX2) verwendet werden.
-GPIO17: Allgemeiner GPIO-Pin, kann für serielle Kommunikation (TX2) verwendet werden.
-GPIO18: Ausgang für das Schalten eines Beepers oder ähnlicher Geräte.
-GPIO2, GPIO4, GPIO5, GPIO12, GPIO13, GPIO14, GPIO15, GPIO16, GPIO17, GPIO18: PWM-fähige Pins für Pulsweitenmodulation (PWM).
-GPIO19, GPIO21, GPIO22, GPIO23: Allgemeine GPIO-Pins.
-GPIO25, GPIO26, GPIO27, GPIO32, GPIO33, GPIO34, GPIO35: Weitere allgemeine GPIO-Pins.
+GPIO 16-33 kann man nutzen
 
 
 */
@@ -198,20 +178,21 @@ GPIO25, GPIO26, GPIO27, GPIO32, GPIO33, GPIO34, GPIO35: Weitere allgemeine GPIO-
 const int PIN_LEFT_BUTTON = 26;   //G26 OK
 const int PIN_RIGHT_BUTTON = 27;  //G27 OK
 
-const int PIN_LEAK_FRONT = 32;         //G12
-const int PIN_LEAK_BACK = 33;         //G13
+const int PIN_LEAK_FRONT = 32;  //G12
+const int PIN_LEAK_BACK = 33;   //G13
 
-const int PIN_LED = 25;           //G25 OK
+const int PIN_LED = 25;  //G25 OK
 
-const int PIN_DHT = 14;           //G14
-const int PIN_BEEP = 18;           //G18 OK
+const int PIN_DHT = 14;  //G14 OK
+DHTesp dhtSensor;
+
+const int PIN_BEEP = 18;  //G18 OK
+
+#define VESCRX 22  //OK
+#define VESCTX 23   //OK
 
 
 
-
-
-#define DHTTYPE    DHT22
-DHT_Unified dht(PIN_DHT, DHTTYPE);
 
 // Values for motorState
 const int MOTOR_OFF = 0;
@@ -272,7 +253,7 @@ void setup() {
   Serial.println("Booting started...!");
   beep("1");
 
-/*
+  /*
   WiFi.softAP(ssid, password);
   IPAddress IP = WiFi.softAPIP();
   log("AP IP address:", IP, true);
@@ -284,30 +265,28 @@ void setup() {
   // Start server
   server.begin();
 */
-  //DHT Initial
-  dht.begin();
-  sensor_t sensor;
-  dht.temperature().getSensor(&sensor);
-  //delayMS = sensor.min_delay / 1000;
 
 
+  //Setup DHT22
+  dhtSensor.setup(PIN_DHT, DHTesp::DHT22);
+  TempAndHumidity data = dhtSensor.getTempAndHumidity();
+  Serial.println("Temp: " + String(data.temperature, 2) + "°C");
+  Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+  Serial.println("---");
 
   //VESC UART
-  Serial1.begin(115200, SERIAL_8N1, RXD1, TXD1);
-  while (!Serial1) {;}
-  
+  Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
+  while (!Serial1) { ; }
+
   UART.setSerialPort(&Serial1);
 
-  if (UART.getVescValues()) 
-  {
+  if (UART.getVescValues()) {
     Serial.println("Verbindung zu VESC erfolgreich.");
-  }
-  else
-  {
+  } else {
     Serial.println("Fehler beim Herstellen der Verbindung zu VESC.");
   }
 
-Serial.println("Booting finished!");
+  Serial.println("Booting finished!");
   //BEEP Initial
   beep("222");
 }
@@ -342,7 +321,6 @@ void updateSpeedSetting() {
       log("speedSetting", speedSetting, true);
     }
   }
-
 }
 
 void controlStandby() {
@@ -411,7 +389,7 @@ void controlLED() {
         break;
       case 4:
         LED_State = 0;
-        break;        
+        break;
       default:
         // If an invalid state is somehow reached, turn the LED off
         LED_State = 0;
@@ -454,33 +432,33 @@ void setLEDState(int state) {
       brightness = 0;
       break;
     case 1:
-      brightness = 20;  
+      brightness = 20;
       break;
     case 2:
-      brightness = 76;  
+      brightness = 76;
       break;
     case 3:
       brightness = 153;
       break;
     case 4:
       brightness = 255;
-      break;      
+      break;
     default:
       // If an invalid state is provided, assume 0% brightness
       brightness = 0;
       break;
   }
-  analogWrite(PIN_LED, brightness); // LED-PIN, Brightness 0-255
+  analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
   log("LED_State", LED_State, true);
 }
 
 void beep(const String& sequence) {
   for (char c : sequence) {
-    int toneDuration = (c == '1') ? 200 : 600; // Dauer des Tons: 200 ms für kurz (1), 600 ms für lang (2)
+    int toneDuration = (c == '1') ? 200 : 600;  // Dauer des Tons: 200 ms für kurz (1), 600 ms für lang (2)
     digitalWrite(PIN_BEEP, HIGH);
     delay(toneDuration);
     digitalWrite(PIN_BEEP, LOW);
-    delay(400); // Pause zwischen den Tönen (in Millisekunden)
+    delay(400);  // Pause zwischen den Tönen (in Millisekunden)
   }
 }
 
@@ -490,16 +468,16 @@ void loop() {
   LeakSensor.Update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
-  Serial.print("left: ");
- Serial.print(leftButtonState);
+  //Serial.print("left: ");
+  //Serial.print(leftButtonState);
 
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
-  Serial.print(" right: ");
-  Serial.print(rightButtonState);
+  //Serial.print(" right: ");
+  //Serial.print(rightButtonState);
 
   leakSensorState = digitalRead(PIN_LEAK_FRONT);
-  Serial.print(" leak: ");
-  Serial.print(leakSensorState);
+  //Serial.print(" leak: ");
+  //Serial.print(leakSensorState);
 
   //Serial.print(" micros: ");
   //Serial.print(micros());
