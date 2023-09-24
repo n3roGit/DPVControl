@@ -11,9 +11,11 @@
 #include <DHT.h>
 #include <DHT_U.h>
 
-
+#include <HardwareSerial.h>
 #include <VescUart.h>
 VescUart UART;
+#define RXD1 16
+#define TXD1 17
 
 
 // https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
@@ -193,16 +195,19 @@ GPIO25, GPIO26, GPIO27, GPIO32, GPIO33, GPIO34, GPIO35: Weitere allgemeine GPIO-
 
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 
-const int PIN_LEFT_BUTTON = 4;   //D0
-const int PIN_RIGHT_BUTTON = 5;  //D1
+const int PIN_LEFT_BUTTON = 26;   //G26 OK
+const int PIN_RIGHT_BUTTON = 27;  //G27 OK
 
-const int PIN_LEAK_FRONT = 12;         //D2
-const int PIN_LEAK_BACK = 13;         //D4
+const int PIN_LEAK_FRONT = 32;         //G12
+const int PIN_LEAK_BACK = 33;         //G13
 
-const int PIN_LED = 2;           //D5
+const int PIN_LED = 25;           //G25 OK
 
-const int PIN_DHT = 14;           //D6
-const int PIN_BEEP = 18;           //D3
+const int PIN_DHT = 14;           //G14
+const int PIN_BEEP = 18;           //G18 OK
+
+
+
 
 
 #define DHTTYPE    DHT22
@@ -214,8 +219,8 @@ const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
 //Constants
-const int MOTOR_MAX_SPEED = 100;
-const int MOTOR_MIN_SPEED = 4;
+const int MOTOR_MAX_SPEED = 14000;
+const int MOTOR_MIN_SPEED = 2000;
 const int SPEED_UP_TIME_MS = 80000;   //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;           //Number speed steps
@@ -240,8 +245,8 @@ int LED_State_Last = 0;
 
 
 //IO
-ClickButton leftButton(PIN_LEFT_BUTTON, LOW, CLICKBTN_PULLUP);
-ClickButton rightButton(PIN_RIGHT_BUTTON, LOW, CLICKBTN_PULLUP);
+ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
+ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
 ClickButton LeakSensor(PIN_LEAK_FRONT);
 //ClickButton LeakSensor(PIN_LEAK_BACK);
 
@@ -263,7 +268,9 @@ void setup() {
 
   Serial.begin(115200);
 
-
+  //BEEP Initial
+  Serial.println("Booting started...!");
+  beep("1");
 
 /*
   WiFi.softAP(ssid, password);
@@ -283,28 +290,26 @@ void setup() {
   dht.temperature().getSensor(&sensor);
   //delayMS = sensor.min_delay / 1000;
 
-  //BEEP Initial
-  beep("11");
+
 
   //VESC UART
-  Serial2.begin(115200, SERIAL_8N1, 16, 17);
-  while (!Serial2) {;}
-  if(Serial2)
+  Serial1.begin(115200, SERIAL_8N1, RXD1, TXD1);
+  while (!Serial1) {;}
+  
+  UART.setSerialPort(&Serial1);
+
+  if (UART.getVescValues()) 
   {
-    Serial.println("Serial2 successfully set up");
+    Serial.println("Verbindung zu VESC erfolgreich.");
+  }
+  else
+  {
+    Serial.println("Fehler beim Herstellen der Verbindung zu VESC.");
   }
 
-  UART.setSerialPort(&Serial2);
-
-  if ( UART.getVescValues() ) 
-  {
-    Serial.println(UART.data.rpm);
-    Serial.println(UART.data.inpVoltage);
-    Serial.println(UART.data.ampHours);
-    Serial.println(UART.data.tachometerAbs);
-  }
-
-Serial.println("Started!");
+Serial.println("Booting finished!");
+  //BEEP Initial
+  beep("222");
 }
 
 void log(const char* label, int value, boolean doLog) {
@@ -366,7 +371,7 @@ void controlStandby() {
 
 void controlMotor() {
   if (motorState != MOTOR_STANDBY) {
-    if ((leftButtonState == 1 || rightButtonState == 1) && leakSensorState == 0) {
+    if ((leftButtonState == 0 || rightButtonState == 0) && leakSensorState == 0) {
       motorState = MOTOR_ON;
     } else {
       motorState = MOTOR_OFF;
@@ -437,7 +442,7 @@ void setSoftMotorSpeed() {
   }
   log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   //servo.write(currentMotorSpeed);
-  UART.setCurrent(currentMotorSpeed);
+  UART.setRPM(currentMotorSpeed);
   currentMotorTime = micros();
 }
 
@@ -485,16 +490,16 @@ void loop() {
   LeakSensor.Update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
-  //Serial.print("left: ");
-  //Serial.print(leftButtonState);
+  Serial.print("left: ");
+ Serial.print(leftButtonState);
 
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
-  //Serial.print(" right: ");
-  //Serial.print(rightButtonState);
+  Serial.print(" right: ");
+  Serial.print(rightButtonState);
 
   leakSensorState = digitalRead(PIN_LEAK_FRONT);
-  //Serial.print(" leak: ");
-  //Serial.print(leakSensorState);
+  Serial.print(" leak: ");
+  Serial.print(leakSensorState);
 
   //Serial.print(" micros: ");
   //Serial.print(micros());
