@@ -178,8 +178,8 @@ GPIO 16-33 kann man nutzen
 const int PIN_LEFT_BUTTON = 26;   //G26 OK
 const int PIN_RIGHT_BUTTON = 27;  //G27 OK
 
-const int PIN_LEAK_FRONT = 32;  //G12
-const int PIN_LEAK_BACK = 33;   //G13
+const int PIN_LEAK_FRONT = 32;  //G32 OK
+const int PIN_LEAK_BACK = 33;   //G3 OK
 
 const int PIN_LED = 25;  //G25 OK
 
@@ -202,8 +202,8 @@ const int MOTOR_STANDBY = 2;
 //Constants
 const int MOTOR_MAX_SPEED = 14000;
 const int MOTOR_MIN_SPEED = 2000;
-const int SPEED_UP_TIME_MS = 80000;   //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_DOWN_TIME_MS = 1000;  //time we want to take to  speed the motor from full power to 0.
+const int SPEED_UP_TIME_MS = 8000 * 1000 ;   //time we want to take to  speed the motor from 0 to  full power.
+const int SPEED_DOWN_TIME_MS = 1000 * 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;           //Number speed steps
 const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
@@ -228,15 +228,14 @@ int LED_State_Last = 0;
 //IO
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
-ClickButton LeakSensor(PIN_LEAK_FRONT);
-//ClickButton LeakSensor(PIN_LEAK_BACK);
+
 
 
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
-  pinMode(PIN_LEAK_FRONT, INPUT);
-  //pinMode(PIN_LEAK_BACK, INPUT);
+  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP); // Aktiviere den internen Pull-Up-Widerstand für den Front-Leak-Pin
+  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);  // Aktiviere den internen Pull-Up-Widerstand für den Back-Leak-Pin
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BEEP, OUTPUT);
 
@@ -349,8 +348,9 @@ void controlStandby() {
 
 void controlMotor() {
   if (motorState != MOTOR_STANDBY) {
-    if ((leftButtonState == 0 || rightButtonState == 0) && leakSensorState == 0) {
+    if (leftButtonState == 0 || rightButtonState == 0) {
       motorState = MOTOR_ON;
+      GetESCValues();
     } else {
       motorState = MOTOR_OFF;
     }
@@ -367,6 +367,7 @@ void controlMotor() {
   //Serial.print(targetMotorSpeed);
 
   setSoftMotorSpeed();
+  
 }
 
 void controlLED() {
@@ -461,11 +462,49 @@ void beep(const String& sequence) {
     delay(400);  // Pause zwischen den Tönen (in Millisekunden)
   }
 }
+void GetESCValues(){
+  if ( UART.getVescValues() ) {
+    Serial.print("RPM: ");
+    Serial.println(UART.data.rpm);
+    Serial.print("inpVoltage: ");
+    Serial.println(UART.data.inpVoltage);
+    Serial.print("ampHours: ");
+    Serial.println(UART.data.ampHours);
+    Serial.print("tachometerAbs: ");
+    Serial.println(UART.data.tachometerAbs);
+  }
+  else
+  {
+    Serial.println("Failed to get data!");
+  }
+}
+void checkForLeak() {
+  int frontLeakState = digitalRead(PIN_LEAK_FRONT);
+  int backLeakState = digitalRead(PIN_LEAK_BACK);
+  
+  // Überprüfen, ob einer der Pins auf "HIGH" ist
+  if (frontLeakState == HIGH || backLeakState == HIGH) {
+    leakSensorState = 1; // Es liegt ein Leak vor
+  } else {
+    leakSensorState = 0; // Kein Leak festgestellt
+  }
+  
+  // Ausgabe auf der seriellen Schnittstelle
+  /*
+  Serial.print("Front Leak: ");
+  Serial.println(frontLeakState == LOW ? "Leak detected" : "No leak");
+  
+  Serial.print("Back Leak: ");
+  Serial.println(backLeakState == LOW ? "Leak detected" : "No leak");
+  */
+}
+
+
+
 
 void loop() {
   leftButton.Update();
   rightButton.Update();
-  LeakSensor.Update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
   //Serial.print("left: ");
@@ -475,9 +514,7 @@ void loop() {
   //Serial.print(" right: ");
   //Serial.print(rightButtonState);
 
-  leakSensorState = digitalRead(PIN_LEAK_FRONT);
-  //Serial.print(" leak: ");
-  //Serial.print(leakSensorState);
+
 
   //Serial.print(" micros: ");
   //Serial.print(micros());
@@ -486,6 +523,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
+  checkForLeak();
 
   //Serial.println("up " + uptime_formatter::getUptime());
 }
