@@ -281,16 +281,20 @@ void controlLED() {
         LED_State = 0;
         break;
     }
-    
-    /*
-    // Hinzugefügte Logik zur Überprüfung der Geschwindigkeit und LED_State
-    if (speedSetting > int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State != 0 && LED_State >= 3) {
-      LED_State = 1;
-      LED_State_Last = 1;
-    } else {
-      LED_State_Last = LED_State;
-    }
-    */
+    setLEDState(LED_State);
+  }
+}
+
+void PreventOverload() {
+  // Hinzugefügte Logik zur Überprüfung der Geschwindigkeit und LED_State
+  if (speedSetting > int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State >= 3) {
+    LED_State_Last = LED_State;
+    LED_State = 2;
+    setLEDState(LED_State);
+  }
+  else if (speedSetting <= int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State != 0 && LED_State != LED_State_Last) {
+    LED_State = LED_State_Last;
+    setLEDState(LED_State);
   }
 }
 
@@ -421,6 +425,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
+  //PreventOverload();
   checkForLeak();
   BeepForLeak();
   //Serial.println("up " + uptime_formatter::getUptime());
