@@ -79,7 +79,7 @@ unsigned long buttonPressStartTime = 0;
 unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
-const unsigned long HOLD_DELAY = 500; // 500 Millisekunden für einen Hold
+const unsigned long HOLD_DELAY = 500;  // 500 Millisekunden für einen Hold
 
 //IO
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
@@ -288,6 +288,7 @@ void controlLED() {
         break;
     }
     setLEDState(LED_State);
+    log("LED_State", LED_State, true);
   }
 }
 
@@ -355,7 +356,6 @@ void setLEDState(int state) {
       break;
   }
   analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
-  log("LED_State", LED_State, true);
 }
 
 
@@ -427,24 +427,28 @@ void checkForLeak() {
 }
 
 void BeepForLeak() {
-  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 *1000 *1000)) {  // Alle 10 Sekunden
-    beep("22222");                                                    // Hier die gewünschte Sequenz für den Ton
+  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Alle 10 Sekunden
+    beep("22222");                                                              // Hier die gewünschte Sequenz für den Ton
     log("WARNING LEAK", 22222, true);
     lastLeakBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
   }
 }
 void BeepForStandby() {
-  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBeepTime >= (60 *1000 *1000)) {
-    beep("1");                                                    // Hier die gewünschte Sequenz für den Ton
+  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
+    beep("1");  // Hier die gewünschte Sequenz für den Ton
     log("still in standby", 1, true);
     lastStandbyBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
   }
 }
 void BlinkForLongStandby() {
-  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= (120 *1000 *1000) && LED_State == 0) {
-    blinkLED("111222111");                                                    // Hier die gewünschte Sequenz für den Ton
-    log("still in standby", 1, true);
+  unsigned long Warningtime = (3 * 60 * 1000000);
+  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= Warningtime && LED_State == 0) {
+    blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
+    log("sos iam alone", 111222111, true);
+    Warningtime = (30 * 1000000);     //alle 30 sek
     lastStandbyBlinkTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+  } else {
+    Warningtime = (3 * 60 * 1000000);  //alle 3 minuten
   }
 }
 
@@ -489,7 +493,7 @@ void loop() {
   BeepForLeak();
   BeepForStandby();
   BlinkForLongStandby();
-  
+
   //Serial.println("up " + uptime_formatter::getUptime());
   //Sonst ist der controller zu schnell durch den loop
   delay(1);
