@@ -6,6 +6,7 @@
 
 #include <VescUart.h>
 VescUart UART;
+
 #include "uptime_formatter.h"
 
 
@@ -54,6 +55,9 @@ const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor go
 const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
 const float LED_Energy_Limiter = 0.8;
 const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
+const int StandbyBlinkStart = 1; // Minutes
+const int StandbyBlinkDuration = 10; // Seconds
+
 
 
 
@@ -80,6 +84,7 @@ unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 const unsigned long HOLD_DELAY = 500;  // 500 Millisekunden für einen Hold
+unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 
 //IO
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
@@ -441,14 +446,13 @@ void BeepForStandby() {
   }
 }
 void BlinkForLongStandby() {
-  unsigned long Warningtime = (3 * 60 * 1000000);
-  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= Warningtime && LED_State == 0) {
+  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= StandbyBlinkWarningtime && LED_State == 0) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
     log("sos iam alone", 111222111, true);
-    Warningtime = (30 * 1000000);     //alle 30 sek
+    StandbyBlinkWarningtime = (StandbyBlinkDuration * 1000000);     //alle 30 sek
     lastStandbyBlinkTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
   } else {
-    Warningtime = (3 * 60 * 1000000);  //alle 3 minuten
+    StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);  //alle 3 minuten
   }
 }
 
@@ -493,6 +497,8 @@ void loop() {
   BeepForLeak();
   BeepForStandby();
   BlinkForLongStandby();
+
+
 
   //Serial.println("up " + uptime_formatter::getUptime());
   //Sonst ist der controller zu schnell durch den loop
