@@ -72,9 +72,14 @@ unsigned long lastActionTime = 0;
 int LED_State = 0;
 int LED_State_Last = 0;
 unsigned long lastBeepTime = 0;
+unsigned long lastBlinkTime = 0;
+unsigned long lastStandbyBeepTime = 0;
+unsigned long lastStandbyBlinkTime = 0;
 unsigned long buttonPressStartTime = 0;
 unsigned long lastLeakBeepTime = 0;
-
+unsigned long leftButtonDownTime = 0;
+unsigned long rightButtonDownTime = 0;
+const unsigned long HOLD_DELAY = 500; // 500 Millisekunden für einen Hold
 
 //IO
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
@@ -147,6 +152,7 @@ void updateSpeedSetting() {
   if (motorState != MOTOR_STANDBY) {
     if (rightButton.clicks == -2) {
       log("rightButton.clicks", rightButton.clicks, true);
+      rightButton.clicks = 0;
       speedSetting += MOTOR_SPEED_CHANGE;
       if (speedSetting > MOTOR_MAX_SPEED) {
         speedSetting = MOTOR_MAX_SPEED;
@@ -179,7 +185,7 @@ void controlStandby() {
       //Go into standby
       log("going to standby", micros(), true);
       motorState = MOTOR_STANDBY;
-      beep("22");
+      beep("2");
     }
     if (leftButtonState == 0 || rightButtonState == 0) {
       //While not in standby, any button click updates the standby counter.
@@ -372,6 +378,23 @@ void beep(const String& sequence) {
   }
 }
 
+void blinkLED(const String& sequence) {
+  for (char c : sequence) {
+    setLEDState(0);
+    int blinkDuration = (c == '1') ? 200 : 600;
+    setLEDState(4);
+    float startMicros = micros();
+    while (micros() - startMicros < blinkDuration * 1000) {
+      // Warten, bis die gewünschte Dauer erreicht ist
+    }
+    setLEDState(0);
+    lastBlinkTime = micros();
+    while (micros() - lastBlinkTime < 400000) {
+      // Pause zwischen blinken
+    }
+  }
+}
+
 
 
 
@@ -404,13 +427,47 @@ void checkForLeak() {
 }
 
 void BeepForLeak() {
-  if (leakSensorState == 1 && micros() - lastBeepTime >= 10000000) {  // Alle 10 Sekunden
+  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 *1000 *1000)) {  // Alle 10 Sekunden
     beep("22222");                                                    // Hier die gewünschte Sequenz für den Ton
-    log("WARNING", 22222, true);
+    log("WARNING LEAK", 22222, true);
     lastLeakBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
   }
 }
+void BeepForStandby() {
+  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBeepTime >= (60 *1000 *1000)) {
+    beep("1");                                                    // Hier die gewünschte Sequenz für den Ton
+    log("still in standby", 1, true);
+    lastStandbyBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+  }
+}
+void BlinkForLongStandby() {
+  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= (120 *1000 *1000) && LED_State == 0) {
+    blinkLED("111222111");                                                    // Hier die gewünschte Sequenz für den Ton
+    log("still in standby", 1, true);
+    lastStandbyBlinkTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+  }
+}
 
+void checkButtonClicks() {
+  leftButton.Update();
+  rightButton.Update();
+
+  if (leftButton.clicks == 1 && rightButton.clicks == 1) {
+    Serial.println("1 Click - 1 Click");
+  } else if (leftButton.clicks == 2 && rightButton.clicks == 2) {
+    Serial.println("2 Clicks - 2 Clicks");
+  } else if (leftButton.clicks == 3 && rightButton.clicks == 3) {
+    Serial.println("3 Clicks - 3 Clicks");
+  } else if (leftButton.clicks == 2 && rightButtonState == 0) {
+    Serial.println("2 Clicks - Hold");
+  } else if (leftButtonState == 0 && rightButton.clicks == 2) {
+    Serial.println("Hold - 2 Clicks");
+  } else if (leftButton.clicks == 1) {
+    Serial.println("1 Click -");
+  } else if (rightButton.clicks == 1) {
+    Serial.println("- 1 Click");
+  }
+}
 
 
 void loop() {
@@ -422,7 +479,7 @@ void loop() {
 
   log("rightButtonState", rightButtonState, EnableDebugLog);
   log("leftButtonState", leftButtonState, EnableDebugLog);
-
+  //checkButtonClicks();
   updateSpeedSetting();
   controlStandby();
   controlMotor();
@@ -430,6 +487,9 @@ void loop() {
   PreventOverload();
   checkForLeak();
   BeepForLeak();
+  BeepForStandby();
+  BlinkForLongStandby();
+  
   //Serial.println("up " + uptime_formatter::getUptime());
   //Sonst ist der controller zu schnell durch den loop
   delay(1);
