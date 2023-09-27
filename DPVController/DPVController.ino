@@ -91,10 +91,10 @@ void setup() {
   pinMode(PIN_BEEP, OUTPUT);
 
   leftButton.debounceTime = 40;     //20
-  leftButton.multiclickTime = 500;  //500
+  leftButton.multiclickTime = 300;  //500
   leftButton.longClickTime = 1000;
   rightButton.debounceTime = 40;     //20
-  rightButton.multiclickTime = 500;  //500
+  rightButton.multiclickTime = 300;  //500
   rightButton.longClickTime = 1000;
 
   Serial.begin(115200);
@@ -429,5 +429,6 @@ void loop() {
   checkForLeak();
   BeepForLeak();
   //Serial.println("up " + uptime_formatter::getUptime());
-  delay(5);
+  //Sonst ist der controller zu schnell durch den loop
+  delay(1);
 }
