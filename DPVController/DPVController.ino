@@ -292,10 +292,12 @@ void PreventOverload() {
     LED_State = 2;
     setLEDState(LED_State);
   }
+  /*
   else if (speedSetting <= int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State != 0 && LED_State != LED_State_Last) {
     LED_State = LED_State_Last;
     setLEDState(LED_State);
   }
+  */
 }
 
 /**
@@ -425,7 +427,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
-  //PreventOverload();
+  PreventOverload();
   checkForLeak();
   BeepForLeak();
   //Serial.println("up " + uptime_formatter::getUptime());
