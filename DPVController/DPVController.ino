@@ -50,7 +50,7 @@ const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed th
 const int SPEED_DOWN_TIME_MS = 1000 * 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;                  //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
-const int STANDBY_DELAY_MS = 45 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
+const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
 const float LED_Energy_Limiter = 0.8;
 const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
@@ -181,7 +181,7 @@ void controlStandby() {
       motorState = MOTOR_STANDBY;
       beep("22");
     }
-    if (leftButtonState || rightButtonState) {
+    if (leftButtonState == 0 || rightButtonState == 0) {
       //While not in standby, any button click updates the standby counter.
       lastActionTime = micros();
       log("update lastActionTime", lastActionTime, EnableDebugLog);
