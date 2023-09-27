@@ -1,171 +1,15 @@
 #include "ClickButton.h"
 
-#include <WiFi.h>
-const char* ssid = "Aquazepp";      // Not needed as this program includes the WiFi manager, see the instructions later
-const char* password = "Aquazepp";  // Not needed as this program includes the WiFi manager, see the instructions later
-
 #include "DHTesp.h"
 
-
 #include <HardwareSerial.h>
+
 #include <VescUart.h>
 VescUart UART;
-
-
-
-// https://randomnerdtutorials.com/esp8266-nodemcu-access-point-ap-web-server/
-
 #include "uptime_formatter.h"
 
 
 
-/*
-AsyncWebServer server(80);
-const char index_html[] PROGMEM = R"rawliteral(
-
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>DPVControl</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-                margin: 0;
-                padding: 0;
-            }
-            h2 {
-                margin-top: 0.5em;
-            }
-
-            table {
-                border-collapse: collapse;
-                width: 100%;
-            }
-
-            th,
-            td {
-                text-align: left;
-                padding: 8px;
-                border-bottom: 1px solid #ddd;
-            }
-
-            tr:hover {
-                background-color: #f5f5f5;
-            }
-
-            .button {
-                background-color: #4caf50;
-                border: none;
-                color: white;
-                padding: 10px 20px;
-                text-align: center;
-                text-decoration: none;
-                display: inline-block;
-                font-size: 16px;
-                margin: 4px 2px;
-                cursor: pointer;
-            }
-
-            .button:hover {
-                background-color: #3e8e41;
-            }
-
-            #log {
-                height: 200px;
-                overflow-y: scroll;
-                white-space: pre-wrap;
-                border: 1px solid #ddd;
-                padding: 8px;
-            }
-
-            #log p:last-child {
-                margin-bottom: 0;
-            }
-        </style>
-    </head>
-    <body>
-        <h2>Wifi</h2>
-        <table>
-            <tr>
-                <td>SSID:</td>
-                <td><input type="text" value="Aquazepp" /></td>
-                <td><button class="button">Change</button></td>
-            </tr>
-            <tr>
-                <td>Password:</td>
-                <td><input type="text" value="Aquazepp" /></td>
-                <td><button class="button">Change</button></td>
-            </tr>
-        </table>
-        <h2>Battery</h2>
-        <table>
-            <tr>
-                <td>Battery Voltage:</td>
-                <td><input type="text" value="52 Volts" readonly /></td>
-            </tr>
-            <tr>
-                <td>Charge Level:</td>
-                <td><input type="text" value="100 %" readonly /></td>
-            </tr>
-        </table>
-        <h2>Configuration</h2>
-        <table>
-            <tr>
-                <td>Min Speed:</td>
-                <td><input type="text" value="30" /></td>
-                <td><button class="button">Change</button></td>
-            </tr>
-            <tr>
-                <td>Max Speed:</td>
-                <td><input type="text" value="160" /></td>
-                <td><button class="button">Change</button></td>
-            </tr>
-            <tr>
-                <td>SpinUp Time:</td>
-                <td><input type="text" value="4000 ms" /></td>
-                <td><button class="button">Change</button></td>
-            </tr>
-            <tr>
-                <td>SpinDown Time:</td>
-                <td><input type="text" value="400 ms" /></td>
-                <td><button class="button">Change</button></td>
-            </tr>
-            <tr>
-                <td>Speed Steps:</td>
-                <td><input type="text" id="speedSteps" value="5" /></td>
-                <td><button class="button" onclick="updateValue('speedSteps')">Change</button></td>
-            </tr>
-            <tr>
-                <td>StandBy Time:</td>
-                <td><input type="text" id="standbyTime" value="45" /></td>
-                <td><button class="button" onclick="updateValue('standbyTime')">Change</button></td>
-            </tr>
-        </table>
-
-        <h2>Data</h2>
-        <p>Water Sensor: <span id="waterSensorOutput"></span> <button onclick="acknowledge()">ACK</button></p>
-        <p>Uptime: <span id="uptimeOutput"></span></p>
-        <p>Right Switch: <span id="rightSwitchOutput"></span></p>
-        <p>Left Switch: <span id="leftSwitchOutput"></span></p>
-        <p>Speed Preset: <span id="speedPresetOutput"></span></p>
-        <p>Current Speed: <span id="currentSpeedOutput"></span></p>
-        <p>ESC Ampere: <span id="escAmpereOutput"></span></p>
-        <p>ESC RPM: <span id="escRPMOutput"></span></p>
-        <p>ESC Temperature: <span id="escTempOutput"></span></p>
-
-        <p>&nbsp;</p>
-        <h2>Log:</h2>
-        <div style="border: 1px solid black; width: 600px; height: 200px; overflow: auto;">
-            <div id="logOutput"></div>
-        </div>
-        <p>&nbsp;</p>
-        <button onclick="restart()">Restart</button>
-        <h4>Version 0.1</h4>
-    </body>
-</html>
-)rawliteral";
-*/
 
 /*
 GPIO 16-33 kann man nutzen
@@ -189,7 +33,7 @@ DHTesp dhtSensor;
 const int PIN_BEEP = 18;  //G18 OK
 
 #define VESCRX 22  //OK
-#define VESCTX 23   //OK
+#define VESCTX 23  //OK
 
 
 
@@ -202,13 +46,17 @@ const int MOTOR_STANDBY = 2;
 //Constants
 const int MOTOR_MAX_SPEED = 14000;
 const int MOTOR_MIN_SPEED = 2000;
-const int SPEED_UP_TIME_MS = 8000 * 1000 ;   //time we want to take to  speed the motor from 0 to  full power.
+const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 1000 * 1000;  //time we want to take to  speed the motor from full power to 0.
-const int SPEED_STEPS = 10;           //Number speed steps
-const float MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
+const int SPEED_STEPS = 10;                  //Number speed steps
+const unsigned long MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 45 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
-const int LED_Energy_Limiter = 0.8;
+const float LED_Energy_Limiter = 0.8;
+const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
+
+
+
 
 //Variables
 int leftButtonState = 0;
@@ -216,13 +64,16 @@ int rightButtonState = 0;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
 int currentMotorSpeed = 0;           //Speed the motor is currently running at
-float currentMotorTime = 0;          //Time in MS when we last changed the currentMotorSpeed
+unsigned long currentMotorTime = 0;  //Time in MS when we last changed the currentMotorSpeed
 int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same, even if motor is turned off.
-int targetMotorSpeed = 0;            //The desired motor speed
-int lastActionTime = 0;
+int MOTOR_MAX_SPEED_TEMP;
+int targetMotorSpeed = 0;  //The desired motor speed
+unsigned long lastActionTime = 0;
 int LED_State = 0;
 int LED_State_Last = 0;
-
+unsigned long lastBeepTime = 0;
+unsigned long buttonPressStartTime = 0;
+unsigned long lastLeakBeepTime = 0;
 
 
 //IO
@@ -234,16 +85,16 @@ ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
-  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP); // Aktiviere den internen Pull-Up-Widerstand für den Front-Leak-Pin
-  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);  // Aktiviere den internen Pull-Up-Widerstand für den Back-Leak-Pin
+  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP);  // Aktiviere den internen Pull-Up-Widerstand für den Front-Leak-Pin
+  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);   // Aktiviere den internen Pull-Up-Widerstand für den Back-Leak-Pin
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BEEP, OUTPUT);
 
-  leftButton.debounceTime = 20;
-  leftButton.multiclickTime = 500;
+  leftButton.debounceTime = 40; //20
+  leftButton.multiclickTime = 300; //500
   leftButton.longClickTime = 1000;
-  rightButton.debounceTime = 20;
-  rightButton.multiclickTime = 500;
+  rightButton.debounceTime = 40; //20
+  rightButton.multiclickTime = 300; //500
   rightButton.longClickTime = 1000;
 
   Serial.begin(115200);
@@ -251,20 +102,6 @@ void setup() {
   //BEEP Initial
   Serial.println("Booting started...!");
   beep("1");
-
-  /*
-  WiFi.softAP(ssid, password);
-  IPAddress IP = WiFi.softAPIP();
-  log("AP IP address:", IP, true);
-  Serial.println(WiFi.localIP());
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-    request->send_P(200, "text/html", index_html);
-  });
-
-  // Start server
-  server.begin();
-*/
-
 
   //Setup DHT22
   dhtSensor.setup(PIN_DHT, DHTesp::DHT22);
@@ -279,11 +116,17 @@ void setup() {
 
   UART.setSerialPort(&Serial1);
 
+
   if (UART.getVescValues()) {
     Serial.println("Verbindung zu VESC erfolgreich.");
   } else {
     Serial.println("Fehler beim Herstellen der Verbindung zu VESC.");
   }
+
+
+
+
+
 
   Serial.println("Booting finished!");
   //BEEP Initial
@@ -298,15 +141,29 @@ void log(const char* label, int value, boolean doLog) {
     Serial.print(value);
     Serial.println();
   }
+  if (EnableDebugLog) {
+    delay(100);
+  }
 }
+
+
 
 void updateSpeedSetting() {
   if (motorState != MOTOR_STANDBY) {
     if (rightButton.clicks == -2) {
       log("rightButton.clicks", rightButton.clicks, true);
       speedSetting += MOTOR_SPEED_CHANGE;
-      if (speedSetting > MOTOR_MAX_SPEED) {
-        speedSetting = MOTOR_MAX_SPEED;
+
+      if (LED_State >= 3) {
+        // Begrenze die Geschwindigkeit auf 80% von MOTOR_MAX_SPEED
+        MOTOR_MAX_SPEED_TEMP = int(MOTOR_MAX_SPEED * LED_Energy_Limiter);
+      } else {
+        MOTOR_MAX_SPEED_TEMP = MOTOR_MAX_SPEED;
+      }
+
+
+      if (speedSetting > MOTOR_MAX_SPEED_TEMP) {
+        speedSetting = MOTOR_MAX_SPEED_TEMP;
       }
       log("speedSetting", speedSetting, true);
     }
@@ -346,29 +203,40 @@ void controlStandby() {
   }
 }
 
+
+
 void controlMotor() {
   if (motorState != MOTOR_STANDBY) {
+    // Prüfen, ob eine der beiden Tasten gedrückt wird
     if (leftButtonState == 0 || rightButtonState == 0) {
-      motorState = MOTOR_ON;
-      GetESCValues();
+      // Wenn eine Taste gedrückt wurde und der Timer noch nicht gestartet ist, starten Sie ihn.
+      if (buttonPressStartTime == 0) {
+        buttonPressStartTime = micros();
+      }
+
+      // Prüfen, ob die Dauer des Tastendrucks MotorButtonDelay Mikrosekunden erreicht hat
+      if (micros() - buttonPressStartTime >= MotorButtonDelay) {
+        motorState = MOTOR_ON;
+      }
     } else {
+      // Wenn keine Taste gedrückt wird, setzen Sie den Timer zurück.
+      buttonPressStartTime = 0;
       motorState = MOTOR_OFF;
     }
   }
+
   log("motorstate", motorState, EnableDebugLog);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
-    //Motor is off
+    // Motor ist aus
     targetMotorSpeed = 0;
   } else if (motorState == MOTOR_ON) {
     targetMotorSpeed = speedSetting;
   }
-  //Serial.print(" targetMotorSpeed: ");
-  //Serial.print(targetMotorSpeed);
 
   setSoftMotorSpeed();
-  
 }
+
 
 void controlLED() {
 
@@ -453,17 +321,31 @@ void setLEDState(int state) {
   log("LED_State", LED_State, true);
 }
 
+
+
+
+
 void beep(const String& sequence) {
   for (char c : sequence) {
-    int toneDuration = (c == '1') ? 200 : 600;  // Dauer des Tons: 200 ms für kurz (1), 600 ms für lang (2)
+    int toneDuration = (c == '1') ? 200 : 600;
     digitalWrite(PIN_BEEP, HIGH);
-    delay(toneDuration);
+    float startMicros = micros();
+    while (micros() - startMicros < toneDuration * 1000) {
+      // Warten, bis die gewünschte Dauer erreicht ist
+    }
     digitalWrite(PIN_BEEP, LOW);
-    delay(400);  // Pause zwischen den Tönen (in Millisekunden)
+    lastBeepTime = micros();
+    while (micros() - lastBeepTime < 400000) {
+      // Pause zwischen den Tönen
+    }
   }
 }
-void GetESCValues(){
-  if ( UART.getVescValues() ) {
+
+
+
+
+void GetESCValues() {
+  if (UART.getVescValues()) {
     Serial.print("RPM: ");
     Serial.println(UART.data.rpm);
     Serial.print("inpVoltage: ");
@@ -472,33 +354,31 @@ void GetESCValues(){
     Serial.println(UART.data.ampHours);
     Serial.print("tachometerAbs: ");
     Serial.println(UART.data.tachometerAbs);
-  }
-  else
-  {
+  } else {
     Serial.println("Failed to get data!");
   }
 }
 void checkForLeak() {
   int frontLeakState = digitalRead(PIN_LEAK_FRONT);
   int backLeakState = digitalRead(PIN_LEAK_BACK);
-  
+
   // Überprüfen, ob einer der Pins auf "HIGH" ist
-  if (frontLeakState == HIGH || backLeakState == HIGH) {
-    leakSensorState = 1; // Es liegt ein Leak vor
-  } else {
-    leakSensorState = 0; // Kein Leak festgestellt
+  if (frontLeakState == LOW || backLeakState == LOW) {
+    leakSensorState = 1;  // Es liegt ein Leak vor
+    log("leakSensorState", leakSensorState, true);
   }
-  
-  // Ausgabe auf der seriellen Schnittstelle
-  /*
-  Serial.print("Front Leak: ");
-  Serial.println(frontLeakState == LOW ? "Leak detected" : "No leak");
-  
-  Serial.print("Back Leak: ");
-  Serial.println(backLeakState == LOW ? "Leak detected" : "No leak");
-  */
+  log("frontLeakState", frontLeakState, EnableDebugLog);
+  log("backLeakState", backLeakState, EnableDebugLog);
+  log("frontLeakState", frontLeakState, EnableDebugLog);
 }
 
+void BeepForLeak() {
+  if (leakSensorState == 1 && micros() - lastBeepTime >= 10000000) {  // Alle 10 Sekunden
+    beep("22222");                                                    // Hier die gewünschte Sequenz für den Ton
+    log("WARNING", 22222, true);
+    lastLeakBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+  }
+}
 
 
 
@@ -507,13 +387,11 @@ void loop() {
   rightButton.Update();
 
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
-  //Serial.print("left: ");
-  //Serial.print(leftButtonState);
-
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
-  //Serial.print(" right: ");
-  //Serial.print(rightButtonState);
 
+
+  log("rightButtonState", rightButtonState, EnableDebugLog);
+  log("leftButtonState", leftButtonState, EnableDebugLog);
 
 
   //Serial.print(" micros: ");
@@ -524,6 +402,6 @@ void loop() {
   controlMotor();
   controlLED();
   checkForLeak();
-
+  BeepForLeak();
   //Serial.println("up " + uptime_formatter::getUptime());
 }
