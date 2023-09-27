@@ -424,4 +424,5 @@ void loop() {
   checkForLeak();
   BeepForLeak();
   //Serial.println("up " + uptime_formatter::getUptime());
+  delay(5);
 }
