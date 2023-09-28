@@ -1,6 +1,6 @@
 # TODO
 
-- **Backwards speed:** 5% - Maximum x% backwards speed. Never exceed this power.
+
 - **Siren:** Signaling device (possibly beep through motor or blinking through front lamp).
 - **Web interface:** Retrieve basic information and adjust settings if necessary.
 - **Battery warning:** Low battery beep. Every 10% rounded down. From 30% remaining.
@@ -10,9 +10,8 @@
 - **Device must function even in case of water ingress. However, there must be a signal to alert the user.**
 - **Light at Level 1 if speed exceeds 80% to prevent battery overload. Light off at 100% power. Then revert to original value.**
 - **Implement click codes according to the table**
-- **Implement VESC**
-- **PWM control for LED lamp**
-- **Convert motor control from servo to VESC library with bidirectional control.**
+- - **Implement watchdog to make it smooth and stable**
+
 
 
 # Click Codes
@@ -29,7 +28,7 @@
 |          | 2 Clicks | Reactivate |
 | 3 Clicks | 3 Clicks |           |
 | 3 Clicks |          | Battery level |
-|          | 3 Clicks | Light Level 1, 2, 3, OFF |
+|          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
 
