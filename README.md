@@ -40,3 +40,16 @@
 
 # Pinout
 ![ESP32](https://github.com/n3roGit/DPVControl/blob/main/ESP32.png)
+
+
+# Build Process
+![Build1](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/1.jpg)
+![Build2](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/2.jpg)
+![Build3](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/3.jpg)
+![Build4](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/4.jpg)
+![Build5](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/5.jpg)
+![Build6](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/6.jpg)
+![Build7](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/7.jpg)
+![Build8](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/8.jpg)
+![Build9](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/9.jpg)
+![Build10](https://github.com/n3roGit/DPVControl/blob/main/buildprocess/10.jpg)
