@@ -24,7 +24,7 @@
 |          | Hold     | Turn motor ON |
 | 1 Click  | 1 Click  |           |
 |          | 1 Click  |           |
-| 2 Clicks | 2 Clicks | Change direction |
+| 2 Clicks | 2 Clicks | Boost Mode |
 | 2 Clicks |          | Reactivate |
 |          | 2 Clicks | Reactivate |
 | 3 Clicks | 3 Clicks |           |
