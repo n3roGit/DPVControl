@@ -10,7 +10,7 @@
 - **Device must function even in case of water ingress. However, there must be a signal to alert the user.**
 - **Light at Level 1 if speed exceeds 80% to prevent battery overload. Light off at 100% power. Then revert to original value.**
 - **Implement click codes according to the table**
-- - **Implement watchdog to make it smooth and stable**
+- **Implement watchdog to make it smooth and stable**
 
 
 
