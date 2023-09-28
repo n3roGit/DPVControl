@@ -27,7 +27,7 @@
 |          | 2 Clicks | Reactivate |
 | 3 Clicks | 3 Clicks |           |
 | 3 Clicks |          | Battery level |
-|          | 3 Clicks | Light Level 1, 2, 3, OFF |
+|          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
 
