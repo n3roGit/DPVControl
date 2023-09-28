@@ -206,7 +206,7 @@ void controlStandby() {
 
 
 /*
-tried to make a delay before motor starts by üressing button. not working.
+tried to make a delay before motor starts by pressing button. not working.
 */
 /*
 void controlMotor() {
@@ -370,6 +370,9 @@ void setLEDState(int state) {
       brightness = 0;
       break;
   }
+/*
+Is it possible to change pwm frequency to advoid led flickering while filming 
+*/
   analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
 }
 
