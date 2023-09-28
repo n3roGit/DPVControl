@@ -13,9 +13,7 @@ VescUart UART;
 
 
 /*
-GPIO 16-33 kann man nutzen
-
-
+It still has to be checked if the currently used GPIOs are the optimal ones.
 */
 
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
@@ -44,6 +42,10 @@ const int MOTOR_OFF = 0;
 const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
+
+/*
+Here please organize the variables smartly. here i use milliseconds in some places and minutes or seconds in others. how would you ideally do this?
+*/
 //Constants
 const int MOTOR_MAX_SPEED = 14000;
 const int MOTOR_MIN_SPEED = 2000;
@@ -91,7 +93,9 @@ ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
 
 
-
+/*
+The Setup is chaotic. Needs a cleanup
+*/
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
@@ -202,6 +206,9 @@ void controlStandby() {
 
 
 /*
+tried to make a delay before motor starts by üressing button. not working.
+*/
+/*
 void controlMotor() {
   if (motorState != MOTOR_STANDBY) {
     // Prüfen, ob eine der beiden Tasten gedrückt wird
@@ -297,6 +304,9 @@ void controlLED() {
   }
 }
 
+/*
+is this a clever solution to prevent overload?
+*/
 void PreventOverload() {
   // Hinzugefügte Logik zur Überprüfung der Geschwindigkeit und LED_State
   if (speedSetting > int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State >= 3) {
@@ -366,7 +376,9 @@ void setLEDState(int state) {
 
 
 
-
+/*
+Its working but while beeping the esp doesnt response
+*/
 void beep(const String& sequence) {
   for (char c : sequence) {
     int toneDuration = (c == '1') ? 200 : 600;
@@ -382,7 +394,9 @@ void beep(const String& sequence) {
     }
   }
 }
-
+/*
+Its working but while blinking the esp doesnt response
+*/
 void blinkLED(const String& sequence) {
   for (char c : sequence) {
     setLEDState(0);
@@ -402,7 +416,9 @@ void blinkLED(const String& sequence) {
 
 
 
-
+/*
+only output. needs to be stored in database
+*/
 void GetESCValues() {
   if (UART.getVescValues()) {
     Serial.print("RPM: ");
@@ -456,6 +472,9 @@ void BlinkForLongStandby() {
   }
 }
 
+/*
+idea to check all the click codes in one funtion. not working at the moment
+*/
 void checkButtonClicks() {
   leftButton.Update();
   rightButton.Update();
@@ -502,5 +521,8 @@ void loop() {
 
   //Serial.println("up " + uptime_formatter::getUptime());
   //Sonst ist der controller zu schnell durch den loop
+  /*
+  implemented this delay because the code is not working correct if this is not used. dont know why
+  */
   delay(1);
 }
