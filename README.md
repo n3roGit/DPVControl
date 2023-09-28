@@ -36,7 +36,8 @@
 # Logic
 ![logic](./DPVControl.drawio.png)
 
-
+# GUI
+![logic](./GUI.png)
 
 # Pinout
 ![ESP32](./ESP32.png)
