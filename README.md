@@ -37,4 +37,4 @@
 
 
 # Pinout
-![ESP8266](https://github.com/n3roGit/DPVControl/blob/main/d1-mini-esp8266-board-sh_fixled.jpg)
+![ESP32](https://github.com/n3roGit/DPVControl/blob/main/ESP32.png)
