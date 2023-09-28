@@ -34,13 +34,13 @@
 | Hold     | 2 Clicks | Stepwise faster |
 
 # Logic
-![logic](https://github.com/n3roGit/DPVControl/blob/main/DPVControl.drawio.png)
+![logic](./DPVControl.drawio.png)
 
 
 
 # Pinout
-![ESP32](https://github.com/n3roGit/DPVControl/blob/main/ESP32.png)
+![ESP32](./ESP32.png)
 
 
 # Build Process
-![Build](https://github.com/n3roGit/DPVControl/tree/main/buildprocess)
+![Build](./buildprocess)
