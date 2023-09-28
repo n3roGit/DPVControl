@@ -11,6 +11,7 @@
 - **Light at Level 1 if speed exceeds 80% to prevent battery overload. Light off at 100% power. Then revert to original value.**
 - **Implement click codes according to the table**
 - **Implement watchdog to make it smooth and stable**
+- **display uptime and overall runtime in gui**
 
 
 
