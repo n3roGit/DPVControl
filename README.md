@@ -1,7 +1,7 @@
 # TODO
 
 
-- **Siren:** Signaling device (possibly beep through motor or blinking through front lamp).
+
 - **Web interface:** Retrieve basic information and adjust settings if necessary.
 - **Battery warning:** Low battery beep. Every 10% rounded down. From 30% remaining.
 - **Energy Saver:** 20% - Reduce power to a maximum of 50% starting at X%.
@@ -54,3 +54,4 @@
 ![Build](./buildprocess/8.jpg)
 ![Build](./buildprocess/9.jpg)
 ![Build](./buildprocess/10.jpg)
+![Build](./buildprocess/11.jpg)
