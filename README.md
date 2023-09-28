@@ -33,6 +33,8 @@
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
 
+# Logic
+![logic](https://github.com/n3roGit/DPVControl/blob/main/DPVControl.drawio.png)
 
 
 
