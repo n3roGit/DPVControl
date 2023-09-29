@@ -4,6 +4,10 @@ In this GitHub project, the aim is to build and operate a DPV (Dive Propulsion V
 
 [![Donate with PayPal](./paypal-donate-button.png)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6ZFSVPZWLLAMC){ width=50% }
 
+<img src="./paypal-donate-button.png" alt="Donate with PayPal" width="50%">
+[Link zum PayPal-Spendenformular](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6ZFSVPZWLLAMC)
+
+
 # TODO
 
 
