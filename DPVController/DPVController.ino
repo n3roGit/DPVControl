@@ -10,8 +10,6 @@ VescUart UART;
 #include "uptime_formatter.h" //https://github.com/YiannisBourkelis/Uptime-Library
 
 
-
-
 /*
 It still has to be checked if the currently used GPIOs are the optimal ones.
 */
