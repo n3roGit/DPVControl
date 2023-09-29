@@ -22,7 +22,7 @@ const int PIN_LEFT_BUTTON = 26;   //G26 OK
 const int PIN_RIGHT_BUTTON = 27;  //G27 OK
 
 const int PIN_LEAK_FRONT = 32;  //G32 OK
-const int PIN_LEAK_BACK = 33;   //G3 OK
+const int PIN_LEAK_BACK = 33;   //G33 OK
 
 const int PIN_LED = 25;  //G25 OK
 
