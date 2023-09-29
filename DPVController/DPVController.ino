@@ -1,13 +1,13 @@
-#include "ClickButton.h"
+#include "ClickButton.h" //https://github.com/marcobrianza/ClickButton
 
-#include "DHTesp.h"
+#include "DHTesp.h" //https://github.com/beegee-tokyo/DHTesp
 
 #include <HardwareSerial.h>
 
-#include <VescUart.h>
+#include <VescUart.h> //https://github.com/RollingGecko/VescUartControl
 VescUart UART;
 
-#include "uptime_formatter.h"
+#include "uptime_formatter.h" //https://github.com/YiannisBourkelis/Uptime-Library
 
 
 
