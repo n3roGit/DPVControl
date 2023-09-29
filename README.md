@@ -39,7 +39,7 @@ In this GitHub project, the aim is to build and operate a DPV (Dive Propulsion V
 | Hold     | 2 Clicks | Stepwise faster |
 
 # Logic
-![logic](./DPVControl.drawio.png)
+![logic](./Logic.drawio.png)
 
 # GUI
 ![logic](./GUI.png)
