@@ -1,3 +1,8 @@
-              - name: Compile Arduino Sketches
-                uses: arduino/compile-sketches@v1.1.0
-            
+- uses: arduino/compile-sketches@v1
+  with:
+    platforms: |
+      # Use Boards Manager to install the latest release of the platform to get the toolchain.
+      - name: esp32:avr
+      # Overwrite the Boards Manager installation with the development version of the platform.
+      - source-url: https://github.com/arduino/ArduinoCore-avr.git
+        name: esp32:avr
