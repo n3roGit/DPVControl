@@ -1,0 +1,3 @@
+              - name: Report Arduino Sketch Size Deltas
+                uses: arduino/report-size-deltas@v1.0.1
+            
