@@ -17,8 +17,8 @@ It still has to be checked if the currently used GPIOs are the optimal ones.
 
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 
-const int PIN_LEFT_BUTTON = 26;   //G26 OK
-const int PIN_RIGHT_BUTTON = 27;  //G27 OK
+const int PIN_LEFT_BUTTON = 27;   //G27 OK
+const int PIN_RIGHT_BUTTON = 35;  //G35 OK
 
 const int PIN_LEAK_FRONT = 32;  //G32 OK
 const int PIN_LEAK_BACK = 33;   //G33 OK
