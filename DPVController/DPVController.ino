@@ -56,10 +56,10 @@ const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor go
 const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
 const float LED_Energy_Limiter = 0.8;
 const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
-const int StandbyBlinkStart = 1; // Minutes
+const int StandbyBlinkStart = 15; // Minutes
 const int StandbyBlinkDuration = 10; // Seconds
 
-const int LEDfrequency = 1000;    //Initialisiert die Integer-Variable frequency (Frequenz des PWM-Signals) konstant auf 1000 Hz
+const int LEDfrequency = 4000;    //Initialisiert die Integer-Variable frequency (Frequenz des PWM-Signals) konstant auf 1000 Hz
 const int LEDresolution = 8;      //Initialisiert die Integer-Variable resolution (Aufloesung des PWM-Signals) konstant auf 8 Bit
 const int LEDchannel = 0;         //Initialisiert die Integer-Variable channel konstant auf 0 von 16 moeglichen Kanaelen
 
