@@ -59,7 +59,9 @@ const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor st
 const int StandbyBlinkStart = 1; // Minutes
 const int StandbyBlinkDuration = 10; // Seconds
 
-
+const int LEDfrequency = 1000;    //Initialisiert die Integer-Variable frequency (Frequenz des PWM-Signals) konstant auf 1000 Hz
+const int LEDresolution = 8;      //Initialisiert die Integer-Variable resolution (Aufloesung des PWM-Signals) konstant auf 8 Bit
+const int LEDchannel = 0;         //Initialisiert die Integer-Variable channel konstant auf 0 von 16 moeglichen Kanaelen
 
 
 
@@ -134,6 +136,11 @@ void setup() {
   } else {
     Serial.println("Fehler beim Herstellen der Verbindung zu VESC.");
   }
+
+  //LED
+  pinMode(PIN_LED, OUTPUT);                           //Setzt den GPIO-Pin 23 als Output (Ausgang)
+  ledcSetup(LEDchannel, LEDfrequency, LEDresolution);      //Konfiguriert den PWM-Kanal 0 mit der Frequenz von 1 kHz und einer 8 Bit-Aufloesung
+  ledcAttachPin(PIN_LED, LEDchannel);                    //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
 
   // Booting finished
   Serial.println("Booting finished!");
@@ -372,7 +379,8 @@ void setLEDState(int state) {
 /*
 Is it possible to change pwm frequency to advoid led flickering while filming 
 */
-  analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
+  //analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
+  ledcWrite(LEDchannel, brightness);
 }
 
 
