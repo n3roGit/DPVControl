@@ -17,21 +17,21 @@ It still has to be checked if the currently used GPIOs are the optimal ones.
 
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 
-const int PIN_LEFT_BUTTON = 27;   //G27 OK
-const int PIN_RIGHT_BUTTON = 35;  //G35 OK
+const int PIN_LEFT_BUTTON = 27;   // GPIO pin for the left button
+const int PIN_RIGHT_BUTTON = 35;  // GPIO pin for the right button
 
-const int PIN_LEAK_FRONT = 32;  //G32 OK
-const int PIN_LEAK_BACK = 33;   //G33 OK
+const int PIN_LEAK_FRONT = 32;  // GPIO pin for front leak sensor
+const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
 
-const int PIN_LED = 25;  //G25 OK
+const int PIN_LED = 25;  // GPIO pin for LED
 
-const int PIN_DHT = 14;  //G14 OK
+const int PIN_DHT = 14;  // GPIO pin for the buzzer
 DHTesp dhtSensor;
 
 const int PIN_BEEP = 18;  //G18 OK
 
-#define VESCRX 22  //OK
-#define VESCTX 23  //OK
+#define VESCRX 22  // GPIO pin for VESC UART RX
+#define VESCTX 23  // GPIO pin for VESC UART TX
 
 
 
@@ -55,14 +55,14 @@ const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
 const float LED_Energy_Limiter = 0.8;
-const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
-const int StandbyBlinkStart = 15; // Minutes
-const int StandbyBlinkDuration = 10; // Seconds
+const int MotorButtonDelay = 500 * 1000; //time befor button press the motor starts
+const int StandbyBlinkStart = 15; // Minutes for blink start
+const int StandbyBlinkDuration = 10; // Seconds between blink
 
-const int LEDfrequency = 4000;    //Initialisiert die Integer-Variable frequency (Frequenz des PWM-Signals) konstant auf 1000 Hz
-const int LEDresolution = 8;      //Initialisiert die Integer-Variable resolution (Aufloesung des PWM-Signals) konstant auf 8 Bit
-const int LEDchannel = 0;         //Initialisiert die Integer-Variable channel konstant auf 0 von 16 moeglichen Kanaelen
-
+// LED PWM parameters
+const int LEDfrequency = 4000; // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
+const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
+const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
 
 
 //Variables
@@ -89,7 +89,7 @@ unsigned long rightButtonDownTime = 0;
 const unsigned long HOLD_DELAY = 500;  // 500 Millisekunden für einen Hold
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 
-//IO
+// Create ClickButton objects for the left and right buttons
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
 
@@ -100,54 +100,57 @@ The Setup is chaotic. Needs a cleanup
 void setup() {
   pinMode(PIN_LEFT_BUTTON, INPUT);
   pinMode(PIN_RIGHT_BUTTON, INPUT);
-  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP);  // Aktiviere den internen Pull-Up-Widerstand für den Front-Leak-Pin
-  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);   // Aktiviere den internen Pull-Up-Widerstand für den Back-Leak-Pin
+  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP);  
+  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);   
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BEEP, OUTPUT);
 
-  leftButton.debounceTime = 40;     //20
-  leftButton.multiclickTime = 300;  //500
+  // Set debounce and click times for buttons
+  leftButton.debounceTime = 40;
+  leftButton.multiclickTime = 300;
   leftButton.longClickTime = 1000;
   rightButton.debounceTime = 40;     //20
   rightButton.multiclickTime = 300;  //500
   rightButton.longClickTime = 1000;
 
+  // Initialize serial communication
   Serial.begin(115200);
 
-  //BEEP Initial
+  // BEEP Initial
   Serial.println("Booting started...!");
   beep("1");
 
-  //Setup DHT22
+  // Setup DHT22 sensor
   dhtSensor.setup(PIN_DHT, DHTesp::DHT22);
   TempAndHumidity data = dhtSensor.getTempAndHumidity();
   Serial.println("Temp: " + String(data.temperature, 2) + "°C");
   Serial.println("Humidity: " + String(data.humidity, 1) + "%");
   Serial.println("---");
 
-  //VESC UART
+  // Initialize VESC UART communication
   Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
   while (!Serial1) { ; }
   delay(500);
   UART.setSerialPort(&Serial1);
   delay(500);
   if (UART.getVescValues()) {
-    Serial.println("Verbindung zu VESC erfolgreich.");
+    Serial.println("Connected to VESC.");
   } else {
-    Serial.println("Fehler beim Herstellen der Verbindung zu VESC.");
+    Serial.println("Failed to connect to VESC.");
   }
 
-  //LED
+  // Initialize LED PWM
   pinMode(PIN_LED, OUTPUT);                           //Setzt den GPIO-Pin 23 als Output (Ausgang)
   ledcSetup(LEDchannel, LEDfrequency, LEDresolution);      //Konfiguriert den PWM-Kanal 0 mit der Frequenz von 1 kHz und einer 8 Bit-Aufloesung
   ledcAttachPin(PIN_LED, LEDchannel);                    //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
 
   // Booting finished
   Serial.println("Booting finished!");
-  //BEEP end
+  // BEEP end
   beep("222");
 }
 
+// Function for logging with optional debugging delay
 void log(const char* label, int value, boolean doLog) {
   if (doLog) {
     Serial.print(" ");
@@ -161,8 +164,7 @@ void log(const char* label, int value, boolean doLog) {
   }
 }
 
-
-
+// Function to update the motor speed setting
 void updateSpeedSetting() {
   if (motorState != MOTOR_STANDBY) {
     if (rightButton.clicks == -2) {
@@ -186,6 +188,7 @@ void updateSpeedSetting() {
   }
 }
 
+// Function to control standby mode
 void controlStandby() {
   if (motorState == MOTOR_STANDBY) {
     //Wake up from Standup
@@ -269,13 +272,13 @@ void controlMotor() {
   log("motorstate", motorState, EnableDebugLog);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
-    //Motor is off
+    // Motor is off
     targetMotorSpeed = 0;
   } else if (motorState == MOTOR_ON) {
     targetMotorSpeed = speedSetting;
   }
-  //Serial.print(" targetMotorSpeed: ");
-  //Serial.print(targetMotorSpeed);
+  // Serial.print(" targetMotorSpeed: ");
+  // Serial.print(targetMotorSpeed);
 
   setSoftMotorSpeed();
 }
@@ -380,7 +383,7 @@ void setLEDState(int state) {
 Is it possible to change pwm frequency to advoid led flickering while filming 
 */
   //analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
-  ledcWrite(LEDchannel, brightness);
+  ledcWrite(LEDchannel, brightness); // Set LED brightness using PWM
 }
 
 
@@ -395,12 +398,12 @@ void beep(const String& sequence) {
     digitalWrite(PIN_BEEP, HIGH);
     float startMicros = micros();
     while (micros() - startMicros < toneDuration * 1000) {
-      // Warten, bis die gewünschte Dauer erreicht ist
+      // Wait until the desired duration is reached
     }
     digitalWrite(PIN_BEEP, LOW);
     lastBeepTime = micros();
     while (micros() - lastBeepTime < 400000) {
-      // Pause zwischen den Tönen
+      // Pause between tones
     }
   }
 }
@@ -414,12 +417,12 @@ void blinkLED(const String& sequence) {
     setLEDState(4);
     float startMicros = micros();
     while (micros() - startMicros < blinkDuration * 1000) {
-      // Warten, bis die gewünschte Dauer erreicht ist
+      // Wait until the desired duration is reached
     }
     setLEDState(0);
     lastBlinkTime = micros();
     while (micros() - lastBlinkTime < 400000) {
-      // Pause zwischen blinken
+      // Pause between blinking
     }
   }
 }
