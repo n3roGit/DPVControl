@@ -9,7 +9,7 @@ VescUart UART;
 
 #include "uptime_formatter.h" //https://github.com/YiannisBourkelis/Uptime-Library
 
-
+#include <Adafruit_NeoPixel.h>
 
 /*
 It still has to be checked if the currently used GPIOs are the optimal ones.
@@ -33,6 +33,10 @@ const int PIN_BEEP = 18;  //G18 OK
 #define VESCRX 22  // GPIO pin for VESC UART RX
 #define VESCTX 23  // GPIO pin for VESC UART TX
 
+const int PIN_LEDBAR = 15;       // Pin, an dem der LED-Streifen angeschlossen ist
+const int NUM_LEDBAR = 10;      // Anzahl der LEDs im Streifen
+const int BRIGHTNESS_LEDBAR = 255;   // Maximale Helligkeit (0-255)
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDBAR, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
 
 
 
@@ -144,6 +148,11 @@ void setup() {
   ledcSetup(LEDchannel, LEDfrequency, LEDresolution);      //Konfiguriert den PWM-Kanal 0 mit der Frequenz von 1 kHz und einer 8 Bit-Aufloesung
   ledcAttachPin(PIN_LED, LEDchannel);                    //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
 
+  //Neopixel
+    strip.begin();
+  strip.show();  // Alle LEDs ausschalten
+
+
   // Booting finished
   Serial.println("Booting finished!");
   // BEEP end
@@ -175,6 +184,7 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MAX_SPEED;
       }
       log("speedSetting", speedSetting, true);
+      setBar((((speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0), "#FF0000", "#000000");
     }
 
     if (leftButton.clicks == -2) {
@@ -184,6 +194,8 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MIN_SPEED;
       }
       log("speedSetting", speedSetting, true);
+      setBar((((speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0), "#FF0000", "#000000");
+      
     }
   }
 }
@@ -507,6 +519,44 @@ void checkButtonClicks() {
   } else if (rightButton.clicks == 1) {
     Serial.println("- 1 Click");
   }
+}
+
+void setBar(int value, String hexColorOn, String hexColorOff) {
+  // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die eingeschaltete Farbe
+  long numberOn = (long) strtol(&hexColorOn[1], NULL, 16);
+  int redOn = numberOn >> 16;
+  int greenOn = (numberOn >> 8) & 0xFF;
+  int blueOn = numberOn & 0xFF;
+
+  // Alle LEDs ausschalten
+  strip.clear();
+
+  // Berechnen, wie viele LEDs eingeschaltet werden sollen
+  int NUM_LEDBAR_on = map(value, 0, 100, 0, NUM_LEDBAR);
+
+  // Setze die LEDs entsprechend der berechneten Helligkeiten und der übergebenen Farben
+  for (int i = 0; i < NUM_LEDBAR_on; i++) {
+    if (i == NUM_LEDBAR_on - 1 && value % 10 != 0) { // Letzte LED mit 10% Helligkeit für krumme Werte
+      int dimmed_color_r = redOn / 10;
+      int dimmed_color_g = greenOn / 10;
+      int dimmed_color_b = blueOn / 10;
+      strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
+    } else {
+      strip.setPixelColor(i, strip.Color(redOn, greenOn, blueOn));
+    }
+  }
+
+  // Setze die LEDs für die ausgeschaltete Seite
+  for (int i = NUM_LEDBAR_on; i < NUM_LEDBAR; i++) {
+    // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
+    long numberOff = (long) strtol(&hexColorOff[1], NULL, 16);
+    int redOff = numberOff >> 16;
+    int greenOff = (numberOff >> 8) & 0xFF;
+    int blueOff = numberOff & 0xFF;
+    strip.setPixelColor(i, strip.Color(redOff, greenOff, blueOff));
+  }
+
+  strip.show();  // LED-Streifen aktualisieren
 }
 
 
