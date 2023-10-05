@@ -33,7 +33,7 @@ const int PIN_BEEP = 18;  //G18 OK
 #define VESCRX 22  // GPIO pin for VESC UART RX
 #define VESCTX 23  // GPIO pin for VESC UART TX
 
-const int PIN_LEDBAR = 15;       // Pin, an dem der LED-Streifen angeschlossen ist
+const int PIN_LEDBAR = 12;       // Pin, an dem der LED-Streifen angeschlossen ist
 const int NUM_LEDBAR = 10;      // Anzahl der LEDs im Streifen
 const int BRIGHTNESS_LEDBAR = 255;   // Maximale Helligkeit (0-255)
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDBAR, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
@@ -149,9 +149,9 @@ void setup() {
   ledcAttachPin(PIN_LED, LEDchannel);                    //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
 
   //Neopixel
-    strip.begin();
+  strip.begin();
   strip.show();  // Alle LEDs ausschalten
-
+  setBar(10, "#FF0000", "#000000");
 
   // Booting finished
   Serial.println("Booting finished!");
@@ -184,7 +184,8 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MAX_SPEED;
       }
       log("speedSetting", speedSetting, true);
-      setBar((((speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0), "#FF0000", "#000000");
+      float percentageSpeed = ((float)(speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0;
+      setBar(percentageSpeed, "#FF0000", "#000000");
     }
 
     if (leftButton.clicks == -2) {
@@ -194,8 +195,9 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MIN_SPEED;
       }
       log("speedSetting", speedSetting, true);
-      setBar((((speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0), "#FF0000", "#000000");
-      
+      float percentageSpeed = ((float)(speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0;
+      setBar(percentageSpeed, "#FF0000", "#000000");
+
     }
   }
 }
