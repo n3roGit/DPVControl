@@ -68,6 +68,10 @@ const int LEDfrequency = 960; // Initializing the integer variable 'LEDfrequency
 const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
 const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
 
+// Constant for the number of cells in series
+const int CellsInSeries = 13;
+// Constant for the number of measurements used to calculate the average
+const int batteryLevelMeasurements = 100;
 
 //Variables
 int leftButtonState = 0;
@@ -90,8 +94,9 @@ unsigned long buttonPressStartTime = 0;
 unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
-const unsigned long HOLD_DELAY = 500;  // 500 Millisekunden für einen Hold
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
+int batteryLevel = 0;
+
 
 // Create ClickButton objects for the left and right buttons
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
@@ -561,6 +566,40 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
   strip.show();  // LED-Streifen aktualisieren
 }
 
+void updateBatteryLevel(float voltage) {
+  float singleCellVoltages[] = {4.2, 3.85, 3.75, 3.65, 3.55, 3.45, 3.35, 3.25, 3.15, 3.05, 2.5};
+  int singleCellPercentages[] = {100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0};
+
+  float measurements[batteryLevelMeasurements];
+  for (int i = 0; i < batteryLevelMeasurements; i++) {
+    measurements[i] = voltage; // Each measurement should be the same as the measured voltage
+  }
+
+  float sum = 0.0;
+  for (int i = 0; i < batteryLevelMeasurements; i++) {
+    sum += measurements[i];
+  }
+  float averageVoltage = sum / batteryLevelMeasurements;
+
+  if (averageVoltage > singleCellVoltages[0] * CellsInSeries) {
+    batteryLevel = 100;
+  } else if (averageVoltage <= singleCellVoltages[sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]) - 1] * CellsInSeries) {
+    batteryLevel = 0;
+  } else {
+    for (int i = 1; i < sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]); i++) {
+      if (averageVoltage >= singleCellVoltages[i] * CellsInSeries) {
+        float deltaV = singleCellVoltages[i - 1] * CellsInSeries - singleCellVoltages[i] * CellsInSeries;
+        float deltaP = singleCellPercentages[i - 1] - singleCellPercentages[i];
+        float slope = deltaP / deltaV;
+        batteryLevel = singleCellPercentages[i] + slope * (singleCellVoltages[i] * CellsInSeries - averageVoltage);
+        break;
+      }
+    }
+  }
+  
+  // Ensure that the battery level is limited to the range [0, 100]
+  batteryLevel = constrain(batteryLevel, 0, 100);
+}
 
 void loop() {
   leftButton.Update();
@@ -581,6 +620,8 @@ void loop() {
   BeepForLeak();
   BeepForStandby();
   BlinkForLongStandby();
+  updateBatteryLevel(UART.data.inpVoltage);
+
 
 
 
