@@ -60,7 +60,7 @@ const int StandbyBlinkStart = 15; // Minutes for blink start
 const int StandbyBlinkDuration = 10; // Seconds between blink
 
 // LED PWM parameters
-const int LEDfrequency = 4000; // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
+const int LEDfrequency = 960; // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
 const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
 const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
 
