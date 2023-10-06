@@ -627,7 +627,7 @@ void loop() {
   GetESCValues();
 
 
-Serial.println(batteryLevel);
+//Serial.println(batteryLevel); // test battery level
 
 
 
