@@ -453,7 +453,7 @@ void blinkLED(const String& sequence) {
 /*
 only output. needs to be stored in database
 */
-void GetESCValues() {
+void GetVESCValues() {
   if (UART.getVescValues()) {
     /*
     Serial.print("RPM: ");
@@ -641,7 +641,7 @@ void loop() {
   BeepForLeak();
   BeepForStandby();
   BlinkForLongStandby();
-  GetESCValues();
+  GetVESCValues();
 
 
 //Serial.println(batteryLevel); // test battery level
