@@ -453,6 +453,7 @@ only output. needs to be stored in database
 */
 void GetESCValues() {
   if (UART.getVescValues()) {
+    /*
     Serial.print("RPM: ");
     Serial.println(UART.data.rpm);
     Serial.print("inpVoltage: ");
@@ -461,8 +462,11 @@ void GetESCValues() {
     Serial.println(UART.data.ampHours);
     Serial.print("tachometerAbs: ");
     Serial.println(UART.data.tachometerAbs);
+    */
+
+    updateBatteryLevel(UART.data.inpVoltage);
   } else {
-    Serial.println("Failed to get data!");
+    log("Failed to get VESC data!", 00000, true);
   }
 }
 void checkForLeak() {
@@ -620,7 +624,10 @@ void loop() {
   BeepForLeak();
   BeepForStandby();
   BlinkForLongStandby();
-  updateBatteryLevel(UART.data.inpVoltage);
+  GetESCValues();
+
+
+Serial.println(batteryLevel);
 
 
 
