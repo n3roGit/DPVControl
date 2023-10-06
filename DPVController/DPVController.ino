@@ -607,6 +607,21 @@ void updateBatteryLevel(float voltage) {
   batteryLevel = constrain(batteryLevel, 0, 100);
 }
 
+void saveData(const char* key, int value) {
+  Preferences preferences;
+  preferences.begin("myApp", false);  // Name der App anpassen
+  preferences.putUInt(key, value);
+  preferences.end();
+}
+
+int loadData(const char* key, int defaultValue) {
+  Preferences preferences;
+  preferences.begin("myApp", false);  // Name der App anpassen
+  int value = preferences.getUInt(key, defaultValue);
+  preferences.end();
+  return value;
+}
+
 void loop() {
   leftButton.Update();
   rightButton.Update();
