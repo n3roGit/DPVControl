@@ -34,9 +34,9 @@ const int PIN_BEEP = 18;  //G18 OK
 #define VESCTX 23  // GPIO pin for VESC UART TX
 
 const int PIN_LEDBAR = 12;       // Pin, an dem der LED-Streifen angeschlossen ist
-const int NUM_LEDBAR = 10;      // Anzahl der LEDs im Streifen
-const int BRIGHTNESS_LEDBAR = 255;   // Maximale Helligkeit (0-255)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDBAR, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
+const int LEDBAR_NUM = 10;      // Anzahl der LEDs im Streifen
+const int LEDBAR_BRIGHTNESS = 255;   // Maximale Helligkeit (0-255)
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(LEDBAR_NUM, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
 
 
 
@@ -543,7 +543,7 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
   strip.clear();
 
   // Berechnen, wie viele LEDs eingeschaltet werden sollen
-  int NUM_LEDBAR_on = map(value, 0, 100, 0, NUM_LEDBAR);
+  int NUM_LEDBAR_on = map(value, 0, 100, 0, LEDBAR_NUM);
 
   // Setze die LEDs entsprechend der berechneten Helligkeiten und der übergebenen Farben
   for (int i = 0; i < NUM_LEDBAR_on; i++) {
@@ -558,7 +558,7 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
   }
 
   // Setze die LEDs für die ausgeschaltete Seite
-  for (int i = NUM_LEDBAR_on; i < NUM_LEDBAR; i++) {
+  for (int i = NUM_LEDBAR_on; i < LEDBAR_NUM; i++) {
     // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
     long numberOff = (long) strtol(&hexColorOff[1], NULL, 16);
     int redOff = numberOff >> 16;
