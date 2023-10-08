@@ -25,6 +25,7 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
 - 70% - **LED bar with WS2812B to get information about speed lvl and battery life. maybe other information**
+- **cruise control ** drive dpv without holding button 
 
 
 
@@ -35,7 +36,7 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 | Hold     | Hold     | Turn motor ON |
 | Hold     |          | Turn motor ON |
 |          | Hold     | Turn motor ON |
-| 1 Click  | 1 Click  |           |
+| 1 Click  | 1 Click  |  cruise control       |
 |          | 1 Click  |           |
 | 2 Clicks | 2 Clicks | Boost Mode |
 | 2 Clicks |          | Reactivate |
