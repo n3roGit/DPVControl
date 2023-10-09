@@ -572,6 +572,8 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
   strip.show();  // LED-Streifen aktualisieren
 }
 
+
+// make a map function for this mapiopenigrecord
 void updateBatteryLevel(float voltage) {
   float singleCellVoltages[] = {4.2, 3.85, 3.75, 3.65, 3.55, 3.45, 3.35, 3.25, 3.15, 3.05, 2.5};
   int singleCellPercentages[] = {100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0};
