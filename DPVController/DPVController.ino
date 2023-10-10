@@ -11,7 +11,6 @@ VescUart UART;
 
 #include <Adafruit_NeoPixel.h> //https://github.com/adafruit/Adafruit_NeoPixel
 
-#include <Preferences.h>
 
 /*
 It still has to be checked if the currently used GPIOs are the optimal ones.
@@ -609,20 +608,7 @@ void updateBatteryLevel(float voltage) {
   batteryLevel = constrain(batteryLevel, 0, 100);
 }
 
-void saveData(const char* key, int value) {
-  Preferences preferences;
-  preferences.begin("myApp", false);  // Name der App anpassen
-  preferences.putUInt(key, value);
-  preferences.end();
-}
 
-int loadData(const char* key, int defaultValue) {
-  Preferences preferences;
-  preferences.begin("myApp", false);  // Name der App anpassen
-  int value = preferences.getUInt(key, defaultValue);
-  preferences.end();
-  return value;
-}
 
 void loop() {
   leftButton.Update();
