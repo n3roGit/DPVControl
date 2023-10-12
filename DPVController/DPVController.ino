@@ -18,8 +18,8 @@ It still has to be checked if the currently used GPIOs are the optimal ones.
 
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 
-const int PIN_LEFT_BUTTON = 27;   // GPIO pin for the left button
-const int PIN_RIGHT_BUTTON = 35;  // GPIO pin for the right button
+const int PIN_LEFT_BUTTON = 35;   // GPIO pin for the left button
+const int PIN_RIGHT_BUTTON = 27;  // GPIO pin for the right button
 
 const int PIN_LEAK_FRONT = 32;  // GPIO pin for front leak sensor
 const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
@@ -624,7 +624,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
-  PreventOverload();
+  //PreventOverload();
   checkForLeak();
   BeepForLeak();
   BeepForStandby();
