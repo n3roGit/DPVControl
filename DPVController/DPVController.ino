@@ -622,16 +622,16 @@ void normalLogOutput() {
     Serial.println(UART.data.inpVoltage);
     Serial.print("ampHours: ");
     Serial.println(UART.data.ampHours);
-    Serial.print("tachometerAbs: ");
-    Serial.println(UART.data.tachometerAbs);
     Serial.print("tempMosfet: ");
     Serial.println(UART.data.tempMosfet);
     Serial.print("tempMotor: ");
     Serial.println(UART.data.tempMotor);
     Serial.print("wattHours: ");
     Serial.println(UART.data.wattHours);
-    Serial.print("tachometer: ");
-    Serial.println(UART.data.tachometer);
+    Serial.print("avgInputCurrent: ");
+    Serial.println(UART.data.avgInputCurrent);
+    Serial.print("avgMotorCurrent: ");
+    Serial.println(UART.data.avgMotorCurrent);
 
 
     TempAndHumidity data = dhtSensor.getTempAndHumidity();
@@ -665,7 +665,6 @@ void loop() {
   GetVESCValues();
 
   normalLogOutput();
-
 
 
 
