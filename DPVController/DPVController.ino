@@ -611,6 +611,8 @@ void updateBatteryLevel(float voltage) {
 
 void normalLogOutput() {
   if (NormalLogOutput % NormalLogOutputIntervall == 0) {
+    Serial.println("---");
+    
     Serial.print("bat lvl: ");
     Serial.println(batteryLevel);  // test battery level
     Serial.println("up " + uptime_formatter::getUptime());
@@ -626,6 +628,7 @@ void normalLogOutput() {
     TempAndHumidity data = dhtSensor.getTempAndHumidity();
     Serial.println("Temp: " + String(data.temperature, 2) + "°C");
     Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+
     Serial.println("---");
   }
 }
