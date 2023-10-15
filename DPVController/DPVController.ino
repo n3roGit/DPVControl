@@ -72,7 +72,7 @@ const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel'
 // Constant for the number of cells in series
 const int CellsInSeries = 13;
 // Constant for the number of measurements used to calculate the average
-const int batteryLevelMeasurements = 100;
+const int batteryLevelMeasurements = 1000;
 
 //Variables
 int leftButtonState = 0;
@@ -98,7 +98,7 @@ unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 int batteryLevel = 0;
 int NormalLogOutput = 0;
-int NormalLogOutputIntervall = 500;
+int NormalLogOutputIntervall = 1000;
 int batteryAlerted = 0;
 
 
