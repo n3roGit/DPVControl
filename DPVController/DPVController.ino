@@ -575,9 +575,9 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
 
 // make a map function for this mapiopenigrecord
 void updateBatteryLevel(float voltage) {
-  float singleCellVoltages[] = { 4.2, 3.85, 3.75, 3.65, 3.55, 3.45, 3.35, 3.25, 3.15, 3.05, 2.5 };
-  int singleCellPercentages[] = { 100, 90, 80, 70, 60, 50, 40, 30, 20, 10, 0 };
-
+  float singleCellVoltages[] = { 4.2, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87 };
+  int singleCellPercentages[] = { 100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0 };
+  
   float measurements[batteryLevelMeasurements];
   for (int i = 0; i < batteryLevelMeasurements; i++) {
     measurements[i] = voltage;  // Each measurement should be the same as the measured voltage
