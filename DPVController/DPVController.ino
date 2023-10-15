@@ -334,6 +334,42 @@ void controlLED() {
   }
 }
 
+
+void GetBatteryLevelBeep() {
+  if (leftButton.clicks == -3) {
+    log("leftButton.clicks", leftButton.clicks, EnableDebugLog);
+    if (batteryLevel < 10) {
+      beep("1");
+    } else {
+      // Ermitteln, wie viele vollen 10%-Schritte erreicht wurden
+      int steps = batteryLevel / 10;
+
+      // Erzeugen einer Zeichenfolge mit '1' für jeden vollen 10%-Schritt
+      String beepSequence = "";
+      for (int i = 0; i < steps; i++) {
+        beepSequence += '2';
+      }
+
+      // Wenn Schritte vorhanden sind, Beep-Funktion aufrufen
+      if (steps > 0) {
+        beep(beepSequence);
+      }
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
 is this a clever solution to prevent overload?
 */
@@ -577,7 +613,7 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
 void updateBatteryLevel(float voltage) {
   float singleCellVoltages[] = { 4.2, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87 };
   int singleCellPercentages[] = { 100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0 };
-  
+
   float measurements[batteryLevelMeasurements];
   for (int i = 0; i < batteryLevelMeasurements; i++) {
     measurements[i] = voltage;  // Each measurement should be the same as the measured voltage
@@ -663,7 +699,7 @@ void loop() {
   BeepForStandby();
   BlinkForLongStandby();
   GetVESCValues();
-
+  GetBatteryLevelBeep();
   normalLogOutput();
 
 
