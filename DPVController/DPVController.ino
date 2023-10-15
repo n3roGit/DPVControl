@@ -99,6 +99,7 @@ unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 int batteryLevel = 0;
 int NormalLogOutput = 0;
 int NormalLogOutputIntervall = 500;
+int batteryAlerted = 0;
 
 
 // Create ClickButton objects for the left and right buttons
@@ -164,7 +165,7 @@ void setup() {
   // Booting finished
   Serial.println("Booting finished!");
   // BEEP end
-  beep("222");
+  beep("1");
 }
 
 // Function for logging with optional debugging delay
@@ -358,7 +359,21 @@ void GetBatteryLevelBeep() {
   }
 }
 
-
+void BatteryLevelAlert() {
+  if (batteryLevel <= 30 && batteryLevel >= 21 && batteryAlerted != 30) {
+    beep("222"); // Dreimal langer Piepton bei 30%
+    log("BatteryAlert", batteryLevel, true);
+    batteryAlerted = 30; // Setzt den Status auf 30%
+  } else if (batteryLevel <= 20 && batteryLevel >= 11  && batteryAlerted != 20) {
+    beep("22"); // Zweimal Piepton bei 20%
+    log("BatteryAlert", batteryLevel, true);
+    batteryAlerted = 20; // Setzt den Status auf 20%
+  } else if (batteryLevel <= 10 && batteryAlerted != 10) {
+    beep("2"); // Ein Piepton bei 10%
+    log("BatteryAlert", batteryLevel, true);
+    batteryAlerted = 10; // Setzt den Status auf 10%
+  }
+}
 
 
 
@@ -701,6 +716,7 @@ void loop() {
   GetVESCValues();
   GetBatteryLevelBeep();
   normalLogOutput();
+  BatteryLevelAlert();
 
 
 
