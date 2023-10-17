@@ -361,17 +361,17 @@ void GetBatteryLevelBeep() {
 
 void BatteryLevelAlert() {
   if (batteryLevel <= 30 && batteryLevel >= 21 && batteryAlerted != 30) {
-    beep("222"); // Dreimal langer Piepton bei 30%
+    beep("222");  // Dreimal langer Piepton bei 30%
     log("BatteryAlert", batteryLevel, true);
-    batteryAlerted = 30; // Setzt den Status auf 30%
-  } else if (batteryLevel <= 20 && batteryLevel >= 11  && batteryAlerted != 20) {
-    beep("22"); // Zweimal Piepton bei 20%
+    batteryAlerted = 30;  // Setzt den Status auf 30%
+  } else if (batteryLevel <= 20 && batteryLevel >= 11 && batteryAlerted != 20) {
+    beep("22");  // Zweimal Piepton bei 20%
     log("BatteryAlert", batteryLevel, true);
-    batteryAlerted = 20; // Setzt den Status auf 20%
+    batteryAlerted = 20;  // Setzt den Status auf 20%
   } else if (batteryLevel <= 10 && batteryAlerted != 10) {
-    beep("2"); // Ein Piepton bei 10%
+    beep("2");  // Ein Piepton bei 10%
     log("BatteryAlert", batteryLevel, true);
-    batteryAlerted = 10; // Setzt den Status auf 10%
+    batteryAlerted = 10;  // Setzt den Status auf 10%
   }
 }
 
@@ -568,165 +568,183 @@ void checkButtonClicks() {
   leftButton.Update();
   rightButton.Update();
 
-  if (leftButton.clicks == 1 && rightButton.clicks == 1) {
-    Serial.println("1 Click - 1 Click");
-  } else if (leftButton.clicks == 2 && rightButton.clicks == 2) {
-    Serial.println("2 Clicks - 2 Clicks");
-  } else if (leftButton.clicks == 3 && rightButton.clicks == 3) {
-    Serial.println("3 Clicks - 3 Clicks");
-  } else if (leftButton.clicks == 2 && rightButtonState == 0) {
+
+if (rightButtonState == 0) {
+  if (leftButton.clicks == 1) {
+    Serial.println("1 Click - Hold");
+  } else if (leftButton.clicks == 2) {
     Serial.println("2 Clicks - Hold");
-  } else if (leftButtonState == 0 && rightButton.clicks == 2) {
-    Serial.println("Hold - 2 Clicks");
-  } else if (leftButton.clicks == 1) {
-    Serial.println("1 Click -");
-  } else if (rightButton.clicks == 1) {
-    Serial.println("- 1 Click");
+  } else if (leftButton.clicks == 3) {
+    Serial.println("3 Clicks - Hold");
+  }
+  if (leftButtonState == 0) {
+    if (rightButton.clicks == 1) {
+      Serial.println("Hold - 1 Click");
+    } else if (rightButton.clicks == 2) {
+      Serial.println("Hold - 2 Clicks");
+    } else if (rightButton.clicks == 3) {
+      Serial.println("Hold - 3 Clicks");
+    }
   }
 }
 
-void setBar(int value, String hexColorOn, String hexColorOff) {
-  // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die eingeschaltete Farbe
-  long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
-  int redOn = numberOn >> 16;
-  int greenOn = (numberOn >> 8) & 0xFF;
-  int blueOn = numberOn & 0xFF;
 
-  // Alle LEDs ausschalten
-  strip.clear();
 
-  // Berechnen, wie viele LEDs eingeschaltet werden sollen
-  int NUM_LEDBAR_on = map(value, 0, 100, 0, LEDBAR_NUM);
-
-  // Setze die LEDs entsprechend der berechneten Helligkeiten und der übergebenen Farben
-  for (int i = 0; i < NUM_LEDBAR_on; i++) {
-    if (i == NUM_LEDBAR_on - 1 && value % 10 != 0) {  // Letzte LED mit 10% Helligkeit für krumme Werte
-      int dimmed_color_r = redOn / 10;
-      int dimmed_color_g = greenOn / 10;
-      int dimmed_color_b = blueOn / 10;
-      strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
-    } else {
-      strip.setPixelColor(i, strip.Color(redOn, greenOn, blueOn));
+    if (leftButton.clicks == 1 && rightButton.clicks == 1) {
+      Serial.println("1 Click - 1 Click");
+    } else if (leftButton.clicks == 2 && rightButton.clicks == 2) {
+      Serial.println("2 Clicks - 2 Clicks");
+    } else if (leftButton.clicks == 3 && rightButton.clicks == 3) {
+      Serial.println("3 Clicks - 3 Clicks");
+    } else if (leftButton.clicks == 1 && rightButtonState == 1) {
+      Serial.println("1 Click -");
+    } else if (rightButton.clicks == 1 && leftButtonState == 1) {
+      Serial.println("- 1 Click");
     }
   }
 
-  // Setze die LEDs für die ausgeschaltete Seite
-  for (int i = NUM_LEDBAR_on; i < LEDBAR_NUM; i++) {
-    // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
-    long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
-    int redOff = numberOff >> 16;
-    int greenOff = (numberOff >> 8) & 0xFF;
-    int blueOff = numberOff & 0xFF;
-    strip.setPixelColor(i, strip.Color(redOff, greenOff, blueOff));
-  }
+  void setBar(int value, String hexColorOn, String hexColorOff) {
+    // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die eingeschaltete Farbe
+    long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
+    int redOn = numberOn >> 16;
+    int greenOn = (numberOn >> 8) & 0xFF;
+    int blueOn = numberOn & 0xFF;
 
-  strip.show();  // LED-Streifen aktualisieren
-}
+    // Alle LEDs ausschalten
+    strip.clear();
 
+    // Berechnen, wie viele LEDs eingeschaltet werden sollen
+    int NUM_LEDBAR_on = map(value, 0, 100, 0, LEDBAR_NUM);
 
-// make a map function for this mapiopenigrecord
-void updateBatteryLevel(float voltage) {
-  float singleCellVoltages[] = { 4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87 };
-  int singleCellPercentages[] = { 100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0 };
-
-  float measurements[batteryLevelMeasurements];
-  for (int i = 0; i < batteryLevelMeasurements; i++) {
-    measurements[i] = voltage;  // Each measurement should be the same as the measured voltage
-  }
-
-  float sum = 0.0;
-  for (int i = 0; i < batteryLevelMeasurements; i++) {
-    sum += measurements[i];
-  }
-  float averageVoltage = sum / batteryLevelMeasurements;
-
-  if (averageVoltage > singleCellVoltages[0] * CellsInSeries) {
-    batteryLevel = 100;
-  } else if (averageVoltage <= singleCellVoltages[sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]) - 1] * CellsInSeries) {
-    batteryLevel = 0;
-  } else {
-    for (int i = 1; i < sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]); i++) {
-      if (averageVoltage >= singleCellVoltages[i] * CellsInSeries) {
-        float deltaV = singleCellVoltages[i - 1] * CellsInSeries - singleCellVoltages[i] * CellsInSeries;
-        float deltaP = singleCellPercentages[i - 1] - singleCellPercentages[i];
-        float slope = deltaP / deltaV;
-        batteryLevel = singleCellPercentages[i] + slope * (singleCellVoltages[i] * CellsInSeries - averageVoltage);
-        break;
+    // Setze die LEDs entsprechend der berechneten Helligkeiten und der übergebenen Farben
+    for (int i = 0; i < NUM_LEDBAR_on; i++) {
+      if (i == NUM_LEDBAR_on - 1 && value % 10 != 0) {  // Letzte LED mit 10% Helligkeit für krumme Werte
+        int dimmed_color_r = redOn / 10;
+        int dimmed_color_g = greenOn / 10;
+        int dimmed_color_b = blueOn / 10;
+        strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
+      } else {
+        strip.setPixelColor(i, strip.Color(redOn, greenOn, blueOn));
       }
     }
+
+    // Setze die LEDs für die ausgeschaltete Seite
+    for (int i = NUM_LEDBAR_on; i < LEDBAR_NUM; i++) {
+      // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
+      long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
+      int redOff = numberOff >> 16;
+      int greenOff = (numberOff >> 8) & 0xFF;
+      int blueOff = numberOff & 0xFF;
+      strip.setPixelColor(i, strip.Color(redOff, greenOff, blueOff));
+    }
+
+    strip.show();  // LED-Streifen aktualisieren
   }
 
-  // Ensure that the battery level is limited to the range [0, 100]
-  batteryLevel = constrain(batteryLevel, 0, 100);
-}
 
-void normalLogOutput() {
-  if (NormalLogOutput % NormalLogOutputIntervall == 0) {
-    Serial.println("---");
+  // make a map function for this mapiopenigrecord
+  void updateBatteryLevel(float voltage) {
+    float singleCellVoltages[] = { 4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87 };
+    int singleCellPercentages[] = { 100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0 };
 
-    Serial.print("bat lvl: ");
-    Serial.println(batteryLevel);  // test battery level
-    Serial.println("up " + uptime_formatter::getUptime());
-    Serial.print("RPM: ");
-    Serial.println(UART.data.rpm);
-    Serial.print("inpVoltage: ");
-    Serial.println(UART.data.inpVoltage);
-    Serial.print("ampHours: ");
-    Serial.println(UART.data.ampHours);
-    Serial.print("tempMosfet: ");
-    Serial.println(UART.data.tempMosfet);
-    Serial.print("tempMotor: ");
-    Serial.println(UART.data.tempMotor);
-    Serial.print("wattHours: ");
-    Serial.println(UART.data.wattHours);
-    Serial.print("avgInputCurrent: ");
-    Serial.println(UART.data.avgInputCurrent);
-    Serial.print("avgMotorCurrent: ");
-    Serial.println(UART.data.avgMotorCurrent);
+    float measurements[batteryLevelMeasurements];
+    for (int i = 0; i < batteryLevelMeasurements; i++) {
+      measurements[i] = voltage;  // Each measurement should be the same as the measured voltage
+    }
 
+    float sum = 0.0;
+    for (int i = 0; i < batteryLevelMeasurements; i++) {
+      sum += measurements[i];
+    }
+    float averageVoltage = sum / batteryLevelMeasurements;
 
-    TempAndHumidity data = dhtSensor.getTempAndHumidity();
-    Serial.println("Temp: " + String(data.temperature, 2) + "°C");
-    Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+    if (averageVoltage > singleCellVoltages[0] * CellsInSeries) {
+      batteryLevel = 100;
+    } else if (averageVoltage <= singleCellVoltages[sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]) - 1] * CellsInSeries) {
+      batteryLevel = 0;
+    } else {
+      for (int i = 1; i < sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]); i++) {
+        if (averageVoltage >= singleCellVoltages[i] * CellsInSeries) {
+          float deltaV = singleCellVoltages[i - 1] * CellsInSeries - singleCellVoltages[i] * CellsInSeries;
+          float deltaP = singleCellPercentages[i - 1] - singleCellPercentages[i];
+          float slope = deltaP / deltaV;
+          batteryLevel = singleCellPercentages[i] + slope * (singleCellVoltages[i] * CellsInSeries - averageVoltage);
+          break;
+        }
+      }
+    }
 
-    Serial.println("---");
+    // Ensure that the battery level is limited to the range [0, 100]
+    batteryLevel = constrain(batteryLevel, 0, 100);
   }
-}
 
-void loop() {
-  NormalLogOutput++;
-  leftButton.Update();
-  rightButton.Update();
+  void normalLogOutput() {
+    if (NormalLogOutput % NormalLogOutputIntervall == 0) {
+      Serial.println("---");
 
-  leftButtonState = digitalRead(PIN_LEFT_BUTTON);
-  rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
-
-  log("rightButtonState", rightButtonState, EnableDebugLog);
-  log("leftButtonState", leftButtonState, EnableDebugLog);
-  //checkButtonClicks();
-  updateSpeedSetting();
-  controlStandby();
-  controlMotor();
-  controlLED();
-  //PreventOverload();
-  checkForLeak();
-  BeepForLeak();
-  BeepForStandby();
-  BlinkForLongStandby();
-  GetVESCValues();
-  GetBatteryLevelBeep();
-  normalLogOutput();
-  BatteryLevelAlert();
+      Serial.print("bat lvl: ");
+      Serial.println(batteryLevel);  // test battery level
+      Serial.println("up " + uptime_formatter::getUptime());
+      Serial.print("RPM: ");
+      Serial.println(UART.data.rpm);
+      Serial.print("inpVoltage: ");
+      Serial.println(UART.data.inpVoltage);
+      Serial.print("ampHours: ");
+      Serial.println(UART.data.ampHours);
+      Serial.print("tempMosfet: ");
+      Serial.println(UART.data.tempMosfet);
+      Serial.print("tempMotor: ");
+      Serial.println(UART.data.tempMotor);
+      Serial.print("wattHours: ");
+      Serial.println(UART.data.wattHours);
+      Serial.print("avgInputCurrent: ");
+      Serial.println(UART.data.avgInputCurrent);
+      Serial.print("avgMotorCurrent: ");
+      Serial.println(UART.data.avgMotorCurrent);
 
 
+      TempAndHumidity data = dhtSensor.getTempAndHumidity();
+      Serial.println("Temp: " + String(data.temperature, 2) + "°C");
+      Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+
+      Serial.println("---");
+    }
+  }
+
+  void loop() {
+    NormalLogOutput++;
+    leftButton.Update();
+    rightButton.Update();
+
+    leftButtonState = digitalRead(PIN_LEFT_BUTTON);
+    rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
+
+    log("rightButtonState", rightButtonState, EnableDebugLog);
+    log("leftButtonState", leftButtonState, EnableDebugLog);
+    //checkButtonClicks();
+    updateSpeedSetting();
+    controlStandby();
+    controlMotor();
+    controlLED();
+    //PreventOverload();
+    checkForLeak();
+    BeepForLeak();
+    BeepForStandby();
+    BlinkForLongStandby();
+    GetVESCValues();
+    GetBatteryLevelBeep();
+    normalLogOutput();
+    BatteryLevelAlert();
 
 
 
 
-  //Serial.println("up " + uptime_formatter::getUptime());
-  //Sonst ist der controller zu schnell durch den loop
-  /*
+
+
+    //Serial.println("up " + uptime_formatter::getUptime());
+    //Sonst ist der controller zu schnell durch den loop
+    /*
   implemented this delay because the code is not working correct if this is not used. dont know why
   */
-  delay(1);
-}
+    delay(1);
+  }
