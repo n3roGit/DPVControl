@@ -80,6 +80,7 @@ int rightButtonState = 0;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
 int currentMotorSpeed = 0;           //Speed the motor is currently running at
+int currentMotorStep = 1;
 unsigned long currentMotorTime = 0;  //Time in MS when we last changed the currentMotorSpeed
 int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same, even if motor is turned off.
 int MOTOR_MAX_SPEED_TEMP;
@@ -160,7 +161,8 @@ void setup() {
   //Neopixel
   strip.begin();
   strip.show();  // Alle LEDs ausschalten
-  setBar(10, "#FF0000", "#000000");
+  setBar(10,"#FFFF00", 20, "#000000", 0);
+
 
   // Booting finished
   Serial.println("Booting finished!");
@@ -193,8 +195,8 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MAX_SPEED;
       }
       log("speedSetting", speedSetting, true);
-      float percentageSpeed = ((float)(speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0;
-      setBar(percentageSpeed, "#FF0000", "#000000");
+      currentMotorStep = (currentMotorStep < 10) ? currentMotorStep + 1 : 10;
+      setBar(currentMotorStep,"#FF0000", 255, "#000000", 0);
     }
 
     if (leftButton.clicks == -2) {
@@ -204,8 +206,9 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MIN_SPEED;
       }
       log("speedSetting", speedSetting, true);
-      float percentageSpeed = ((float)(speedSetting - MOTOR_MIN_SPEED) / (MOTOR_MAX_SPEED - MOTOR_MIN_SPEED)) * 100.0;
-      setBar(percentageSpeed, "#FF0000", "#000000");
+      currentMotorStep = (currentMotorStep > 0) ? currentMotorStep - 1 : 1;
+      setBar(currentMotorStep,"#FF0000", 255, "#000000", 0);
+
     }
   }
 }
@@ -219,6 +222,8 @@ void controlStandby() {
       log("leaving standby", 1, true);
       lastActionTime = micros();
       beep("2");
+      setBar(currentMotorStep,"#FF0000", 255, "#000000", 0);
+
     }
   } else {
     if (lastActionTime + STANDBY_DELAY_MS < micros()) {
@@ -226,6 +231,8 @@ void controlStandby() {
       log("going to standby", micros(), true);
       motorState = MOTOR_STANDBY;
       beep("2");
+      setBar(10,"#FFFF00", 20, "#000000", 0);
+
     }
     if (leftButtonState == 0 || rightButtonState == 0) {
       //While not in standby, any button click updates the standby counter.
@@ -336,14 +343,17 @@ void controlLED() {
 }
 
 
-void GetBatteryLevelBeep() {
+void GetBatteryLevelInfo() {
   if (leftButton.clicks == -3) {
     log("leftButton.clicks", leftButton.clicks, EnableDebugLog);
     if (batteryLevel < 10) {
       beep("1");
+        setBar(1,"#00FF00", 255, "#FF0000", 100);
+
     } else {
       // Ermitteln, wie viele vollen 10%-Schritte erreicht wurden
       int steps = batteryLevel / 10;
+      setBar(steps,"#00FF00", 255, "#FF0000", 100);
 
       // Erzeugen einer Zeichenfolge mit '1' für jeden vollen 10%-Schritt
       String beepSequence = "";
@@ -364,14 +374,20 @@ void BatteryLevelAlert() {
     beep("222");  // Dreimal langer Piepton bei 30%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 30;  // Setzt den Status auf 30%
+    setBar(3,"#00FF00", 255, "#FF0000", 100);
+
   } else if (batteryLevel <= 20 && batteryLevel >= 11 && batteryAlerted != 20) {
     beep("22");  // Zweimal Piepton bei 20%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 20;  // Setzt den Status auf 20%
+    setBar(2,"#00FF00", 255, "#FF0000", 100);
+
   } else if (batteryLevel <= 10 && batteryAlerted != 10) {
     beep("2");  // Ein Piepton bei 10%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 10;  // Setzt den Status auf 10%
+    setBar(1,"#00FF00", 255, "#FF0000", 100);
+
   }
 }
 
@@ -530,6 +546,15 @@ void checkForLeak() {
   if (frontLeakState == LOW || backLeakState == LOW) {
     leakSensorState = 1;  // Es liegt ein Leak vor
     log("leakSensorState", leakSensorState, true);
+    if(frontLeakState == LOW) {
+      setBar(5,"#0000FF", 0, "#0000FF", 255);
+    } else if (backLeakState == LOW) {
+      setBar(5,"#0000FF", 255, "#0000FF", 0);
+    } else if (backLeakState == LOW && frontLeakState == LOW) {
+      setBar(10,"#0000FF", 255, "#0000FF", 0);
+    }
+    
+
   }
   log("frontLeakState", frontLeakState, EnableDebugLog);
   log("backLeakState", backLeakState, EnableDebugLog);
@@ -603,7 +628,7 @@ void checkButtonClicks() {
   }
 }
 
-void setBar(int value, String hexColorOn, String hexColorOff) {
+void setBar(int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
   // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die eingeschaltete Farbe
   long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
   int redOn = numberOn >> 16;
@@ -613,33 +638,28 @@ void setBar(int value, String hexColorOn, String hexColorOff) {
   // Alle LEDs ausschalten
   strip.clear();
 
-  // Berechnen, wie viele LEDs eingeschaltet werden sollen
-  int NUM_LEDBAR_on = map(value, 0, 100, 0, LEDBAR_NUM);
-
-  // Setze die LEDs entsprechend der berechneten Helligkeiten und der übergebenen Farben
-  for (int i = 0; i < NUM_LEDBAR_on; i++) {
-    if (i == NUM_LEDBAR_on - 1 && value % 10 != 0) {  // Letzte LED mit 10% Helligkeit für krumme Werte
-      int dimmed_color_r = redOn / 10;
-      int dimmed_color_g = greenOn / 10;
-      int dimmed_color_b = blueOn / 10;
-      strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
-    } else {
-      strip.setPixelColor(i, strip.Color(redOn, greenOn, blueOn));
-    }
+  // Setze die LEDs entsprechend der übergebenen Helligkeit und Farben
+  for (int i = 0; i < numLEDsOn; i++) {
+    int dimmed_color_r = redOn * brightnessOn / 100;
+    int dimmed_color_g = greenOn * brightnessOn / 100;
+    int dimmed_color_b = blueOn * brightnessOn / 100;
+    strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
   }
 
   // Setze die LEDs für die ausgeschaltete Seite
-  for (int i = NUM_LEDBAR_on; i < LEDBAR_NUM; i++) {
+  for (int i = numLEDsOn; i < LEDBAR_NUM; i++) {
     // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
     long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
     int redOff = numberOff >> 16;
     int greenOff = (numberOff >> 8) & 0xFF;
     int blueOff = numberOff & 0xFF;
-    strip.setPixelColor(i, strip.Color(redOff, greenOff, blueOff));
+    strip.setPixelColor(i, strip.Color(redOff * brightnessOff / 100, greenOff * brightnessOff / 100, blueOff * brightnessOff / 100));
   }
 
   strip.show();  // LED-Streifen aktualisieren
 }
+
+
 
 
 // make a map function for this mapiopenigrecord
@@ -737,7 +757,7 @@ void loop() {
   BeepForStandby();
   BlinkForLongStandby();
   GetVESCValues();
-  GetBatteryLevelBeep();
+  GetBatteryLevelInfo();
   normalLogOutput();
   BatteryLevelAlert();
 
