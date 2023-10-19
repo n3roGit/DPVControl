@@ -681,37 +681,25 @@ void setBarLeak() {
 
 // make a map function for this mapiopenigrecord
 void updateBatteryLevel(float voltage) {
-
   if (CellsInSeries > 1 && voltage < 5) {
     batteryLevel = 100;
   } else {
-    float singleCellVoltages[] = { 4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87 };
-    int singleCellPercentages[] = { 100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0 };
+    float singleCellVoltages[] = {4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87};
+    int singleCellPercentages[] = {100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0};
 
-    float measurements[batteryLevelMeasurements];
-    for (int i = 0; i < batteryLevelMeasurements; i++) {
-      measurements[i] = voltage;  // Each measurement should be the same as the measured voltage
-    }
-
-    float sum = 0.0;
-    for (int i = 0; i < batteryLevelMeasurements; i++) {
-      sum += measurements[i];
-    }
-    float averageVoltage = sum / batteryLevelMeasurements;
-
-    if (averageVoltage > singleCellVoltages[0] * CellsInSeries) {
-      batteryLevel = 100;
-    } else if (averageVoltage <= singleCellVoltages[sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]) - 1] * CellsInSeries) {
-      batteryLevel = 0;
-    } else {
-      for (int i = 1; i < sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]); i++) {
-        if (averageVoltage >= singleCellVoltages[i] * CellsInSeries) {
-          float deltaV = singleCellVoltages[i - 1] * CellsInSeries - singleCellVoltages[i] * CellsInSeries;
-          float deltaP = singleCellPercentages[i - 1] - singleCellPercentages[i];
-          float slope = deltaP / deltaV;
-          batteryLevel = singleCellPercentages[i] + slope * (singleCellVoltages[i] * CellsInSeries - averageVoltage);
-          break;
+    for (int i = 0; i < sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]); i++) {
+      if (voltage >= singleCellVoltages[i] * CellsInSeries) {
+        // Interpolation
+        if (i > 0) {
+          float voltageRange = singleCellVoltages[i] * CellsInSeries - singleCellVoltages[i - 1] * CellsInSeries;
+          int percentageRange = singleCellPercentages[i - 1] - singleCellPercentages[i];
+          float voltageDifference = singleCellVoltages[i] * CellsInSeries - voltage;
+          float interpolationFactor = voltageDifference / voltageRange;
+          batteryLevel = singleCellPercentages[i] + interpolationFactor * percentageRange;
+        } else {
+          batteryLevel = singleCellPercentages[i];
         }
+        break;
       }
     }
 
@@ -719,6 +707,8 @@ void updateBatteryLevel(float voltage) {
     batteryLevel = constrain(batteryLevel, 0, 100);
   }
 }
+
+
 
 void normalLogOutput() {
   if (NormalLogOutput % NormalLogOutputIntervall == 0) {
@@ -755,10 +745,10 @@ void normalLogOutput() {
 
 void FromTimeToTimeExecution() {
   if (FromTimeToTime % FromTimeToTimeIntervall == 0) {
-    BeepForLeak();
-    BeepForStandby();
-    BlinkForLongStandby();
-    BatteryLevelAlert();
+  BeepForLeak();
+  BeepForStandby();
+  BlinkForLongStandby();
+  BatteryLevelAlert();
   }
 }
 
@@ -784,7 +774,7 @@ void loop() {
   GetVESCValues();
   normalLogOutput();
   FromTimeToTimeExecution();
-  
+
 
 
 
