@@ -101,6 +101,8 @@ int batteryLevel = 0;
 int NormalLogOutput = 0;
 int NormalLogOutputIntervall = 1000;
 int batteryAlerted = 0;
+int FromTimeToTime = 0;
+int FromTimeToTimeIntervall = 500;
 
 
 // Create ClickButton objects for the left and right buttons
@@ -736,8 +738,19 @@ void normalLogOutput() {
   }
 }
 
+void FromTimeToTimeExecution() {
+  if (FromTimeToTime % FromTimeToTimeIntervall == 0) {
+    BeepForLeak();
+    BeepForStandby();
+    BlinkForLongStandby();
+    GetBatteryLevelInfo();
+    BatteryLevelAlert();
+  }
+}
+
 void loop() {
   NormalLogOutput++;
+  FromTimeToTime++;
   leftButton.Update();
   rightButton.Update();
 
@@ -753,13 +766,11 @@ void loop() {
   controlLED();
   //PreventOverload();
   checkForLeak();
-  BeepForLeak();
-  BeepForStandby();
-  BlinkForLongStandby();
+
   GetVESCValues();
-  GetBatteryLevelInfo();
   normalLogOutput();
-  BatteryLevelAlert();
+  FromTimeToTimeExecution();
+  
 
 
 
