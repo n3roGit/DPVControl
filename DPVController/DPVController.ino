@@ -758,7 +758,6 @@ void FromTimeToTimeExecution() {
     BeepForLeak();
     BeepForStandby();
     BlinkForLongStandby();
-    GetBatteryLevelInfo();
     BatteryLevelAlert();
   }
 }
@@ -781,7 +780,7 @@ void loop() {
   controlLED();
   //PreventOverload();
   checkForLeak();
-
+  GetBatteryLevelInfo();
   GetVESCValues();
   normalLogOutput();
   FromTimeToTimeExecution();
