@@ -163,7 +163,7 @@ void setup() {
   //Neopixel
   strip.begin();
   strip.show();  // Alle LEDs ausschalten
-  setBar(10,"#FFFF00", 20, "#000000", 0);
+  setBarStandby();
 
 
   // Booting finished
@@ -198,7 +198,7 @@ void updateSpeedSetting() {
       }
       log("speedSetting", speedSetting, true);
       currentMotorStep = (currentMotorStep < 10) ? currentMotorStep + 1 : 10;
-      setBar(currentMotorStep,"#FF0000", 255, "#000000", 0);
+      setBarSpeed(currentMotorStep);
     }
 
     if (leftButton.clicks == -2) {
@@ -209,8 +209,7 @@ void updateSpeedSetting() {
       }
       log("speedSetting", speedSetting, true);
       currentMotorStep = (currentMotorStep > 0) ? currentMotorStep - 1 : 1;
-      setBar(currentMotorStep,"#FF0000", 255, "#000000", 0);
-
+      setBarSpeed(currentMotorStep);
     }
   }
 }
@@ -224,7 +223,7 @@ void controlStandby() {
       log("leaving standby", 1, true);
       lastActionTime = micros();
       beep("2");
-      setBar(currentMotorStep,"#FF0000", 255, "#000000", 0);
+      setBarSpeed(currentMotorStep);
 
     }
   } else {
@@ -233,7 +232,7 @@ void controlStandby() {
       log("going to standby", micros(), true);
       motorState = MOTOR_STANDBY;
       beep("2");
-      setBar(10,"#FFFF00", 20, "#000000", 0);
+      setBarStandby();
 
     }
     if (leftButtonState == 0 || rightButtonState == 0) {
@@ -350,12 +349,12 @@ void GetBatteryLevelInfo() {
     log("leftButton.clicks", leftButton.clicks, EnableDebugLog);
     if (batteryLevel < 10) {
       beep("1");
-        setBar(1,"#00FF00", 255, "#FF0000", 100);
+        setBarBattery(1);
 
     } else {
       // Ermitteln, wie viele vollen 10%-Schritte erreicht wurden
       int steps = batteryLevel / 10;
-      setBar(steps,"#00FF00", 255, "#FF0000", 100);
+      setBarBattery(steps);
 
       // Erzeugen einer Zeichenfolge mit '1' für jeden vollen 10%-Schritt
       String beepSequence = "";
@@ -376,19 +375,19 @@ void BatteryLevelAlert() {
     beep("222");  // Dreimal langer Piepton bei 30%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 30;  // Setzt den Status auf 30%
-    setBar(3,"#00FF00", 255, "#FF0000", 100);
+    setBarBattery(3);
 
   } else if (batteryLevel <= 20 && batteryLevel >= 11 && batteryAlerted != 20) {
     beep("22");  // Zweimal Piepton bei 20%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 20;  // Setzt den Status auf 20%
-    setBar(2,"#00FF00", 255, "#FF0000", 100);
+    setBarBattery(2);
 
   } else if (batteryLevel <= 10 && batteryAlerted != 10) {
     beep("2");  // Ein Piepton bei 10%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 10;  // Setzt den Status auf 10%
-    setBar(1,"#00FF00", 255, "#FF0000", 100);
+    setBarBattery(1);
 
   }
 }
@@ -548,14 +547,7 @@ void checkForLeak() {
   if (frontLeakState == LOW || backLeakState == LOW) {
     leakSensorState = 1;  // Es liegt ein Leak vor
     log("leakSensorState", leakSensorState, true);
-    if(frontLeakState == LOW) {
-      setBar(5,"#0000FF", 0, "#0000FF", 255);
-    } else if (backLeakState == LOW) {
-      setBar(5,"#0000FF", 255, "#0000FF", 0);
-    } else if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(10,"#0000FF", 255, "#0000FF", 0);
-    }
-    
+    setBarLeak();    
 
   }
   log("frontLeakState", frontLeakState, EnableDebugLog);
@@ -661,7 +653,30 @@ void setBar(int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorO
   strip.show();  // LED-Streifen aktualisieren
 }
 
+void setBarStandby() {
+    setBar(10,"#FFFF00", 10, "#000000", 0);
+}
 
+void setBarSpeed(int num) {
+    setBar(num,"#FF0000", 255, "#000000", 0);
+}
+
+void setBarBattery(int num) {
+      setBar(num,"#00FF00", 255, "#FF0000", 100);
+}
+
+void setBarLeak() {
+    int frontLeakState = digitalRead(PIN_LEAK_FRONT);
+    int backLeakState = digitalRead(PIN_LEAK_BACK);
+
+    if(frontLeakState == LOW) {
+      setBar(5,"#0000FF", 0, "#0000FF", 255);
+    } else if (backLeakState == LOW) {
+      setBar(5,"#0000FF", 255, "#0000FF", 0);
+    } else if (backLeakState == LOW && frontLeakState == LOW) {
+      setBar(10,"#0000FF", 255, "#0000FF", 0);
+    }
+}
 
 
 // make a map function for this mapiopenigrecord
