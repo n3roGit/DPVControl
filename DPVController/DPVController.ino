@@ -36,8 +36,9 @@ const int PIN_BEEP = 18;  //G18 OK
 
 const int PIN_LEDBAR = 12;          // Pin, an dem der LED-Streifen angeschlossen ist
 const int LEDBAR_NUM = 10;          // Anzahl der LEDs im Streifen
+const int LEDBAR2_NUM = 10;          // Anzahl der LEDs im Streifen
 const int LEDBAR_BRIGHTNESS = 255;  // Maximale Helligkeit (0-255)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(LEDBAR_NUM, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(LEDBAR_NUM + LEDBAR2_NUM, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
 
 
 
@@ -375,19 +376,19 @@ void BatteryLevelAlert() {
     beep("222");  // Dreimal langer Piepton bei 30%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 30;  // Setzt den Status auf 30%
-    setBarBattery(3);
+    //setBarBattery(3);
 
   } else if (batteryLevel <= 20 && batteryLevel >= 11 && batteryAlerted != 20) {
     beep("22");  // Zweimal Piepton bei 20%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 20;  // Setzt den Status auf 20%
-    setBarBattery(2);
+    //setBarBattery(2);
 
   } else if (batteryLevel <= 10 && batteryAlerted != 10) {
     beep("2");  // Ein Piepton bei 10%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 10;  // Setzt den Status auf 10%
-    setBarBattery(1);
+    //setBarBattery(1);
 
   }
 }
@@ -622,18 +623,30 @@ void checkButtonClicks() {
   }
 }
 
-void setBar(int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
+
+
+
+
+void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
+  // Stelle sicher, dass stripNumber gültig ist (1 für den ersten Streifen, 2 für den zweiten Streifen)
+  if (stripNumber != 1 && stripNumber != 2) {
+    return; // Unerlaubter Wert, nichts tun
+  }
+
+  // Berechne den Startindex basierend auf stripNumber
+  int startIndex = (stripNumber == 1) ? 0 : LEDBAR_NUM;
+
+  // Berechne den Endindex basierend auf stripNumber
+  int endIndex = (stripNumber == 1) ? LEDBAR_NUM : LEDBAR_NUM + LEDBAR2_NUM;
+
   // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die eingeschaltete Farbe
   long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
   int redOn = numberOn >> 16;
   int greenOn = (numberOn >> 8) & 0xFF;
   int blueOn = numberOn & 0xFF;
 
-  // Alle LEDs ausschalten
-  strip.clear();
-
   // Setze die LEDs entsprechend der übergebenen Helligkeit und Farben
-  for (int i = 0; i < numLEDsOn; i++) {
+  for (int i = startIndex; i < startIndex + numLEDsOn; i++) {
     int dimmed_color_r = redOn * brightnessOn / 100;
     int dimmed_color_g = greenOn * brightnessOn / 100;
     int dimmed_color_b = blueOn * brightnessOn / 100;
@@ -641,7 +654,7 @@ void setBar(int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorO
   }
 
   // Setze die LEDs für die ausgeschaltete Seite
-  for (int i = numLEDsOn; i < LEDBAR_NUM; i++) {
+  for (int i = startIndex + numLEDsOn; i < endIndex; i++) {
     // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
     long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
     int redOff = numberOff >> 16;
@@ -654,15 +667,15 @@ void setBar(int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorO
 }
 
 void setBarStandby() {
-    setBar(10,"#FFFF00", 10, "#000000", 0);
+    setBar(1,10,"#FFFF00", 10, "#000000", 0);
 }
 
 void setBarSpeed(int num) {
-    setBar(num,"#FF0000", 255, "#000000", 0);
+    setBar(1,num,"#FF0000", 255, "#000000", 0);
 }
 
 void setBarBattery(int num) {
-      setBar(num,"#00FF00", 255, "#FF0000", 100);
+      setBar(2,num,"#00FF00", 255, "#FF0000", 100);
 }
 
 void setBarLeak() {
@@ -670,11 +683,11 @@ void setBarLeak() {
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
     if(frontLeakState == LOW) {
-      setBar(5,"#0000FF", 0, "#0000FF", 255);
+      setBar(1,5,"#0000FF", 0, "#0000FF", 255);
     } else if (backLeakState == LOW) {
-      setBar(5,"#0000FF", 255, "#0000FF", 0);
+      setBar(1,5,"#0000FF", 255, "#0000FF", 0);
     } else if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(10,"#0000FF", 255, "#0000FF", 0);
+      setBar(1,10,"#0000FF", 255, "#0000FF", 0);
     }
 }
 
@@ -706,6 +719,8 @@ void updateBatteryLevel(float voltage) {
     // Ensure that the battery level is limited to the range [0, 100]
     batteryLevel = constrain(batteryLevel, 0, 100);
   }
+  int steps = batteryLevel / 10;
+  setBarBattery(steps);
 }
 
 
