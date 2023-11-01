@@ -52,8 +52,8 @@ const int MOTOR_STANDBY = 2;
 Here please organize the variables smartly. here i use milliseconds in some places and minutes or seconds in others. how would you ideally do this?
 */
 //Constants
-const int MOTOR_MAX_SPEED = 40000;
-const int MOTOR_MIN_SPEED = 40001;
+const int MOTOR_MAX_SPEED = 6000;
+const int MOTOR_MIN_SPEED = 14500;
 const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_MS = 1000 * 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;                  //Number speed steps
