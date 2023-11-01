@@ -6,7 +6,7 @@
     <motor_type>2</motor_type>
     <sensor_mode>0</sensor_mode>
     <l_current_max>100</l_current_max>
-    <l_current_min>-5</l_current_min>
+    <l_current_min>-1</l_current_min>
     <l_in_current_max>50</l_in_current_max>
     <l_in_current_min>-1</l_in_current_min>
     <l_abs_current_max>160</l_abs_current_max>
@@ -28,7 +28,7 @@
     <l_min_duty>0.005</l_min_duty>
     <l_max_duty>0.95</l_max_duty>
     <l_watt_max>1800</l_watt_max>
-    <l_watt_min>0</l_watt_min>
+    <l_watt_min>-1</l_watt_min>
     <l_current_max_scale>1</l_current_max_scale>
     <l_current_min_scale>1</l_current_min_scale>
     <l_duty_start>1</l_duty_start>
