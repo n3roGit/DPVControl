@@ -307,12 +307,9 @@ void GetBatteryLevelInfo() {
     log("leftButton.clicks", leftButton.clicks, EnableDebugLog);
     if (batteryLevel < 10) {
       beep("1");
-        setBarBattery(1);
-
     } else {
       // Determine how many full 10% steps have been reached
       int steps = batteryLevel / 10;
-      setBarBattery(steps);
 
       // Generate a string with '1' for each full 10% step
       String beepSequence = "";
@@ -383,7 +380,6 @@ void setSoftMotorSpeed() {
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
-  //servo.write(currentMotorSpeed);
   UART.setRPM(currentMotorSpeed);
   currentMotorTime = micros();
 }
@@ -669,7 +665,7 @@ void updateBatteryLevel(float voltage) {
     // Ensure that the battery level is limited to the range [0, 100]
     batteryLevel = constrain(batteryLevel, 0, 100);
   }
-  int steps = batteryLevel / 10;
+  int steps = batteryLevel / LedBar2_Num;
   setBarBattery(steps);
 }
 
