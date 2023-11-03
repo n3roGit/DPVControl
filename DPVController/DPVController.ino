@@ -65,7 +65,7 @@ const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor st
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
-const int LEDBarBrightness = 120;
+const int LEDBarBrightness = 100;
 const int LEDBarBrightnessSecond = 5;
 
 
@@ -344,6 +344,7 @@ void controlLED() {
         break;
     }
     setLEDState(LED_State);
+    setBarLED(LED_State);
     log("LED_State", LED_State, true);
   }
 }
@@ -671,16 +672,16 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
 }
 
 void setBarStandby() {
-    setBar(1,10,"#FFFF00", LEDBarBrightnessSecond, "#000000", 0);
+    setBar(1,10,"#e38f09", LEDBarBrightnessSecond, "#000000", 0);
 }
 
 void setBarSpeed(int num) {
-    setBar(1,num,"#FF0000", LEDBarBrightness, "#000000", 0);
+    setBar(1,num,"#cb1bf2", LEDBarBrightness, "#000000", 0);
 }
 
 void setBarBattery(int num) {
   int calc = 10-num;
-  setBar(2,calc,"#FF0000", LEDBarBrightnessSecond, "#00FF00", LEDBarBrightness);
+  setBar(2,calc,"#e30b0b", LEDBarBrightnessSecond, "#0a9e08", LEDBarBrightness);
 }
 
 void setBarLeak() {
@@ -694,6 +695,11 @@ void setBarLeak() {
     } else if(frontLeakState == LOW) {
       setBar(1,5,"#0000FF", 0, "#0000FF", LEDBarBrightness);
     }
+}
+
+void setBarLED(int num) {
+    int calc = 10-num;
+    setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBarBrightness);
 }
 
 
