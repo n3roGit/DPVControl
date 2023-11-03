@@ -381,19 +381,16 @@ void BatteryLevelAlert() {
     beep("222");  // Dreimal langer Piepton bei 30%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 30;  // Setzt den Status auf 30%
-    //setBarBattery(3);
 
   } else if (batteryLevel <= 20 && batteryLevel >= 11 && batteryAlerted != 20) {
     beep("22");  // Zweimal Piepton bei 20%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 20;  // Setzt den Status auf 20%
-    //setBarBattery(2);
 
   } else if (batteryLevel <= 10 && batteryAlerted != 10) {
     beep("2");  // Ein Piepton bei 10%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 10;  // Setzt den Status auf 10%
-    //setBarBattery(1);
 
   }
 }
@@ -680,7 +677,7 @@ void setBarSpeed(int num) {
 }
 
 void setBarBattery(int num) {
-  int calc = 10-num;
+  int calc = LEDBAR_NUM-num;
   setBar(2,calc,"#e30b0b", LEDBarBrightnessSecond, "#0a9e08", LEDBarBrightness);
 }
 
@@ -698,7 +695,7 @@ void setBarLeak() {
 }
 
 void setBarLED(int num) {
-    int calc = 10-num;
+    int calc = LEDBAR_NUM-num;
     setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBarBrightness);
 }
 
