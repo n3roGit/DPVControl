@@ -34,11 +34,12 @@ const int PIN_BEEP = 18;  //G18 OK
 #define VESCRX 22  // GPIO pin for VESC UART RX
 #define VESCTX 23  // GPIO pin for VESC UART TX
 
-const int PIN_LEDBAR = 12;          // Pin, an dem der LED-Streifen angeschlossen ist
-const int LEDBAR_NUM = 10;          // Anzahl der LEDs im Streifen
-const int LEDBAR2_NUM = 10;          // Anzahl der LEDs im Streifen
-const int LEDBAR_BRIGHTNESS = 255;  // Maximale Helligkeit (0-255)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(LEDBAR_NUM + LEDBAR2_NUM, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
+const int PIN_LedBar = 12;          // Pin to which the LED strip is connected
+const int LedBar_Num = 10;          // Number of LEDs in the strip
+const int LedBar2_Num = 10;          // Number of LEDs in the strip
+const int LEDBar_Brightness = 100;
+const int LEDBar_BrightnessSecond = 5;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LedBar, NEO_GRB + NEO_KHZ800);
 
 
 
@@ -65,8 +66,7 @@ const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor st
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
-const int LEDBarBrightness = 100;
-const int LEDBarBrightnessSecond = 5;
+
 
 
 // LED PWM parameters
@@ -248,54 +248,6 @@ void controlStandby() {
   }
 }
 
-
-/*
-tried to make a delay before motor starts by pressing button. not working.
-*/
-/*
-void controlMotor() {
-  if (motorState != MOTOR_STANDBY) {
-    // Prüfen, ob eine der beiden Tasten gedrückt wird
-
-    if (leftButtonState == 0 || rightButtonState == 0) {
-      // Wenn eine Taste gedrückt wurde und der Timer noch nicht gestartet ist, starten Sie ihn.
-      log("leftButtonState", leftButtonState, EnableDebugLog);
-      log("rightButtonState", rightButtonState, EnableDebugLog);
-      log("buttonPressStartTime", buttonPressStartTime, EnableDebugLog);
-      if (buttonPressStartTime == 0) {
-        buttonPressStartTime = micros();
-        log("buttonPressStartTime gesetzt", buttonPressStartTime, EnableDebugLog);
-      }
-
-      // Prüfen, ob die Dauer des Tastendrucks MotorButtonDelay Mikrosekunden erreicht hat
-      if (micros() - buttonPressStartTime >= MotorButtonDelay) {
-        motorState = MOTOR_ON;
-        log("motorState", motorState, EnableDebugLog);
-        log("MOTOR_ON", MOTOR_ON, EnableDebugLog);
-      }
-    } else {
-      // Wenn keine Taste gedrückt wird, setzen Sie den Timer zurück.
-      buttonPressStartTime = 0;
-      motorState = MOTOR_OFF;
-      log("buttonPressStartTime", buttonPressStartTime, EnableDebugLog);
-      log("motorState", motorState, EnableDebugLog);
-    }
-  }
-
-  log("motorstate", motorState, EnableDebugLog);
-
-  if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
-    // Motor ist aus
-    targetMotorSpeed = 0;
-  } else if (motorState == MOTOR_ON) {
-    targetMotorSpeed = speedSetting;
-  }
-
-  setSoftMotorSpeed();
-}*/
-
-
-
 void controlMotor() {
   if (motorState != MOTOR_STANDBY) {
     if (leftButtonState == 0 || rightButtonState == 0) {
@@ -358,17 +310,17 @@ void GetBatteryLevelInfo() {
         setBarBattery(1);
 
     } else {
-      // Ermitteln, wie viele vollen 10%-Schritte erreicht wurden
+      // Determine how many full 10% steps have been reached
       int steps = batteryLevel / 10;
       setBarBattery(steps);
 
-      // Erzeugen einer Zeichenfolge mit '1' für jeden vollen 10%-Schritt
+      // Generate a string with '1' for each full 10% step
       String beepSequence = "";
       for (int i = 0; i < steps; i++) {
         beepSequence += '2';
       }
 
-      // Wenn Schritte vorhanden sind, Beep-Funktion aufrufen
+      // If steps are present, call up the beep function
       if (steps > 0) {
         beep(beepSequence);
       }
@@ -378,33 +330,22 @@ void GetBatteryLevelInfo() {
 
 void BatteryLevelAlert() {
   if (batteryLevel <= 30 && batteryLevel >= 21 && batteryAlerted != 30) {
-    beep("222");  // Dreimal langer Piepton bei 30%
+    beep("222");  // Three long beeps at 30%
     log("BatteryAlert", batteryLevel, true);
-    batteryAlerted = 30;  // Setzt den Status auf 30%
+    batteryAlerted = 30;  // Sets the status to 30%
 
   } else if (batteryLevel <= 20 && batteryLevel >= 11 && batteryAlerted != 20) {
-    beep("22");  // Zweimal Piepton bei 20%
+    beep("22");  // Beep twice at 20%
     log("BatteryAlert", batteryLevel, true);
-    batteryAlerted = 20;  // Setzt den Status auf 20%
+    batteryAlerted = 20;  // Sets the status to 20%
 
   } else if (batteryLevel <= 10 && batteryAlerted != 10) {
-    beep("2");  // Ein Piepton bei 10%
+    beep("2");  // One beep at 10%
     log("BatteryAlert", batteryLevel, true);
-    batteryAlerted = 10;  // Setzt den Status auf 10%
+    batteryAlerted = 10;  // Sets the status to 10%
 
   }
 }
-
-
-
-
-
-
-
-
-
-
-
 /*
 is this a clever solution to prevent overload?
 */
@@ -517,6 +458,7 @@ void blinkLED(const String& sequence) {
       // Pause between blinking
     }
   }
+  //todo: after blink set led to the last state of LED_State after 5 seconds
 }
 
 
@@ -546,9 +488,9 @@ void checkForLeak() {
   int frontLeakState = digitalRead(PIN_LEAK_FRONT);
   int backLeakState = digitalRead(PIN_LEAK_BACK);
 
-  // Überprüfen, ob einer der Pins auf "HIGH" ist
+  // Check whether one of the pins is "HIGH"
   if (frontLeakState == LOW || backLeakState == LOW) {
-    leakSensorState = 1;  // Es liegt ein Leak vor
+    leakSensorState = 1;  // There is a leak
     log("leakSensorState", leakSensorState, true);
     setBarLeak();    
 
@@ -559,27 +501,27 @@ void checkForLeak() {
 }
 
 void BeepForLeak() {
-  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Alle 10 Sekunden
-    beep("22222");                                                              // Hier die gewünschte Sequenz für den Ton
+  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
+    beep("22222");                                                              // Here is the desired sequence for the sound
     log("WARNING LEAK", 22222, true);
-    lastLeakBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+    lastLeakBeepTime = micros();  // update the time of the last call
   }
 }
 void BeepForStandby() {
   if (motorState == MOTOR_STANDBY && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
     beep("1");  // Hier die gewünschte Sequenz für den Ton
     log("still in standby", 1, true);
-    lastStandbyBeepTime = micros();  // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+    lastStandbyBeepTime = micros();  // Update the time of the last call
   }
 }
 void BlinkForLongStandby() {
   if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= StandbyBlinkWarningtime && LED_State == 0) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
     log("sos iam alone", 111222111, true);
-    StandbyBlinkWarningtime = (StandbyBlinkDuration * 1000000);  //alle 30 sek
-    lastStandbyBlinkTime = micros();                             // Aktualisieren Sie den Zeitpunkt des letzten Aufrufs
+    StandbyBlinkWarningtime = (StandbyBlinkDuration * 1000000);  //every 30 sec
+    lastStandbyBlinkTime = micros();                             // Update the time of the last call
   } else {
-    StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);  //alle 3 minuten
+    StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);  //every 3 minutes
   }
 }
 
@@ -630,24 +572,24 @@ void checkButtonClicks() {
 
 
 void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
-  // Stelle sicher, dass stripNumber gültig ist (1 für den ersten Streifen, 2 für den zweiten Streifen)
+  // Make sure that stripNumber is valid (1 for the first strip, 2 for the second strip)
   if (stripNumber != 1 && stripNumber != 2) {
-    return; // Unerlaubter Wert, nichts tun
+    return; // Unauthorized value, do nothing
   }
 
   // Berechne den Startindex basierend auf stripNumber
-  int startIndex = (stripNumber == 1) ? 0 : LEDBAR_NUM;
+  int startIndex = (stripNumber == 1) ? 0 : LedBar_Num;
 
-  // Berechne den Endindex basierend auf stripNumber
-  int endIndex = (stripNumber == 1) ? LEDBAR_NUM : LEDBAR_NUM + LEDBAR2_NUM;
+  // Calculate the end index based on stripNumber
+  int endIndex = (stripNumber == 1) ? LedBar_Num : LedBar_Num + LedBar2_Num;
 
-  // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die eingeschaltete Farbe
+  // Convert the hex color value to RGB color values for the switched-on color
   long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
   int redOn = numberOn >> 16;
   int greenOn = (numberOn >> 8) & 0xFF;
   int blueOn = numberOn & 0xFF;
 
-  // Setze die LEDs entsprechend der übergebenen Helligkeit und Farben
+  // Set the LEDs according to the specified brightness and colors
   for (int i = startIndex; i < startIndex + numLEDsOn; i++) {
     int dimmed_color_r = redOn * brightnessOn / 100;
     int dimmed_color_g = greenOn * brightnessOn / 100;
@@ -655,9 +597,9 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
   }
 
-  // Setze die LEDs für die ausgeschaltete Seite
+  // Set the LEDs for the side that is switched off
   for (int i = startIndex + numLEDsOn; i < endIndex; i++) {
-    // Konvertiere den Hex-Farbwert in RGB-Farbwerte für die ausgeschaltete Farbe
+    // Convert the hex color value to RGB color values for the switched off color
     long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
     int redOff = numberOff >> 16;
     int greenOff = (numberOff >> 8) & 0xFF;
@@ -665,20 +607,20 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     strip.setPixelColor(i, strip.Color(redOff * brightnessOff / 100, greenOff * brightnessOff / 100, blueOff * brightnessOff / 100));
   }
 
-  strip.show();  // LED-Streifen aktualisieren
+  strip.show();  // Update LED strips
 }
 
 void setBarStandby() {
-    setBar(1,10,"#e38f09", LEDBarBrightnessSecond, "#000000", 0);
+    setBar(1,10,"#e38f09", LEDBar_BrightnessSecond, "#000000", 0);
 }
 
 void setBarSpeed(int num) {
-    setBar(1,num,"#cb1bf2", LEDBarBrightness, "#000000", 0);
+    setBar(1,num,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
 }
 
 void setBarBattery(int num) {
-  int calc = LEDBAR_NUM-num;
-  setBar(2,calc,"#e30b0b", LEDBarBrightnessSecond, "#0a9e08", LEDBarBrightness);
+  int calc = LedBar_Num-num;
+  setBar(2,calc,"#e30b0b", LEDBar_BrightnessSecond, "#0a9e08", LEDBar_Brightness);
 }
 
 void setBarLeak() {
@@ -686,17 +628,17 @@ void setBarLeak() {
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
     if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(1,10,"#0000FF", LEDBarBrightness, "#0000FF", 0);
+      setBar(1,10,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
     } else if (backLeakState == LOW) {
-      setBar(1,5,"#0000FF", LEDBarBrightness, "#0000FF", 0);
+      setBar(1,5,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
     } else if(frontLeakState == LOW) {
-      setBar(1,5,"#0000FF", 0, "#0000FF", LEDBarBrightness);
+      setBar(1,5,"#0000FF", 0, "#0000FF", LEDBar_Brightness);
     }
 }
 
 void setBarLED(int num) {
-    int calc = LEDBAR_NUM-num;
-    setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBarBrightness);
+    int calc = LedBar_Num-num;
+    setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
 }
 
 
