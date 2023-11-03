@@ -65,6 +65,10 @@ const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor st
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
+const int LEDBarBrightness = 120;
+const int LEDBarBrightnessSecond = 5;
+
+
 // LED PWM parameters
 const int LEDfrequency = 960;  // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
 const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
@@ -209,7 +213,7 @@ void updateSpeedSetting() {
         speedSetting = MOTOR_MIN_SPEED;
       }
       log("speedSetting", speedSetting, true);
-      currentMotorStep = (currentMotorStep > 0) ? currentMotorStep - 1 : 1;
+      currentMotorStep = (currentMotorStep > 1) ? currentMotorStep - 1 : 1;
       setBarSpeed(currentMotorStep);
     }
   }
@@ -667,27 +671,28 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
 }
 
 void setBarStandby() {
-    setBar(1,10,"#FFFF00", 10, "#000000", 0);
+    setBar(1,10,"#FFFF00", LEDBarBrightnessSecond, "#000000", 0);
 }
 
 void setBarSpeed(int num) {
-    setBar(1,num,"#FF0000", 255, "#000000", 0);
+    setBar(1,num,"#FF0000", LEDBarBrightness, "#000000", 0);
 }
 
 void setBarBattery(int num) {
-      setBar(2,num,"#00FF00", 255, "#FF0000", 100);
+  int calc = 10-num;
+  setBar(2,calc,"#FF0000", LEDBarBrightnessSecond, "#00FF00", LEDBarBrightness);
 }
 
 void setBarLeak() {
     int frontLeakState = digitalRead(PIN_LEAK_FRONT);
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
-    if(frontLeakState == LOW) {
-      setBar(1,5,"#0000FF", 0, "#0000FF", 255);
+    if (backLeakState == LOW && frontLeakState == LOW) {
+      setBar(1,10,"#0000FF", LEDBarBrightness, "#0000FF", 0);
     } else if (backLeakState == LOW) {
-      setBar(1,5,"#0000FF", 255, "#0000FF", 0);
-    } else if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(1,10,"#0000FF", 255, "#0000FF", 0);
+      setBar(1,5,"#0000FF", LEDBarBrightness, "#0000FF", 0);
+    } else if(frontLeakState == LOW) {
+      setBar(1,5,"#0000FF", 0, "#0000FF", LEDBarBrightness);
     }
 }
 
@@ -791,7 +796,7 @@ void loop() {
   FromTimeToTimeExecution();
 
 
-
+setBarBattery(4);
 
 
 
