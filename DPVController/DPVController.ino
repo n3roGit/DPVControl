@@ -38,8 +38,8 @@ const int PIN_BEEP = 18;  //G18 OK
 const int PIN_LedBar = 12;          // Pin to which the LED strip is connected
 const int LedBar_Num = 10;          // Number of LEDs in the strip
 const int LedBar2_Num = 10;          // Number of LEDs in the strip
-const int LEDBar_Brightness = 100;
-const int LEDBar_BrightnessSecond = 5;
+const int LEDBar_Brightness = 25;
+const int LEDBar_BrightnessSecond = 1;
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LedBar, NEO_GRB + NEO_KHZ800);
 
 
@@ -736,7 +736,7 @@ void loop() {
 
 
 
-
+setBarBattery(8);
 
   //Serial.println("up " + uptime_formatter::getUptime());
   //Sonst ist der controller zu schnell durch den loop
