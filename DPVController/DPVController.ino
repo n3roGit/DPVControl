@@ -25,6 +25,7 @@ const int PIN_LEAK_FRONT = 32;  // GPIO pin for front leak sensor
 const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
 
 const int PIN_LED = 25;  // GPIO pin for LED
+const int OverloadLimit = 40; // in Apere
 
 const int PIN_DHT = 14;  // GPIO pin for the buzzer
 DHTesp dhtSensor;
@@ -348,17 +349,15 @@ is this a clever solution to prevent overload?
 */
 void PreventOverload() {
   // Hinzugefügte Logik zur Überprüfung der Geschwindigkeit und LED_State
-  if (speedSetting > int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State >= 3) {
+  if (UART.data.avgInputCurrent >= OverloadLimit) && LED_State >= 3) {
     LED_State_Last = LED_State;
     LED_State = 2;
     setLEDState(LED_State);
-  }
-  /*
-  else if (speedSetting <= int(MOTOR_MAX_SPEED * LED_Energy_Limiter) && LED_State != 0 && LED_State != LED_State_Last) {
+  }  else if (OverloadLimit < OverloadLimit) && LED_State != 0 && LED_State != LED_State_Last) {
     LED_State = LED_State_Last;
     setLEDState(LED_State);
   }
-  */
+  
 }
 
 /**
@@ -695,7 +694,6 @@ void normalLogOutput() {
     Serial.print("avgMotorCurrent: ");
     Serial.println(UART.data.avgMotorCurrent);
 
-
     TempAndHumidity data = dhtSensor.getTempAndHumidity();
     Serial.println("Temp: " + String(data.temperature, 2) + "°C");
     Serial.println("Humidity: " + String(data.humidity, 1) + "%");
@@ -729,7 +727,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
-  //PreventOverload();
+  PreventOverload();
   checkForLeak();
   GetBatteryLevelInfo();
   GetVESCValues();
@@ -737,7 +735,6 @@ void loop() {
   FromTimeToTimeExecution();
 
 
-setBarBattery(4);
 
 
 
