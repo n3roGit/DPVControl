@@ -349,16 +349,16 @@ is this a clever solution to prevent overload?
 */
 void PreventOverload() {
   // Hinzugefügte Logik zur Überprüfung der Geschwindigkeit und LED_State
-  if (UART.data.avgInputCurrent >= OverloadLimit) && LED_State >= 3) {
+  if (UART.data.avgInputCurrent >= OverloadLimit && LED_State >= 3) {
     LED_State_Last = LED_State;
     LED_State = 2;
     setLEDState(LED_State);
-  }  else if (OverloadLimit < OverloadLimit) && LED_State != 0 && LED_State != LED_State_Last) {
+  }  else if (UART.data.avgInputCurrent < OverloadLimit && LED_State != 0 && LED_State != LED_State_Last) {
     LED_State = LED_State_Last;
     setLEDState(LED_State);
   }
-  
 }
+
 
 /**
 * Slowly changes the motor speed to targetMotorSpeed.
