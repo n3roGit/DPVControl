@@ -727,7 +727,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
-  PreventOverload();
+  //PreventOverload();
   checkForLeak();
   GetBatteryLevelInfo();
   GetVESCValues();
