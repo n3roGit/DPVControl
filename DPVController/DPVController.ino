@@ -708,6 +708,7 @@ void FromTimeToTimeExecution() {
   BeepForStandby();
   BlinkForLongStandby();
   BatteryLevelAlert();
+  Serial.println("up " + uptime_formatter::getUptime());
   }
 }
 
@@ -736,9 +737,8 @@ void loop() {
 
 
 
-setBarBattery(8);
 
-  //Serial.println("up " + uptime_formatter::getUptime());
+  
   //Sonst ist der controller zu schnell durch den loop
   /*
   implemented this delay because the code is not working correct if this is not used. dont know why
