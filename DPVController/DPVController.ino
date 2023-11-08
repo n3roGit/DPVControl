@@ -378,8 +378,18 @@ void setSoftMotorSpeed() {
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
-  log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
-  UART.setRPM(currentMotorSpeed);
+  log("currentMotorSpeed", currentMotorSpeed, true);
+  bool SendStop = false;
+  if(currentMotorSpeed == 0 && SendStop == false)
+  {
+    SendStop = true;
+  }
+  else
+  {
+      UART.setRPM(currentMotorSpeed);
+      SendStop = false;
+  }
+  
   currentMotorTime = micros();
 }
 
