@@ -378,7 +378,7 @@ void setSoftMotorSpeed() {
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
-  log("currentMotorSpeed", currentMotorSpeed, true);
+  log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   bool SendStop = false;
   if(currentMotorSpeed == 0 && SendStop == false)
   {
