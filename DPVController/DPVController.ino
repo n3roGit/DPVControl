@@ -57,7 +57,7 @@ Here please organize the variables smartly. here i use milliseconds in some plac
 const int MOTOR_MAX_SPEED = 14500;
 const int MOTOR_MIN_SPEED = 6000;
 const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_DOWN_TIME_MS = 1000 * 1000;  //time we want to take to  speed the motor from full power to 0.
+const int SPEED_DOWN_TIME_MS = 300 * 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;                  //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
