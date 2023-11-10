@@ -25,7 +25,7 @@ const int PIN_LEAK_FRONT = 32;  // GPIO pin for front leak sensor
 const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
 
 const int PIN_LED = 25;  // GPIO pin for LED
-const int OverloadLimit = 40; // in Apere
+
 
 const int PIN_DHT = 14;  // GPIO pin for the buzzer
 DHTesp dhtSensor;
@@ -110,6 +110,8 @@ int batteryAlerted = 0;
 int FromTimeToTime = 0;
 int FromTimeToTimeIntervall = 500;
 
+int OverloadLimitMax = 40; // in Ampere
+int OverloadLimit = OverloadLimitMax; // in Ampere
 
 // Create ClickButton objects for the left and right buttons
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
@@ -348,16 +350,24 @@ void BatteryLevelAlert() {
 is this a clever solution to prevent overload?
 */
 void PreventOverload() {
-  // Hinzugefügte Logik zur Überprüfung der Geschwindigkeit und LED_State
-  if (UART.data.avgInputCurrent >= OverloadLimit && LED_State >= 3) {
-    LED_State_Last = LED_State;
-    LED_State = 2;
-    setLEDState(LED_State);
-  }  else if (UART.data.avgInputCurrent < OverloadLimit && LED_State != 0 && LED_State != LED_State_Last) {
-    LED_State = LED_State_Last;
-    setLEDState(LED_State);
+
+  if (LED_State = 3) {
+    OverloadLimit = OverloadLimitMax - 3;
+  } else if (LED_State = 4) {
+    OverloadLimit = OverloadLimitMax - 4;
+  } else {
+    OverloadLimit = OverloadLimitMax;
+  }
+
+/*
+// something like this to prevent overload. so i can limit the motor speed if i have other devices consuming current
+  if (UART.data.avgInputCurrent >= OverloadLimit) {
+    speedSetting -= MOTOR_SPEED_CHANGE;
+  }  else if (UART.data.avgInputCurrent < OverloadLimit) {
+    speedSetting += MOTOR_SPEED_CHANGE;
   }
 }
+*/
 
 
 /**
@@ -738,7 +748,7 @@ void loop() {
   controlStandby();
   controlMotor();
   controlLED();
-  //PreventOverload();
+  PreventOverload();
   checkForLeak();
   GetBatteryLevelInfo();
   GetVESCValues();
