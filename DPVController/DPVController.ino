@@ -660,9 +660,7 @@ void setBarLED(int num) {
 
 // make a map function for this mapiopenigrecord
 void updateBatteryLevel(float voltage) {
-  if (CellsInSeries > 1 && voltage < 5) {
-    batteryLevel = 100;
-  } else {
+  if (voltage >= 2.8) {
     float singleCellVoltages[] = {4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87};
     int singleCellPercentages[] = {100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0};
 
@@ -681,9 +679,11 @@ void updateBatteryLevel(float voltage) {
         break;
       }
     }
-
     // Ensure that the battery level is limited to the range [0, 100]
     batteryLevel = constrain(batteryLevel, 0, 100);
+    Serial.println("mehr volt");
+  } else {
+    batteryLevel = 100;
   }
   int steps = (batteryLevel + 5) / LedBar2_Num;
   steps = constrain(steps, 0, LedBar2_Num - 1);
@@ -730,7 +730,6 @@ void FromTimeToTimeExecution() {
   BeepForStandby();
   BlinkForLongStandby();
   BatteryLevelAlert();
-  Serial.println("up " + uptime_formatter::getUptime());
   }
 }
 
