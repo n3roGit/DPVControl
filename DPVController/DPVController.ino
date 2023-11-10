@@ -681,7 +681,6 @@ void updateBatteryLevel(float voltage) {
     }
     // Ensure that the battery level is limited to the range [0, 100]
     batteryLevel = constrain(batteryLevel, 0, 100);
-    Serial.println("mehr volt");
   } else {
     batteryLevel = 100;
   }
