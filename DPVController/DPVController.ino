@@ -685,7 +685,8 @@ void updateBatteryLevel(float voltage) {
     // Ensure that the battery level is limited to the range [0, 100]
     batteryLevel = constrain(batteryLevel, 0, 100);
   }
-  int steps = batteryLevel / LedBar2_Num;
+  int steps = (batteryLevel + 5) / LedBar2_Num;
+  steps = constrain(steps, 0, LedBar2_Num - 1);
   setBarBattery(steps);
 }
 
