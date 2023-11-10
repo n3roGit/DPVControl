@@ -6,9 +6,9 @@
     <motor_type>2</motor_type>
     <sensor_mode>0</sensor_mode>
     <l_current_max>100</l_current_max>
-    <l_current_min>-5</l_current_min>
+    <l_current_min>-1</l_current_min>
     <l_in_current_max>50</l_in_current_max>
-    <l_in_current_min>-5</l_in_current_min>
+    <l_in_current_min>-1</l_in_current_min>
     <l_abs_current_max>160</l_abs_current_max>
     <l_min_erpm>-4000</l_min_erpm>
     <l_max_erpm>140000</l_max_erpm>
@@ -22,13 +22,13 @@
     <l_slow_abs_current>1</l_slow_abs_current>
     <l_temp_fet_start>85</l_temp_fet_start>
     <l_temp_fet_end>100</l_temp_fet_end>
-    <l_temp_motor_start>85</l_temp_motor_start>
-    <l_temp_motor_end>100</l_temp_motor_end>
+    <l_temp_motor_start>80</l_temp_motor_start>
+    <l_temp_motor_end>95</l_temp_motor_end>
     <l_temp_accel_dec>0.15</l_temp_accel_dec>
     <l_min_duty>0.005</l_min_duty>
     <l_max_duty>0.95</l_max_duty>
     <l_watt_max>1800</l_watt_max>
-    <l_watt_min>0</l_watt_min>
+    <l_watt_min>-1</l_watt_min>
     <l_current_max_scale>1</l_current_max_scale>
     <l_current_min_scale>1</l_current_min_scale>
     <l_duty_start>1</l_duty_start>
@@ -183,10 +183,10 @@
     <si_battery_cells>13</si_battery_cells>
     <si_battery_ah>24</si_battery_ah>
     <si_motor_nl_current>2.4</si_motor_nl_current>
-    <motor_brand>Unnamed</motor_brand>
-    <motor_model>Not Specified</motor_model>
-    <motor_weight>0</motor_weight>
-    <motor_sensor_type>0</motor_sensor_type>
+    <motor_brand>China Scooter Motor </motor_brand>
+    <motor_model>1800W</motor_model>
+    <motor_weight>4700</motor_weight>
+    <motor_sensor_type>1</motor_sensor_type>
     <motor_description>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
 p, li { white-space: pre-wrap; }
