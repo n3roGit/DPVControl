@@ -366,8 +366,9 @@ void PreventOverload() {
   }  else if (UART.data.avgInputCurrent < OverloadLimit) {
     speedSetting += MOTOR_SPEED_CHANGE;
   }
+  */
 }
-*/
+
 
 
 /**
