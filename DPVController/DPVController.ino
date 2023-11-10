@@ -660,7 +660,7 @@ void setBarLED(int num) {
 
 // make a map function for this mapiopenigrecord
 void updateBatteryLevel(float voltage) {
-  if (voltage >= 2.8) {
+  if (voltage >= 5 && CellsInSeries >= 2) {
     float singleCellVoltages[] = {4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87};
     int singleCellPercentages[] = {100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0};
 
