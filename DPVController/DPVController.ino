@@ -351,9 +351,9 @@ is this a clever solution to prevent overload?
 */
 void PreventOverload() {
 
-  if (LED_State = 3) {
+  if (LED_State == 3) {
     OverloadLimit = OverloadLimitMax - 3;
-  } else if (LED_State = 4) {
+  } else if (LED_State == 4) {
     OverloadLimit = OverloadLimitMax - 4;
   } else {
     OverloadLimit = OverloadLimitMax;
