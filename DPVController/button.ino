@@ -32,8 +32,8 @@ void buttonLoop(){
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
 
-  log("rightButtonState", rightButtonState, EnableDebugLog);
-  log("leftButtonState", leftButtonState, EnableDebugLog);
+  //log("rightButtonState", rightButtonState, EnableDebugLog);
+  //log("leftButtonState", leftButtonState, EnableDebugLog);
   //checkButtonClicks();
 }
 

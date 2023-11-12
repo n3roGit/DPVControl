@@ -54,7 +54,7 @@ const int SPEED_DOWN_TIME_MS = 300 * 1000;  //time we want to take to  speed the
 const int SPEED_STEPS = 10;                  //Number speed steps
 const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
-const bool EnableDebugLog = false;                    //Enable/Disable Serial Log
+const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
 const float LED_Energy_Limiter = 0.8;
 const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
 const int StandbyBlinkStart = 15;         // Minutes for blink start
@@ -64,6 +64,7 @@ const int StandbyBlinkDuration = 10;      // Seconds between blink
 const int CellsInSeries = 13;
 // Constant for the number of measurements used to calculate the average
 const int batteryLevelMeasurements = 1000;
+const long MS_PER_LOOP = 100;
 
 /*
 *   GLOBAL VARIABLES
@@ -88,7 +89,7 @@ unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 int batteryLevel = 0;
-int NormalLogOutput = 0;
+int loopCount = 0;
 int NormalLogOutputIntervall = 1000;
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
@@ -145,11 +146,10 @@ void setup() {
 }
 
 void loop() {
-  NormalLogOutput++;
-  FromTimeToTime++;
+  long loopStart = millis();
+  loopCount++;
 
   buttonLoop();
-
   updateSpeedSetting();
   controlStandby();
   controlMotor();
@@ -158,12 +158,14 @@ void loop() {
   checkForLeak();
   GetBatteryLevelInfo();
   GetVESCValues();
-  normalLogOutput();
+  logVehicleState();
   FromTimeToTimeExecution();
 
-  //Sonst ist der controller zu schnell durch den loop
-  /*
-  implemented this delay because the code is not working correct if this is not used. dont know why
-  */
+  long loopEnd = millis();
+  long diff = loopEnd-loopStart;
+  if (diff > 50){
+    log("Loop took", diff, true);
+  }
+  
   delay(1);
 }

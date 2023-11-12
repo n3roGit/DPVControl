@@ -41,7 +41,6 @@ void controlStandby() {
       lastActionTime = micros();
       beep("2");
       setBarSpeed(currentMotorStep);
-
     }
   } else {
     if (lastActionTime + STANDBY_DELAY_MS < micros()) {
@@ -50,7 +49,6 @@ void controlStandby() {
       motorState = MOTOR_STANDBY;
       beep("2");
       setBarStandby();
-
     }
     if (leftButtonState == 0 || rightButtonState == 0) {
       //While not in standby, any button click updates the standby counter.
@@ -68,7 +66,7 @@ void controlMotor() {
       motorState = MOTOR_OFF;
     }
   }
-  log("motorstate", motorState, EnableDebugLog);
+  //log("motorstate", motorState, EnableDebugLog);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
     // Motor is off
@@ -126,7 +124,7 @@ void setSoftMotorSpeed() {
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
-  log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
+  //log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
   bool SendStop = false;
   if(currentMotorSpeed == 0 && SendStop == false)
   {

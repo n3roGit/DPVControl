@@ -3,26 +3,30 @@
 */
 
 
+const int VESC_VALUES_INTERVAL = 100;
+
 
 /*
 only output. needs to be stored in database
 */
 void GetVESCValues() {
-  if (UART.getVescValues()) {
-    /*
-    Serial.print("RPM: ");
-    Serial.println(UART.data.rpm);
-    Serial.print("inpVoltage: ");
-    Serial.println(UART.data.inpVoltage);
-    Serial.print("ampHours: ");
-    Serial.println(UART.data.ampHours);
-    Serial.print("tachometerAbs: ");
-    Serial.println(UART.data.tachometerAbs);
-    */
+  if (loopCount+55%VESC_VALUES_INTERVAL==0){
+    if (UART.getVescValues()) {
+      /*
+      Serial.print("RPM: ");
+      Serial.println(UART.data.rpm);
+      Serial.print("inpVoltage: ");
+      Serial.println(UART.data.inpVoltage);
+      Serial.print("ampHours: ");
+      Serial.println(UART.data.ampHours);
+      Serial.print("tachometerAbs: ");
+      Serial.println(UART.data.tachometerAbs);
+      */
 
-    updateBatteryLevel(UART.data.inpVoltage);
-  } else {
-    log("Failed to get VESC data!", 00000, EnableDebugLog);
+      updateBatteryLevel(UART.data.inpVoltage);
+    } else {
+      log("Failed to get VESC data!", 00000, EnableDebugLog);
+    }
   }
 }
 void checkForLeak() {
@@ -36,14 +40,11 @@ void checkForLeak() {
     setBarLeak();    
 
   }
-  log("frontLeakState", frontLeakState, EnableDebugLog);
-  log("backLeakState", backLeakState, EnableDebugLog);
-  log("frontLeakState", frontLeakState, EnableDebugLog);
 }
 
 
 void FromTimeToTimeExecution() {
-  if (FromTimeToTime % FromTimeToTimeIntervall == 0) {
+  if (loopCount % FromTimeToTimeIntervall == 0) {
   BeepForLeak();
   BeepForStandby();
   BlinkForLongStandby();

@@ -20,8 +20,8 @@ void log(const char* label, int value, boolean doLog) {
 }
 
 
-void normalLogOutput() {
-  if (NormalLogOutput % NormalLogOutputIntervall == 0) {
+void logVehicleState() {
+  if (loopCount % NormalLogOutputIntervall == 0) {
     Serial.println("---");
 
     Serial.print("bat lvl: ");
