@@ -5,6 +5,39 @@
 
 
 /*
+* GLOBAL VARIABLES
+*/
+int leftButtonState = 0;
+int rightButtonState = 0;
+ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
+ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
+ClickButton getLeftButton(){return leftButton;};//Hack to access this from battery.ino
+
+
+void buttonSetup(){
+  // Set debounce and click times for buttons
+  leftButton.debounceTime = 40;
+  leftButton.multiclickTime = 300;
+  leftButton.longClickTime = 1000;
+  rightButton.debounceTime = 40;     //20
+  rightButton.multiclickTime = 300;  //500
+  rightButton.longClickTime = 1000;
+}
+
+
+void buttonLoop(){
+  leftButton.Update();
+  rightButton.Update();
+
+  leftButtonState = digitalRead(PIN_LEFT_BUTTON);
+  rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
+
+  log("rightButtonState", rightButtonState, EnableDebugLog);
+  log("leftButtonState", leftButtonState, EnableDebugLog);
+  //checkButtonClicks();
+}
+
+/*
 idea to check all the click codes in one funtion. not working at the moment
 */
 void checkButtonClicks() {

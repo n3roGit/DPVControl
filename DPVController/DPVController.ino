@@ -69,8 +69,6 @@ const int batteryLevelMeasurements = 1000;
 *   GLOBAL VARIABLES
 */
 DHTesp dhtSensor;
-int leftButtonState = 0;
-int rightButtonState = 0;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
 int currentMotorSpeed = 0;           //Speed the motor is currently running at
@@ -99,11 +97,6 @@ int FromTimeToTimeIntervall = 500;
 int OverloadLimitMax = 40; // in Ampere
 int OverloadLimit = OverloadLimitMax; // in Ampere
 
-// Create ClickButton objects for the left and right buttons
-ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
-ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
-
-
 /*
 The Setup is chaotic. Needs a cleanup
 */
@@ -115,20 +108,14 @@ void setup() {
   pinMode(PIN_LED, OUTPUT);
   pinMode(PIN_BEEP, OUTPUT);
 
-  // Set debounce and click times for buttons
-  leftButton.debounceTime = 40;
-  leftButton.multiclickTime = 300;
-  leftButton.longClickTime = 1000;
-  rightButton.debounceTime = 40;     //20
-  rightButton.multiclickTime = 300;  //500
-  rightButton.longClickTime = 1000;
-
   // Initialize serial communication
   Serial.begin(115200);
 
   // BEEP Initial
   Serial.println("Booting started...!");
   beep("1");
+
+  buttonSetup();
 
   // Setup DHT22 sensor
   dhtSensor.setup(PIN_DHT, DHTesp::DHT22);
@@ -160,15 +147,9 @@ void setup() {
 void loop() {
   NormalLogOutput++;
   FromTimeToTime++;
-  leftButton.Update();
-  rightButton.Update();
 
-  leftButtonState = digitalRead(PIN_LEFT_BUTTON);
-  rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
+  buttonLoop();
 
-  log("rightButtonState", rightButtonState, EnableDebugLog);
-  log("leftButtonState", leftButtonState, EnableDebugLog);
-  //checkButtonClicks();
   updateSpeedSetting();
   controlStandby();
   controlMotor();
