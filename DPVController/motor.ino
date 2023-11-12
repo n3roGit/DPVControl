@@ -6,7 +6,7 @@
 // Function to update the motor speed setting
 void updateSpeedSetting() {
   if (motorState != MOTOR_STANDBY) {
-    if (rightButton.clicks == -2) {
+    if (rightButton.clicks == 2) {
       log("speed up", rightButton.clicks, EnableDebugLog);
       speedSetting += MOTOR_SPEED_CHANGE;
       if (speedSetting > MOTOR_MAX_SPEED) {
@@ -17,7 +17,7 @@ void updateSpeedSetting() {
       setBarSpeed(currentMotorStep);
     }
 
-    if (leftButton.clicks == -2) {
+    if (leftButton.clicks == 2) {
       log("speed down", leftButton.clicks, EnableDebugLog);
       speedSetting -= MOTOR_SPEED_CHANGE;
       if (speedSetting < MOTOR_MIN_SPEED) {
@@ -34,7 +34,7 @@ void updateSpeedSetting() {
 void controlStandby() {
   if (motorState == MOTOR_STANDBY) {
     //Wake up from Standup
-    if (leftButton.clicks == -2 || rightButton.clicks == -2) {
+    if (leftButton.clicks == 2 || rightButton.clicks == 2) {
       motorState = MOTOR_OFF;
       log("leaving standby", 1, true);
       lastActionTime = micros();

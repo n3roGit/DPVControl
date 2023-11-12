@@ -7,16 +7,16 @@
 * CONSTANTS
 */
 const int DEBOUNCE_TIME = 20;
-const int MULTICLICK_TIME = 600;
-const int LONGCLICK_TIME = 10000;
+const int MULTICLICK_TIME = 300;
+const int LONGCLICK_TIME = 1000;
 
 /*
 * GLOBAL VARIABLES
 */
 int leftButtonState = DEPRESSED;
 int rightButtonState = DEPRESSED;
-ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
-ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
+ClickButton leftButton(PIN_LEFT_BUTTON, LOW);
+ClickButton rightButton(PIN_RIGHT_BUTTON, LOW);
 ClickButton getLeftButton(){return leftButton;};//Hack to access this from battery.ino
 
 
@@ -40,7 +40,4 @@ void buttonLoop(){
 
   //log("rightButtonState", rightButtonState, EnableDebugLog);
   //log("leftButtonState", leftButtonState, EnableDebugLog);
-  if (leftButton.changed){
-    log("leftButton.clicks", leftButton.clicks, EnableDebugLog);
-  }
 }
