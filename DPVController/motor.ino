@@ -7,24 +7,23 @@
 void updateSpeedSetting() {
   if (motorState != MOTOR_STANDBY) {
     if (rightButton.clicks == -2) {
-      log("rightButton.clicks", rightButton.clicks, true);
-      rightButton.clicks = 0;
+      log("speed up", rightButton.clicks, EnableDebugLog);
       speedSetting += MOTOR_SPEED_CHANGE;
       if (speedSetting > MOTOR_MAX_SPEED) {
         speedSetting = MOTOR_MAX_SPEED;
       }
-      log("speedSetting", speedSetting, true);
+      log("speedSetting", speedSetting, EnableDebugLog);
       currentMotorStep = (currentMotorStep < 10) ? currentMotorStep + 1 : 10;
       setBarSpeed(currentMotorStep);
     }
 
     if (leftButton.clicks == -2) {
-      log("leftButton.clicks", leftButton.clicks, true);
+      log("speed down", leftButton.clicks, EnableDebugLog);
       speedSetting -= MOTOR_SPEED_CHANGE;
       if (speedSetting < MOTOR_MIN_SPEED) {
         speedSetting = MOTOR_MIN_SPEED;
       }
-      log("speedSetting", speedSetting, true);
+      log("speedSetting", speedSetting, EnableDebugLog);
       currentMotorStep = (currentMotorStep > 1) ? currentMotorStep - 1 : 1;
       setBarSpeed(currentMotorStep);
     }
@@ -53,7 +52,6 @@ void controlStandby() {
     if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
       //While not in standby, any button click updates the standby counter.
       lastActionTime = micros();
-      //log("update lastActionTime", lastActionTime, EnableDebugLog);
     }
   }
 }

@@ -37,7 +37,7 @@ void ledSetup(){
 
 void controlLED() {
   if (rightButton.clicks == -3) {
-    log("rightButton.clicks", rightButton.clicks, EnableDebugLog);
+    log("switch LED", rightButton.clicks, EnableDebugLog);
 
     switch (LED_State) {
       case 0:
