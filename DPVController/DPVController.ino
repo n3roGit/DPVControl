@@ -154,13 +154,9 @@ void loop() {
   loopCount++;
 
   buttonLoop();
-  updateSpeedSetting();
-  controlStandby();
-  controlMotor();
-  controlLED();
+  motorLoop();
   PreventOverload();
   checkForLeak();
-  GetBatteryLevelInfo();
   GetVESCValues();
   logVehicleState();
   FromTimeToTimeExecution();
