@@ -1,3 +1,7 @@
+/*
+*   LIBRARIES
+*/
+
 #include "ClickButton.h"  //https://github.com/marcobrianza/ClickButton
 
 #include "DHTesp.h"  //https://github.com/beegee-tokyo/DHTesp
@@ -13,11 +17,12 @@ VescUart UART;
 
 
 /*
-It still has to be checked if the currently used GPIOs are the optimal ones.
+*  CONSTANTS
 */
 
-// https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 
+// It still has to be checked if the currently used GPIOs are the optimal ones.
+// https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 const int PIN_LEFT_BUTTON = 26;   // GPIO pin for the left button
 const int PIN_RIGHT_BUTTON = 27;  // GPIO pin for the right button
 
@@ -26,9 +31,7 @@ const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
 
 const int PIN_LED = 25;  // GPIO pin for LED
 
-
 const int PIN_DHT = 14;  // GPIO pin for the buzzer
-DHTesp dhtSensor;
 
 const int PIN_BEEP = 18;  //G18 OK
 
@@ -40,20 +43,12 @@ const int LedBar_Num = 10;          // Number of LEDs in the strip
 const int LedBar2_Num = 10;          // Number of LEDs in the strip
 const int LEDBar_Brightness = 25;
 const int LEDBar_BrightnessSecond = 1;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LedBar, NEO_GRB + NEO_KHZ800);
-
-
 
 // Values for motorState
 const int MOTOR_OFF = 0;
 const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
-
-/*
-Here please organize the variables smartly. here i use milliseconds in some places and minutes or seconds in others. how would you ideally do this?
-*/
-//Constants
 const int MOTOR_MAX_SPEED = 14500;
 const int MOTOR_MIN_SPEED = 6000;
 const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
@@ -68,8 +63,6 @@ const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
 
-
-
 // LED PWM parameters
 const int LEDfrequency = 960;  // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
 const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
@@ -80,7 +73,11 @@ const int CellsInSeries = 13;
 // Constant for the number of measurements used to calculate the average
 const int batteryLevelMeasurements = 1000;
 
-//Variables
+/*
+*   GLOBAL VARIABLES
+*/
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LedBar, NEO_GRB + NEO_KHZ800);
+DHTesp dhtSensor;
 int leftButtonState = 0;
 int rightButtonState = 0;
 int leakSensorState = 0;
@@ -178,128 +175,6 @@ void setup() {
   Serial.println("Booting finished!");
   // BEEP end
   beep("1");
-}
-
-/*
-Its working but while beeping the esp doesnt response
-*/
-void beep(const String& sequence) {
-  for (char c : sequence) {
-    int toneDuration = (c == '1') ? 200 : 600;
-    digitalWrite(PIN_BEEP, HIGH);
-    float startMicros = micros();
-    while (micros() - startMicros < toneDuration * 1000) {
-      // Wait until the desired duration is reached
-    }
-    digitalWrite(PIN_BEEP, LOW);
-    lastBeepTime = micros();
-    while (micros() - lastBeepTime < 400000) {
-      // Pause between tones
-    }
-  }
-}
-
-/*
-only output. needs to be stored in database
-*/
-void GetVESCValues() {
-  if (UART.getVescValues()) {
-    /*
-    Serial.print("RPM: ");
-    Serial.println(UART.data.rpm);
-    Serial.print("inpVoltage: ");
-    Serial.println(UART.data.inpVoltage);
-    Serial.print("ampHours: ");
-    Serial.println(UART.data.ampHours);
-    Serial.print("tachometerAbs: ");
-    Serial.println(UART.data.tachometerAbs);
-    */
-
-    updateBatteryLevel(UART.data.inpVoltage);
-  } else {
-    log("Failed to get VESC data!", 00000, EnableDebugLog);
-  }
-}
-void checkForLeak() {
-  int frontLeakState = digitalRead(PIN_LEAK_FRONT);
-  int backLeakState = digitalRead(PIN_LEAK_BACK);
-
-  // Check whether one of the pins is "HIGH"
-  if (frontLeakState == LOW || backLeakState == LOW) {
-    leakSensorState = 1;  // There is a leak
-    log("leakSensorState", leakSensorState, true);
-    setBarLeak();    
-
-  }
-  log("frontLeakState", frontLeakState, EnableDebugLog);
-  log("backLeakState", backLeakState, EnableDebugLog);
-  log("frontLeakState", frontLeakState, EnableDebugLog);
-}
-
-void BeepForLeak() {
-  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
-    beep("22222");                                                              // Here is the desired sequence for the sound
-    log("WARNING LEAK", 22222, true);
-    lastLeakBeepTime = micros();  // update the time of the last call
-  }
-}
-void BeepForStandby() {
-  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
-    beep("1");  // Hier die gewünschte Sequenz für den Ton
-    log("still in standby", 1, true);
-    lastStandbyBeepTime = micros();  // Update the time of the last call
-  }
-}
-
-/*
-idea to check all the click codes in one funtion. not working at the moment
-*/
-void checkButtonClicks() {
-  leftButton.Update();
-  rightButton.Update();
-
-
-  if (rightButtonState == 0) {
-    if (leftButton.clicks == 1) {
-      Serial.println("1 Click - Hold");
-    } else if (leftButton.clicks == 2) {
-      Serial.println("2 Clicks - Hold");
-    } else if (leftButton.clicks == 3) {
-      Serial.println("3 Clicks - Hold");
-    }
-    if (leftButtonState == 0) {
-      if (rightButton.clicks == 1) {
-        Serial.println("Hold - 1 Click");
-      } else if (rightButton.clicks == 2) {
-        Serial.println("Hold - 2 Clicks");
-      } else if (rightButton.clicks == 3) {
-        Serial.println("Hold - 3 Clicks");
-      }
-    }
-  }
-
-
-
-  if (leftButton.clicks == 1 && rightButton.clicks == 1) {
-    Serial.println("1 Click - 1 Click");
-  } else if (leftButton.clicks == 2 && rightButton.clicks == 2) {
-    Serial.println("2 Clicks - 2 Clicks");
-  } else if (leftButton.clicks == 3 && rightButton.clicks == 3) {
-    Serial.println("3 Clicks - 3 Clicks");
-  } else if (leftButton.clicks == 1 && rightButtonState == 1) {
-    Serial.println("1 Click -");
-  } else if (rightButton.clicks == 1 && leftButtonState == 1) {
-    Serial.println("- 1 Click");
-  }
-}
-
-void FromTimeToTimeExecution() {
-  if (FromTimeToTime % FromTimeToTimeIntervall == 0) {
-  BeepForLeak();
-  BeepForStandby();
-  BlinkForLongStandby();
-  BatteryLevelAlert();
-  }
 }
 
 void loop() {
