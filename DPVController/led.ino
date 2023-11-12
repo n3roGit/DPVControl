@@ -4,7 +4,36 @@
 *
 ***/
 
+/*
+*  CONSTANTS
+*/
+const int LedBar_Num = 10;          // Number of LEDs in the strip
+const int LEDBar_Brightness = 25;
+const int LEDBar_BrightnessSecond = 1;
 
+// LED PWM parameters
+const int LEDfrequency = 960;  // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
+const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
+const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
+
+/*
+* GLOBAL VARIABLES 
+*/
+int LED_State = 0;
+int LED_State_Last = 0;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LedBar, NEO_GRB + NEO_KHZ800);
+
+void ledSetup(){
+    // Initialize LED PWM
+  pinMode(PIN_LED, OUTPUT);                            //Setzt den GPIO-Pin 23 als Output (Ausgang)
+  ledcSetup(LEDchannel, LEDfrequency, LEDresolution);  //Konfiguriert den PWM-Kanal 0 mit der Frequenz von 1 kHz und einer 8 Bit-Aufloesung
+  ledcAttachPin(PIN_LED, LEDchannel);                  //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
+
+  //Neopixel
+  strip.begin();
+  strip.show();  // Alle LEDs ausschalten
+  setBarStandby();
+}
 
 void controlLED() {
   if (rightButton.clicks == -3) {

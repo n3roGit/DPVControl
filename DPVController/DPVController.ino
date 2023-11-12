@@ -16,33 +16,31 @@ VescUart UART;
 #include <Adafruit_NeoPixel.h>  //https://github.com/adafruit/Adafruit_NeoPixel
 
 
-/*
-*  CONSTANTS
-*/
 
+
+/*
+*  PINS
+*/
 
 // It still has to be checked if the currently used GPIOs are the optimal ones.
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 const int PIN_LEFT_BUTTON = 26;   // GPIO pin for the left button
 const int PIN_RIGHT_BUTTON = 27;  // GPIO pin for the right button
-
 const int PIN_LEAK_FRONT = 32;  // GPIO pin for front leak sensor
 const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
-
 const int PIN_LED = 25;  // GPIO pin for LED
-
 const int PIN_DHT = 14;  // GPIO pin for the buzzer
-
 const int PIN_BEEP = 18;  //G18 OK
-
 #define VESCRX 22  // GPIO pin for VESC UART RX
 #define VESCTX 23  // GPIO pin for VESC UART TX
-
 const int PIN_LedBar = 12;          // Pin to which the LED strip is connected
-const int LedBar_Num = 10;          // Number of LEDs in the strip
-const int LedBar2_Num = 10;          // Number of LEDs in the strip
-const int LEDBar_Brightness = 25;
-const int LEDBar_BrightnessSecond = 1;
+
+/*
+*  CONSTANTS
+*/
+
+const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
+
 
 // Values for motorState
 const int MOTOR_OFF = 0;
@@ -62,12 +60,6 @@ const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor st
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
-
-// LED PWM parameters
-const int LEDfrequency = 960;  // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
-const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
-const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
-
 // Constant for the number of cells in series
 const int CellsInSeries = 13;
 // Constant for the number of measurements used to calculate the average
@@ -76,7 +68,6 @@ const int batteryLevelMeasurements = 1000;
 /*
 *   GLOBAL VARIABLES
 */
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LedBar, NEO_GRB + NEO_KHZ800);
 DHTesp dhtSensor;
 int leftButtonState = 0;
 int rightButtonState = 0;
@@ -89,8 +80,6 @@ int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same
 int MOTOR_MAX_SPEED_TEMP;
 int targetMotorSpeed = 0;  //The desired motor speed
 unsigned long lastActionTime = 0;
-int LED_State = 0;
-int LED_State_Last = 0;
 unsigned long lastBeepTime = 0;
 unsigned long lastBlinkTime = 0;
 unsigned long lastStandbyBeepTime = 0;
@@ -160,16 +149,7 @@ void setup() {
     Serial.println("Failed to connect to VESC.");
   }
 
-  // Initialize LED PWM
-  pinMode(PIN_LED, OUTPUT);                            //Setzt den GPIO-Pin 23 als Output (Ausgang)
-  ledcSetup(LEDchannel, LEDfrequency, LEDresolution);  //Konfiguriert den PWM-Kanal 0 mit der Frequenz von 1 kHz und einer 8 Bit-Aufloesung
-  ledcAttachPin(PIN_LED, LEDchannel);                  //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
-
-  //Neopixel
-  strip.begin();
-  strip.show();  // Alle LEDs ausschalten
-  setBarStandby();
-
+  ledSetup();
 
   // Booting finished
   Serial.println("Booting finished!");
