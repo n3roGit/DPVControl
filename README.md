@@ -25,7 +25,7 @@ You might need a windows driver: https://www.silabs.com/developers/usb-to-uart-b
 ### Download Libraries
 
 Download the .zip files for all the required Libraries (use the github-links in DPVController.ino). Place
-them in the /Libraries -Folder and install them into Arduino.
+them in the /libraries -Folder and install them into Arduino.
 
 
 # TODO
