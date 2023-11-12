@@ -53,7 +53,7 @@ void controlStandby() {
     if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
       //While not in standby, any button click updates the standby counter.
       lastActionTime = micros();
-      log("update lastActionTime", lastActionTime, EnableDebugLog);
+      //log("update lastActionTime", lastActionTime, EnableDebugLog);
     }
   }
 }
