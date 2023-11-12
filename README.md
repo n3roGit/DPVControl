@@ -8,11 +8,27 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
   <img src="./paypal-donate-button.png" alt="Donate with PayPal" style="width: 50%;">
 </a>
 
+# Development
+
+## IDE 
+We currently use the <a href="https://www.arduino.cc/en/software">Arduino IDE</a> for Development. 
+Open the file **DPVControl/DPVController/DPVController.ino** to open the project. 
+
+### Board Config
+I am using a wroom esp32 board for development. 
+
+Follow this tutorial to install the board https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
+
+You might need a windows driver: https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads
+
+
+### Download Libraries
+
+Download the .zip files for all the required Libraries (use the github-links in DPVController.ino). Place
+them in the /Libraries -Folder and install them into Arduino.
 
 
 # TODO
-
-
 
 - 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
 - 100% - **Battery warning:** Low battery beep. Every 10% rounded down. From 30% remaining.
