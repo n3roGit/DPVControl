@@ -3,6 +3,12 @@
 *
 */
 
+/**
+* CONSTANTS
+*/
+const int DEBOUNCE_TIME = 20;
+const int MULTICLICK_TIME = 600;
+const int LONGCLICK_TIME = 10000;
 
 /*
 * GLOBAL VARIABLES
@@ -16,12 +22,12 @@ ClickButton getLeftButton(){return leftButton;};//Hack to access this from batte
 
 void buttonSetup(){
   // Set debounce and click times for buttons
-  leftButton.debounceTime = 40;
-  leftButton.multiclickTime = 300;
-  leftButton.longClickTime = 1000;
-  rightButton.debounceTime = 40;     //20
-  rightButton.multiclickTime = 300;  //500
-  rightButton.longClickTime = 1000;
+  leftButton.debounceTime = DEBOUNCE_TIME;
+  leftButton.multiclickTime = MULTICLICK_TIME;
+  leftButton.longClickTime = LONGCLICK_TIME;
+  rightButton.debounceTime = DEBOUNCE_TIME;     
+  rightButton.multiclickTime = MULTICLICK_TIME; 
+  rightButton.longClickTime = LONGCLICK_TIME;
 }
 
 
@@ -34,47 +40,7 @@ void buttonLoop(){
 
   //log("rightButtonState", rightButtonState, EnableDebugLog);
   //log("leftButtonState", leftButtonState, EnableDebugLog);
-  //checkButtonClicks();
-}
-
-/*
-idea to check all the click codes in one funtion. not working at the moment
-*/
-void checkButtonClicks() {
-  leftButton.Update();
-  rightButton.Update();
-
-
-  if (rightButtonState == PRESSED) {
-    if (leftButton.clicks == 1) {
-      Serial.println("1 Click - Hold");
-    } else if (leftButton.clicks == 2) {
-      Serial.println("2 Clicks - Hold");
-    } else if (leftButton.clicks == 3) {
-      Serial.println("3 Clicks - Hold");
-    }
-    if (leftButtonState == PRESSED) {
-      if (rightButton.clicks == 1) {
-        Serial.println("Hold - 1 Click");
-      } else if (rightButton.clicks == 2) {
-        Serial.println("Hold - 2 Clicks");
-      } else if (rightButton.clicks == 3) {
-        Serial.println("Hold - 3 Clicks");
-      }
-    }
-  }
-
-
-
-  if (leftButton.clicks == 1 && rightButton.clicks == 1) {
-    Serial.println("1 Click - 1 Click");
-  } else if (leftButton.clicks == 2 && rightButton.clicks == 2) {
-    Serial.println("2 Clicks - 2 Clicks");
-  } else if (leftButton.clicks == 3 && rightButton.clicks == 3) {
-    Serial.println("3 Clicks - 3 Clicks");
-  } else if (leftButton.clicks == 1 && rightButtonState == 1) {
-    Serial.println("1 Click -");
-  } else if (rightButton.clicks == 1 && leftButtonState == 1) {
-    Serial.println("- 1 Click");
+  if (leftButton.changed){
+    log("leftButton.clicks", leftButton.clicks, EnableDebugLog);
   }
 }
