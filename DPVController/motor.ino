@@ -50,7 +50,7 @@ void controlStandby() {
       beep("2");
       setBarStandby();
     }
-    if (leftButtonState == 0 || rightButtonState == 0) {
+    if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
       //While not in standby, any button click updates the standby counter.
       lastActionTime = micros();
       log("update lastActionTime", lastActionTime, EnableDebugLog);
@@ -60,7 +60,7 @@ void controlStandby() {
 
 void controlMotor() {
   if (motorState != MOTOR_STANDBY) {
-    if (leftButtonState == 0 || rightButtonState == 0) {
+    if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
       motorState = MOTOR_ON;
     } else {
       motorState = MOTOR_OFF;

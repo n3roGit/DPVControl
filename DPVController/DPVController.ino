@@ -47,6 +47,10 @@ const int MOTOR_OFF = 0;
 const int MOTOR_ON = 1;
 const int MOTOR_STANDBY = 2;
 
+// Button Values
+const int PRESSED = 0;
+const int DEPRESSED = 1;
+
 const int MOTOR_MAX_SPEED = 14500;
 const int MOTOR_MIN_SPEED = 6000;
 const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
@@ -163,7 +167,7 @@ void loop() {
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;
-  if (diff > 50){
+  if (diff > 30){
     log("Loop took", diff, true);
   }
   

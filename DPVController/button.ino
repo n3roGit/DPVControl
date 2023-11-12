@@ -7,8 +7,8 @@
 /*
 * GLOBAL VARIABLES
 */
-int leftButtonState = 0;
-int rightButtonState = 0;
+int leftButtonState = DEPRESSED;
+int rightButtonState = DEPRESSED;
 ClickButton leftButton(PIN_LEFT_BUTTON, HIGH, CLICKBTN_PULLUP);
 ClickButton rightButton(PIN_RIGHT_BUTTON, HIGH, CLICKBTN_PULLUP);
 ClickButton getLeftButton(){return leftButton;};//Hack to access this from battery.ino
@@ -45,7 +45,7 @@ void checkButtonClicks() {
   rightButton.Update();
 
 
-  if (rightButtonState == 0) {
+  if (rightButtonState == PRESSED) {
     if (leftButton.clicks == 1) {
       Serial.println("1 Click - Hold");
     } else if (leftButton.clicks == 2) {
@@ -53,7 +53,7 @@ void checkButtonClicks() {
     } else if (leftButton.clicks == 3) {
       Serial.println("3 Clicks - Hold");
     }
-    if (leftButtonState == 0) {
+    if (leftButtonState == PRESSED) {
       if (rightButton.clicks == 1) {
         Serial.println("Hold - 1 Click");
       } else if (rightButton.clicks == 2) {
