@@ -4,7 +4,7 @@
 *
 */
 void GetBatteryLevelInfo() {
-  if (getLeftButton().clicks == -3) {
+  if (getLeftButton().clicks == 3) {
     log("battery info", getLeftButton().clicks, EnableDebugLog);
     if (batteryLevel < 10) {
       beep("1");
