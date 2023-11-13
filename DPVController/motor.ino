@@ -6,26 +6,19 @@
 /*
 *  CONSTANTS
 */
-const int MOTOR_MAX_SPEED = 14500;
-const int MOTOR_MIN_SPEED = 6000;
-const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_DOWN_TIME_MS = 300 * 1000;  //time we want to take to  speed the motor from full power to 0.
 const int SPEED_STEPS = 10;                  //Number speed steps
-const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
 const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const int OverloadLimitMax = 40; // in Ampere
-
 
 /*
 * GLOBAL VARIABLES 
 */
-int currentMotorSpeed = 0;           //Speed the motor is currently running at
-int currentMotorStep = 1;
-unsigned long currentMotorTime = 0;  //Time in MS when we last changed the currentMotorSpeed
-int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same, even if motor is turned off.
-int targetMotorSpeed = 0;  //The desired motor speed
+int currentMotorStep = 1;//The current speed setting. stays the same, even if motor is turned off. Goes from 1(very slow) to SPEED_STEPS(max)
+double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-power.
+double lastTargetMotorSpeed = targetMotorSpeed;
 int OverloadLimit = OverloadLimitMax; // in Ampere
 VescUart UART;
+VescUart getVescUart(){return UART;}//Accessor
 
 void motorSetup(){
   // Initialize VESC UART communication
@@ -48,22 +41,18 @@ void motorLoop(){
 
 
 void speedUp(){
-  speedSetting += MOTOR_SPEED_CHANGE;
-  if (speedSetting > MOTOR_MAX_SPEED) {
-    speedSetting = MOTOR_MAX_SPEED;
+  if (currentMotorStep < SPEED_STEPS){
+    currentMotorStep++;
   }
-  log("speed up", speedSetting, EnableDebugLog);
-  currentMotorStep = (currentMotorStep < 10) ? currentMotorStep + 1 : 10;
+  log("speed up", currentMotorStep, EnableDebugLog);
   setBarSpeed(currentMotorStep);
 }
 
 void speedDown(){
-  speedSetting -= MOTOR_SPEED_CHANGE;
-  if (speedSetting < MOTOR_MIN_SPEED) {
-    speedSetting = MOTOR_MIN_SPEED;
+  if (currentMotorStep > 1){
+    currentMotorStep--;
   }
-  log("speed down", speedSetting, EnableDebugLog);
-  currentMotorStep = (currentMotorStep > 1) ? currentMotorStep - 1 : 1;
+  log("speed down", currentMotorStep, EnableDebugLog);
   setBarSpeed(currentMotorStep);
 }
 
@@ -97,14 +86,19 @@ void controlMotor() {
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
     // Motor is off
-    targetMotorSpeed = 0;
+    targetMotorSpeed = 0.0;
   } else if (motorState == MOTOR_ON) {
-    targetMotorSpeed = speedSetting;
+    targetMotorSpeed = ((double)currentMotorStep)/SPEED_STEPS;
   }
-  // Serial.print(" targetMotorSpeed: ");
-  // Serial.print(targetMotorSpeed);
 
-  setSoftMotorSpeed();
+  if (abs(lastTargetMotorSpeed - targetMotorSpeed) > 0.0001){
+    if(EnableDebugLog){
+      Serial.print("targetMotorSpeed: ");
+      Serial.println(targetMotorSpeed);
+    }
+    UART.setDuty(targetMotorSpeed);
+    lastTargetMotorSpeed = targetMotorSpeed;
+  }
 }
 
 
@@ -129,32 +123,4 @@ void PreventOverload() {
     speedSetting += MOTOR_SPEED_CHANGE;
   }
   */
-}
-
-
-
-/**
-* Slowly changes the motor speed to targetMotorSpeed.
-*
-**/
-void setSoftMotorSpeed() {
-
-  float timePassedSinceLastChange = micros() - currentMotorTime;
-  bool speedUp = currentMotorSpeed < targetMotorSpeed;
-
-  if (speedUp) {
-    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED / SPEED_UP_TIME_MS;
-    currentMotorSpeed += maxChange;
-    currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
-  } else {
-    float maxChange = timePassedSinceLastChange * MOTOR_MAX_SPEED / SPEED_DOWN_TIME_MS;
-    currentMotorSpeed -= maxChange;
-    currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
-  }
-  //log("currentMotorSpeed", currentMotorSpeed, EnableDebugLog);
-  if(currentMotorSpeed != 0){
-    UART.setRPM(currentMotorSpeed);
-  }
-  
-  currentMotorTime = micros();
 }
