@@ -9,6 +9,7 @@
 const int SPEED_STEPS = 10;                  //Number speed steps
 const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const int OverloadLimitMax = 40; // in Ampere
+const double DUTY_FACTOR = 0.1;
 
 /*
 * GLOBAL VARIABLES 
@@ -96,7 +97,7 @@ void controlMotor() {
       Serial.print("targetMotorSpeed: ");
       Serial.println(targetMotorSpeed);
     }
-    UART.setDuty(targetMotorSpeed);
+    UART.setDuty(targetMotorSpeed * DUTY_FACTOR);
     lastTargetMotorSpeed = targetMotorSpeed;
   }
 }
