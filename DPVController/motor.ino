@@ -10,6 +10,7 @@ const int SPEED_STEPS = 10;                  //Number speed steps
 const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const int OverloadLimitMax = 40; // in Ampere
 const double DUTY_FACTOR = 1.0;
+const double MIN_DUTY = 0.25; //Duty on lowest setting.
 
 /*
 * GLOBAL VARIABLES 
@@ -89,7 +90,7 @@ void controlMotor() {
     // Motor is off
     targetMotorSpeed = 0.0;
   } else if (motorState == MOTOR_ON) {
-    targetMotorSpeed = ((double)currentMotorStep)/SPEED_STEPS;
+    targetMotorSpeed = MIN_DUTY + ((double)currentMotorStep)/SPEED_STEPS * (1-MIN_DUTY);
   }
 
   if (abs(lastTargetMotorSpeed - targetMotorSpeed) > 0.0001){
