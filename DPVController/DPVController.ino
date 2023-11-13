@@ -38,6 +38,7 @@ const int PIN_LedBar = 12;          // Pin to which the LED strip is connected
 /*
 *  CONSTANTS
 */
+const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
 
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
@@ -51,16 +52,7 @@ const int MOTOR_STANDBY = 2;
 const int PRESSED = 0;
 const int DEPRESSED = 1;
 
-const int MOTOR_MAX_SPEED = 14500;
-const int MOTOR_MIN_SPEED = 6000;
-const int SPEED_UP_TIME_MS = 5000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
-const int SPEED_DOWN_TIME_MS = 300 * 1000;  //time we want to take to  speed the motor from full power to 0.
-const int SPEED_STEPS = 10;                  //Number speed steps
-const int MOTOR_SPEED_CHANGE = MOTOR_MAX_SPEED / SPEED_STEPS;
-const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
-const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
 const float LED_Energy_Limiter = 0.8;
-const int MotorButtonDelay = 500 * 1000;  //time befor button press the motor starts
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
@@ -68,7 +60,6 @@ const int StandbyBlinkDuration = 10;      // Seconds between blink
 const int CellsInSeries = 13;
 // Constant for the number of measurements used to calculate the average
 const int batteryLevelMeasurements = 1000;
-const long MS_PER_LOOP = 100;
 
 /*
 *   GLOBAL VARIABLES
@@ -76,12 +67,6 @@ const long MS_PER_LOOP = 100;
 DHTesp dhtSensor;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
-int currentMotorSpeed = 0;           //Speed the motor is currently running at
-int currentMotorStep = 1;
-unsigned long currentMotorTime = 0;  //Time in MS when we last changed the currentMotorSpeed
-int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same, even if motor is turned off.
-int MOTOR_MAX_SPEED_TEMP;
-int targetMotorSpeed = 0;  //The desired motor speed
 unsigned long lastActionTime = 0;
 unsigned long lastBeepTime = 0;
 unsigned long lastBlinkTime = 0;
@@ -98,9 +83,6 @@ int NormalLogOutputIntervall = 1000*10;
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
 int FromTimeToTimeIntervall = 500;
-
-int OverloadLimitMax = 40; // in Ampere
-int OverloadLimit = OverloadLimitMax; // in Ampere
 
 /*
 The Setup is chaotic. Needs a cleanup
@@ -129,18 +111,7 @@ void setup() {
   Serial.println("Humidity: " + String(data.humidity, 1) + "%");
   Serial.println("---");
 
-  // Initialize VESC UART communication
-  Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
-  while (!Serial1) { ; }
-  delay(500);
-  UART.setSerialPort(&Serial1);
-  delay(500);
-  if (UART.getVescValues()) {
-    Serial.println("Connected to VESC.");
-  } else {
-    Serial.println("Failed to connect to VESC.");
-  }
-
+  motorSetup();
   ledSetup();
 
   // Booting finished
