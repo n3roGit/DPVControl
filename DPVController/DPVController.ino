@@ -8,8 +8,7 @@
 
 #include <HardwareSerial.h>
 
-#include <VescUart.h>  //https://github.com/RollingGecko/VescUartControl
-VescUart UART;
+#include <VescUart.h>  //https://github.com/SolidGeek/VescUart
 
 #include "uptime_formatter.h"  //https://github.com/YiannisBourkelis/Uptime-Library
 

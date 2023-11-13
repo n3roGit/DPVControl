@@ -25,7 +25,7 @@ unsigned long currentMotorTime = 0;  //Time in MS when we last changed the curre
 int speedSetting = MOTOR_MIN_SPEED;  //The current speed setting. stays the same, even if motor is turned off.
 int targetMotorSpeed = 0;  //The desired motor speed
 int OverloadLimit = OverloadLimitMax; // in Ampere
-
+VescUart UART;
 
 void motorSetup(){
   // Initialize VESC UART communication
