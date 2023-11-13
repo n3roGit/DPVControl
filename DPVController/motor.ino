@@ -7,15 +7,20 @@
 *  CONSTANTS
 */
 const int SPEED_STEPS = 10;                  //Number speed steps
-const int STANDBY_DELAY_MS = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
+const int STANDBY_DELAY_US = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const int OverloadLimitMax = 40; // in Ampere
+const unsigned long MAX_DELTA_US = 30/*microseconds*/ * 1000; //Maximum time from last run to consider for smooth acceleration
 const double DUTY_FACTOR = 1.0;
 const double MIN_DUTY = 0.25; //Duty on lowest setting.
+const int SPEED_UP_TIME_US = 5/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
+const int SPEED_DOWN_TIME_US = 300/*ms*/ * 1000;  //time we want to take to  speed the motor from full power to 0.
 
 /*
 * GLOBAL VARIABLES 
 */
+double currentMotorSpeed = 0;           //Speed the motor is currently running at(0.0-1.0)
 int currentMotorStep = 1;//The current speed setting. stays the same, even if motor is turned off. Goes from 1(very slow) to SPEED_STEPS(max)
+unsigned long currentMotorTime = micros();  //Time in microseconds when we last changed the currentMotorSpeed
 double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-power.
 double lastTargetMotorSpeed = targetMotorSpeed;
 int OverloadLimit = OverloadLimitMax; // in Ampere
@@ -62,7 +67,7 @@ void speedDown(){
 // Function to control standby mode
 void controlStandby() {
   if (motorState != MOTOR_STANDBY)  {
-    if (lastActionTime + STANDBY_DELAY_MS < micros()) {
+    if (lastActionTime + STANDBY_DELAY_US < micros()) {
       standBy();
     }
   }
@@ -99,8 +104,40 @@ void controlMotor() {
       Serial.println(targetMotorSpeed);
     }
   }
-  UART.setDuty(targetMotorSpeed * DUTY_FACTOR);
+  setSoftMotorSpeed();
   lastTargetMotorSpeed = targetMotorSpeed;
+}
+
+/**
+* Slowly changes the motor speed to targetMotorSpeed.
+*
+**/
+void setSoftMotorSpeed() {
+
+  float timePassedSinceLastChange = min(micros() - currentMotorTime, MAX_DELTA_US);
+  double lastMotorSpeed = currentMotorSpeed;
+
+  if (currentMotorSpeed < targetMotorSpeed) {
+    //Speed up
+    float maxChange = timePassedSinceLastChange/ SPEED_UP_TIME_US;
+    currentMotorSpeed += maxChange;
+    currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
+  } else if(currentMotorSpeed > targetMotorSpeed) {
+    //Speed down
+    float maxChange = timePassedSinceLastChange / SPEED_DOWN_TIME_US;
+    currentMotorSpeed -= maxChange;
+    currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
+  }
+  if(abs(currentMotorSpeed) > 0.0){
+    UART.setDuty(currentMotorSpeed * DUTY_FACTOR);
+  }
+  currentMotorTime = micros();
+
+  if(EnableDebugLog && abs(currentMotorSpeed - lastMotorSpeed) > 0.00001){
+    Serial.print("currentMotorSpeed: ");
+    Serial.println(currentMotorSpeed);
+  }
+
 }
 
 
