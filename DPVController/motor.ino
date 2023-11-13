@@ -1,69 +1,60 @@
+
+
+void motorLoop(){
+  controlStandby();
+  controlMotor();
+}
+
 /**
 *
 * Methods that control motor and speed.
 */
-
-// Function to update the motor speed setting
-void updateSpeedSetting() {
-  if (motorState != MOTOR_STANDBY) {
-    if (rightButton.clicks == 2) {
-      log("speed up", rightButton.clicks, EnableDebugLog);
-      speedSetting += MOTOR_SPEED_CHANGE;
-      if (speedSetting > MOTOR_MAX_SPEED) {
-        speedSetting = MOTOR_MAX_SPEED;
-      }
-      log("speedSetting", speedSetting, EnableDebugLog);
-      currentMotorStep = (currentMotorStep < 10) ? currentMotorStep + 1 : 10;
-      setBarSpeed(currentMotorStep);
-    }
-
-    if (leftButton.clicks == 2) {
-      log("speed down", leftButton.clicks, EnableDebugLog);
-      speedSetting -= MOTOR_SPEED_CHANGE;
-      if (speedSetting < MOTOR_MIN_SPEED) {
-        speedSetting = MOTOR_MIN_SPEED;
-      }
-      log("speedSetting", speedSetting, EnableDebugLog);
-      currentMotorStep = (currentMotorStep > 1) ? currentMotorStep - 1 : 1;
-      setBarSpeed(currentMotorStep);
-    }
+void speedUp(){
+  speedSetting += MOTOR_SPEED_CHANGE;
+  if (speedSetting > MOTOR_MAX_SPEED) {
+    speedSetting = MOTOR_MAX_SPEED;
   }
+  log("speed up", speedSetting, EnableDebugLog);
+  currentMotorStep = (currentMotorStep < 10) ? currentMotorStep + 1 : 10;
+  setBarSpeed(currentMotorStep);
 }
+
+void speedDown(){
+  speedSetting -= MOTOR_SPEED_CHANGE;
+  if (speedSetting < MOTOR_MIN_SPEED) {
+    speedSetting = MOTOR_MIN_SPEED;
+  }
+  log("speed down", speedSetting, EnableDebugLog);
+  currentMotorStep = (currentMotorStep > 1) ? currentMotorStep - 1 : 1;
+  setBarSpeed(currentMotorStep);
+}
+
 
 // Function to control standby mode
 void controlStandby() {
-  if (motorState == MOTOR_STANDBY) {
-    //Wake up from Standup
-    if (leftButton.clicks == 2 || rightButton.clicks == 2) {
-      motorState = MOTOR_OFF;
-      log("leaving standby", 1, true);
-      lastActionTime = micros();
-      beep("2");
-      setBarSpeed(currentMotorStep);
-    }
-  } else {
+  if (motorState != MOTOR_STANDBY)  {
     if (lastActionTime + STANDBY_DELAY_MS < micros()) {
-      //Go into standby
-      log("going to standby", micros(), true);
-      motorState = MOTOR_STANDBY;
-      beep("2");
-      setBarStandby();
-    }
-    if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
-      //While not in standby, any button click updates the standby counter.
-      lastActionTime = micros();
+      standBy();
     }
   }
 }
 
+void wakeUp(){
+  motorState = MOTOR_OFF;
+  log("leaving standby", 1, true);
+  lastActionTime = micros();
+  beep("2");
+  setBarSpeed(currentMotorStep);
+}
+
+void standBy(){
+  log("going to standby", micros(), true);
+  motorState = MOTOR_STANDBY;
+  beep("2");
+  setBarStandby();
+}
+
 void controlMotor() {
-  if (motorState != MOTOR_STANDBY) {
-    if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
-      motorState = MOTOR_ON;
-    } else {
-      motorState = MOTOR_OFF;
-    }
-  }
   //log("motorstate", motorState, EnableDebugLog);
 
   if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {

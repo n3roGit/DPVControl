@@ -3,25 +3,23 @@
 * Read the state of the main-battery
 *
 */
-void GetBatteryLevelInfo() {
-  if (getLeftButton().clicks == 3) {
-    log("battery info", getLeftButton().clicks, EnableDebugLog);
-    if (batteryLevel < 10) {
-      beep("1");
-    } else {
-      // Determine how many full 10% steps have been reached
-      int steps = batteryLevel / 10;
+void outputBatteryInfo(){
+  log("battery info", batteryLevel, EnableDebugLog);
+  if (batteryLevel < 10) {
+    beep("1");
+  } else {
+    // Determine how many full 10% steps have been reached
+    int steps = batteryLevel / 10;
 
-      // Generate a string with '1' for each full 10% step
-      String beepSequence = "";
-      for (int i = 0; i < steps; i++) {
-        beepSequence += '2';
-      }
+    // Generate a string with '1' for each full 10% step
+    String beepSequence = "";
+    for (int i = 0; i < steps; i++) {
+      beepSequence += '2';
+    }
 
-      // If steps are present, call up the beep function
-      if (steps > 0) {
-        beep(beepSequence);
-      }
+    // If steps are present, call up the beep function
+    if (steps > 0) {
+      beep(beepSequence);
     }
   }
 }

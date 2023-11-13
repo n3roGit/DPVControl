@@ -35,11 +35,8 @@ void ledSetup(){
   setBarStandby();
 }
 
-void controlLED() {
-  if (rightButton.clicks == 3) {
-    log("switch LED", rightButton.clicks, EnableDebugLog);
-
-    switch (LED_State) {
+void toggleLED(){
+switch (LED_State) {
       case 0:
         LED_State = 1;
         break;
@@ -63,10 +60,7 @@ void controlLED() {
     setLEDState(LED_State);
     setBarLED(LED_State);
     log("LED_State", LED_State, true);
-  }
 }
-
-
 
 void setLEDState(int state) {
 
