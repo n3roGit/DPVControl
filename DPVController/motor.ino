@@ -97,9 +97,9 @@ void controlMotor() {
       Serial.print("targetMotorSpeed: ");
       Serial.println(targetMotorSpeed);
     }
-    UART.setDuty(targetMotorSpeed * DUTY_FACTOR);
-    lastTargetMotorSpeed = targetMotorSpeed;
   }
+  UART.setDuty(targetMotorSpeed * DUTY_FACTOR);
+  lastTargetMotorSpeed = targetMotorSpeed;
 }
 
 
