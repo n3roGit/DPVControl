@@ -146,7 +146,7 @@ void setup() {
   // Booting finished
   Serial.println("Booting finished!");
   // BEEP end
-  beep("1");
+  beep("1121");
 }
 
 void loop() {
@@ -160,6 +160,7 @@ void loop() {
   GetVESCValues();
   logVehicleState();
   FromTimeToTimeExecution();
+  beepLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;

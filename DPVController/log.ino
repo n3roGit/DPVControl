@@ -5,7 +5,7 @@
 */ 
 
 
-// Function for logging with optional debugging delay
+// Function for logging
 void log(const char* label, int value, boolean doLog) {
   if (doLog) {
     Serial.print(" ");
@@ -13,9 +13,6 @@ void log(const char* label, int value, boolean doLog) {
     Serial.print(": ");
     Serial.print(value);
     Serial.println();
-  }
-  if (EnableDebugLog) {
-    delay(100);
   }
 }
 
