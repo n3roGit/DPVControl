@@ -11,7 +11,8 @@ const int STANDBY_DELAY_US = 60 /*s*/ * 1000 * 1000;  // Time until the motor go
 const int OverloadLimitMax = 40; // in Ampere
 const unsigned long MAX_DELTA_US = 30/*microseconds*/ * 1000; //Maximum time from last run to consider for smooth acceleration
 const double DUTY_FACTOR = 1.0;
-const double MIN_DUTY = 0.30; //Duty on lowest setting.
+const double MIN_SPEED_DUTY = 0.30; //Duty on lowest setting.
+const double MIN_DUTY_SOFT = 0.2; //Minumum Duty we sent to the motor during soft acceleration. 
 const int SPEED_UP_TIME_US = 5/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_US = 500/*ms*/ * 1000;  //time we want to take to  speed the motor from full power to 0.
 
@@ -23,6 +24,7 @@ int currentMotorStep = 1;//The current speed setting. stays the same, even if mo
 unsigned long currentMotorTime = micros();  //Time in microseconds when we last changed the currentMotorSpeed
 double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-power.
 double lastTargetMotorSpeed = targetMotorSpeed;
+double lastPrintedMotorSpeed = -1;
 int OverloadLimit = OverloadLimitMax; // in Ampere
 VescUart UART;
 VescUart getVescUart(){return UART;}//Accessor
@@ -95,14 +97,12 @@ void controlMotor() {
     // Motor is off
     targetMotorSpeed = 0.0;
   } else if (motorState == MOTOR_ON) {
-    targetMotorSpeed = MIN_DUTY + ((double)currentMotorStep)/SPEED_STEPS * (1-MIN_DUTY);
+    targetMotorSpeed = MIN_SPEED_DUTY + ((double)currentMotorStep)/SPEED_STEPS * (1-MIN_SPEED_DUTY);
   }
 
-  if (abs(lastTargetMotorSpeed - targetMotorSpeed) > 0.0001){
-    if(EnableDebugLog){
-      Serial.print("targetMotorSpeed: ");
-      Serial.println(targetMotorSpeed);
-    }
+  if(EnableDebugLog && abs(lastTargetMotorSpeed - targetMotorSpeed) >= 0.01){
+    Serial.print("targetMotorSpeed: ");
+    Serial.println(targetMotorSpeed);
   }
   setSoftMotorSpeed();
   lastTargetMotorSpeed = targetMotorSpeed;
@@ -121,7 +121,11 @@ void setSoftMotorSpeed() {
     //Speed up
     float maxChange = timePassedSinceLastChange/ SPEED_UP_TIME_US;
     currentMotorSpeed += maxChange;
-    currentMotorSpeed = min(currentMotorSpeed, targetMotorSpeed);
+    currentMotorSpeed = 
+      //Do not go lower than minimal setting.
+      max(MIN_DUTY_SOFT, 
+      //Do not overshoot the actual targetMotorSpeed
+      min(currentMotorSpeed, targetMotorSpeed));
   } else if(currentMotorSpeed > targetMotorSpeed) {
     //Speed down
     float maxChange = timePassedSinceLastChange / SPEED_DOWN_TIME_US;
@@ -133,9 +137,10 @@ void setSoftMotorSpeed() {
   }
   currentMotorTime = micros();
 
-  if(EnableDebugLog && abs(currentMotorSpeed - lastMotorSpeed) > 0.00001){
+  if(EnableDebugLog && abs(currentMotorSpeed - lastPrintedMotorSpeed) >= 0.01){
     Serial.print("currentMotorSpeed: ");
     Serial.println(currentMotorSpeed);
+    lastPrintedMotorSpeed = currentMotorSpeed;
   }
 
 }
