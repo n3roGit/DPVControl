@@ -10,7 +10,7 @@ const int VESC_VALUES_INTERVAL = 100;
 only output. needs to be stored in database
 */
 void GetVESCValues() {
-  if (loopCount+55%VESC_VALUES_INTERVAL==0){
+
     if (UART.getVescValues()) {
       /*
       Serial.print("RPM: ");
@@ -27,7 +27,7 @@ void GetVESCValues() {
     } else {
       log("Failed to get VESC data!", 00000, EnableDebugLog);
     }
-  }
+
 }
 void checkForLeak() {
   int frontLeakState = digitalRead(PIN_LEAK_FRONT);

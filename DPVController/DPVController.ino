@@ -130,6 +130,7 @@ void loop() {
   GetVESCValues();
   logVehicleState();
   FromTimeToTimeExecution();
+  beepLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;
