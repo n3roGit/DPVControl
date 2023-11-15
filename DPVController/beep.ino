@@ -24,7 +24,8 @@ String BEEP_NONE = "NONE";
 * GLOBAL VARIABLES
 */
 long stopBeepAt = NEVER; //Millisecond timestamp at which we stop beeping. 
-long startNextBeepAt = NEVER;//Millisecond timestamp at which we start working on the next character in a sequence. 
+long startNextBeepAt = NEVER; //Millisecond timestamp at which we start working on 
+//the next character in a sequence. 
 String beepSequence = BEEP_NONE;
 int beepPos = 0;//Current index within beepSequence.
 
@@ -44,6 +45,9 @@ void beep(long length_ms){
 */
 void beep(const String& sequence) {
   if(EnableDebugLog) Serial.println("beepSequence:"+sequence);
+  if (!beepSequence.equals(BEEP_NONE)){
+    Serial.println("Warning! overriding beep "+beepSequence+ " with "+sequence);
+  }
   beepSequence = sequence;
   beepPos = 0;
   startNextBeepAt = millis();
@@ -55,8 +59,6 @@ void beepLoop(){
   if (!beepSequence.equals(BEEP_NONE)){
     if (startNextBeepAt != NEVER && startNextBeepAt <= millis()){
       char c = beepSequence[beepPos++];
-      Serial.print("On Char: ");
-      Serial.println(c);
       int toneDuration = (c == '1') ? SHORT_BEEP_MS : LONG_BEEP_MS;
       beep(toneDuration);
       if (beepPos == beepSequence.length()){
