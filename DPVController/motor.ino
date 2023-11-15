@@ -12,7 +12,7 @@ const int OverloadLimitMax = 40; // in Ampere
 const unsigned long MAX_DELTA_US = 30/*microseconds*/ * 1000; //Maximum time from last run to consider for smooth acceleration
 const double DUTY_FACTOR = 1.0;
 const double MIN_SPEED_DUTY = 0.30; //Duty on lowest setting.
-const double MIN_DUTY_SOFT = 0.2; //Minumum Duty we sent to the motor during soft acceleration. 
+const double MIN_DUTY_SOFT = 0.23; //Minumum Duty we sent to the motor during soft acceleration. 
 const int SPEED_UP_TIME_US = 5/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_US = 500/*ms*/ * 1000;  //time we want to take to  speed the motor from full power to 0.
 
