@@ -9,12 +9,12 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
+            background-color: #e0e5e9; /* Hintergrundfarbe auf ein helles Blau geändert */
+            color: #1e272e; /* Textfarbe auf Dunkelblau geändert */
         }
         h2 {
             margin-top: 0.5em;
-            color: #4caf50;
+            color: #3498db; /* Überschriftenfarbe auf ein Blaugrün geändert */
         }
 
         table {
@@ -32,11 +32,11 @@
         }
 
         tr:hover {
-            background-color: #f1f1f1;
+            background-color: #ecf0f1; /* Hover-Farbe auf ein helles Graublau geändert */
         }
 
         .button {
-            background-color: #4caf50;
+            background-color: #3498db; /* Button-Hintergrundfarbe auf ein Blaugrün geändert */
             border: none;
             color: white;
             padding: 10px 20px;
@@ -51,7 +51,7 @@
         }
 
         .button:hover {
-            background-color: #45a049;
+            background-color: #2c3e50; /* Hover-Farbe auf ein Dunkelblau geändert */
         }
 
         #log {
@@ -62,6 +62,7 @@
             padding: 8px;
             background-color: white;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px; /* Unterteilung der Sektionen durch Abstand hinzugefügt */
         }
 
         #log p:last-child {
@@ -69,8 +70,9 @@
         }
 
         .container {
-            width: 80%;
-            margin: auto;
+            width: 90%; /* Container-Breite für bessere Anpassung an verschiedene Bildschirmgrößen geändert */
+            max-width: 1200px; /* Maximale Container-Breite hinzugefügt */
+            margin: 20px auto; /* Außenabstand für Zentrierung des Containers hinzugefügt */
         }
 
         .section {
@@ -78,6 +80,7 @@
             margin-top: 30px;
             padding: 20px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px; /* Unterteilung der Sektionen durch Abstand hinzugefügt */
         }
 
         .apply-btn {
@@ -92,12 +95,72 @@
         }
 
         .apply-btn:hover {
-            background-color: #2980b9;
+            background-color: #2c3e50; /* Hover-Farbe auf ein Dunkelblau geändert */
         }
-    </style>
+
+        #log-container {
+            margin-top: 20px;
+        }
+
+        #log-field {
+            width: 100%;
+            height: 150px;
+            margin-bottom: 10px;
+        }
+
+        #upload-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #upload-btn:hover {
+            background-color: #2c3e50; /* Hover-Farbe auf ein Dunkelblau geändert */
+        }
+
+        #update-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #update-btn:hover {
+            background-color: #2c3e50; /* Hover-Farbe auf ein Dunkelblau geändert */
+        }
+    </style> 
+<style>
+.battery-indicator-container {
+    display: inline-block;
+    width: 100px; /* This can be adjusted as needed */
+    height: 20px;
+    background-color: #ddd;
+    border-radius: 5px;
+    margin-right: 5px;
+    vertical-align: middle;
+}
+
+.battery-indicator {
+    height: 100%;
+    background-color: #4CAF50; /* Green color for the filled part */
+    border-radius: 5px;
+}
+</style>
+
 </head>
 <body>
     <div class="container">
+        <img src="../logo.jpg" alt="Logo" style="width: auto; height: 100px; margin: 10px auto; max-width: 100%;" />
+        
         <div class="section">
             <h2>Wifi</h2>
             <table>
@@ -112,19 +175,26 @@
             </table>
         </div>
 
-        <div class="section">
-            <h2>Battery</h2>
-            <table>
-                <tr>
-                    <td>Battery Voltage:</td>
-                    <td><input type="text" value="52" /> Volts</td>
-                </tr>
-                <tr>
-                    <td>Charge Level:</td>
-                    <td><input type="text" value="100" /> %</td>
-                </tr>
-            </table>
-        </div>
+        
+<div class="section">
+    <h2>Battery</h2>
+    <table>
+        <tr>
+            <td>Battery Voltage:</td>
+            <td>52 Volts</td>
+        </tr>
+        <tr>
+            <td>Charge Level:</td>
+            <td>
+                <div class="battery-indicator-container">
+                    <div class="battery-indicator" style="width: 100%;"></div> <!-- Width to be dynamically set -->
+                </div>
+                100%
+            </td>
+        </tr>
+    </table>
+</div>
+
 
         <div class="section">
             <h2>Configuration</h2>
@@ -153,25 +223,160 @@
                     <td>StandBy Time:</td>
                     <td><input type="text" id="standbyTime" value="45" /> s</td>
                 </tr>
+                <!-- Neue Konfigurationseinstellungen hinzugefügt -->
+                <tr>
+                    <td>Beeper Enabled:</td>
+                    <td><input type="text" id="beeperEnabled" value="true" /></td>
+                </tr>
+                <tr>
+                    <td>Left Button PIN:</td>
+                    <td><input type="text" id="leftButtonPIN" value="2" /></td>
+                </tr>
+                <tr>
+                    <td>Right Button PIN:</td>
+                    <td><input type="text" id="rightButtonPIN" value="3" /></td>
+                </tr>
+                <tr>
+                    <td>DEBOUNCE_TIME:</td>
+                    <td><input type="text" id="debounceTime" value="200" /> ms</td>
+                </tr>
+                <tr>
+                    <td>MULTICLICK_TIME:</td>
+                    <td><input type="text" id="multiclickTime" value="500" /> ms</td>
+                </tr>
+                <tr>
+                    <td>LONGCLICK_TIME:</td>
+                    <td><input type="text" id="longclickTime" value="1000" /> ms</td>
+                </tr>
+                <tr>
+                    <td>LED PIN:</td>
+                    <td><input type="text" id="ledPIN" value="5" /></td>
+                </tr>
+                <tr>
+                    <td>Leak Sensor Front PIN:</td>
+                    <td><input type="text" id="leakSensorFrontPIN" value="true" /></td>
+                </tr>
+                <tr>
+                    <td>Leak Sensor Back PIN:</td>
+                    <td><input type="text" id="leakSensorBackPIN" value="false" /></td>
+                </tr>
+                <tr>
+                    <td>OverloadLimitMax:</td>
+                    <td><input type="text" id="overloadLimitMax" value="10" /> Ampere</td>
+                </tr>
+                <tr>
+                    <td>CellsInSeries:</td>
+                    <td><input type="text" id="cellsInSeries" value="3" /></td>
+                </tr>
+                <tr>
+                    <td>LEDBar PIN:</td>
+                    <td><input type="text" id="ledBarPIN" value="6" /></td>
+                </tr>
+                <tr>
+                    <td>LedBar_Num:</td>
+                    <td><input type="text" id="ledBarNum" value="10" /></td>
+                </tr>
+                <tr>
+                    <td>LedBar_Num2:</td>
+                    <td><input type="text" id="ledBarNum2" value="5" /></td>
+                </tr>
+                <tr>
+                    <td>LEDBar_Brightness:</td>
+                    <td><input type="text" id="ledBarBrightness" value="100" /></td>
+                </tr>
+                <tr>
+                    <td>LEDBar_BrightnessSecond:</td>
+                    <td><input type="text" id="ledBarBrightnessSecond" value="50" /></td>
+                </tr>
+                <tr>
+                    <td>LEDfrequency:</td>
+                    <td><input type="text" id="ledFrequency" value="100" /> Hz</td>
+                </tr>
+                <tr>
+                    <td>StandbyBlinkStart:</td>
+                    <td><input type="text" id="standbyBlinkStart" value="5" /> minutes</td>
+                </tr>
+                <tr>
+                    <td>StandbyBlinkDuration:</td>
+                    <td><input type="text" id="standbyBlinkDuration" value="10" /> seconds</td>
+                </tr>
             </table>
         </div>
 
-        <div class="section">
-            <!-- Data section remains unchanged -->
-
-            <!-- Log section remains unchanged -->
+        <div class="section" id="log-container">
+            <h2>Log</h2>
+            <textarea id="log-field" readonly></textarea>
         </div>
-
         <div class="section">
-            <button class="button" onclick="restart()">Restart</button>
             <button class="apply-btn" onclick="applyChanges()">Apply Changes</button>
+            <button class="button" onclick="restart()">Restart</button>
         </div>
 
-        <h4 style="text-align: center;">Version 0.1</h4>
+        <div class="section">
+            <h2>Graphs</h2>
+            <div id="graph-container">
+                <!-- Hier sind Dummy-Daten für Temperatur, RPM, Batterylevel und Ampere -->
+                <canvas id="temperature-chart"></canvas>
+                <canvas id="rpm-chart"></canvas>
+                <canvas id="battery-level-chart"></canvas>
+                <canvas id="ampere-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="section">
+            <label for="firmware-file">Select BIN File:</label>
+            <input type="file" id="firmware-file" accept=".bin" />
+            <button class="button" id="upload-btn">Upload Firmware</button>
+            <button class="apply-btn" id="update-btn" onclick="updateFirmware()">Update Firmware</button>
+        </div>
+
+        <h4 style="text-align: center; color: #3498db;">Version 0.1</h4>
     </div>
 
     <script>
         // JavaScript functions remain unchanged
+
+        // Dummy-Daten für die Grafiken
+        const temperatureData = [20, 25, 22, 28, 30, 26, 24];
+        const rpmData = [1000, 1200, 1100, 1300, 1400, 1250, 1180];
+        const batteryLevelData = [80, 85, 78, 90, 92, 88, 84];
+        const ampereData = [5, 4.8, 5.2, 5.5, 5.8, 5.0, 4.6];
+
+        // Dummy-Daten in Diagramme einfügen
+        createChart("temperature-chart", "Temperature", temperatureData, "Temperature (°C)");
+        createChart("rpm-chart", "RPM", rpmData, "RPM");
+        createChart("battery-level-chart", "Battery Level", batteryLevelData, "Battery Level (%)");
+        createChart("ampere-chart", "Ampere", ampereData, "Ampere (A)");
+
+        function createChart(canvasId, label, data, yAxisLabel) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({ length: data.length }, (_, i) => i + 1),
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderColor: '#3498db',
+                        fill: false
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom'
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: yAxisLabel
+                            }
+                        }
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
