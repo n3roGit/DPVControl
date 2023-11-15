@@ -44,10 +44,10 @@ void buttonLoop(){
         wakeUp();
     }
   }else{
-    if (rightButton.clicks == 2) {
+    if (rightButton.clicks == 2 && leftButtonState == PRESSED) {
       speedUp();
     }
-    if (leftButton.clicks == 2) {
+    if (leftButton.clicks == 2  && rightButtonState == PRESSED) {
       speedDown();
     }  
 
