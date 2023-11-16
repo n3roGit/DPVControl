@@ -15,7 +15,6 @@ const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel'
 * GLOBAL VARIABLES 
 */
 int LED_State = 0;
-int LED_State_Last = 0;
 
 void ledLampSetup(){
     // Initialize LED PWM
@@ -25,30 +24,11 @@ void ledLampSetup(){
 }
 
 void toggleLED(){
-switch (LED_State) {
-      case 0:
-        LED_State = 1;
-        break;
-      case 1:
-        LED_State = 2;
-        break;
-      case 2:
-        LED_State = 3;
-        break;
-      case 3:
-        LED_State = 4;
-        break;
-      case 4:
-        LED_State = 0;
-        break;
-      default:
-        // If an invalid state is somehow reached, turn the LED off
-        LED_State = 0;
-        break;
-    }
-    setLEDState(LED_State);
-    setBarLED(LED_State);
-    log("LED_State", LED_State, true);
+  LED_State++;
+  if (LED_State == 5) LED_State = 0;
+  setLEDState(LED_State);
+  setBarLED(LED_State);
+  log("LED_State", LED_State, true);
 }
 
 void setLEDState(int state) {
