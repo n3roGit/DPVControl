@@ -9,12 +9,19 @@
 const int DEBOUNCE_TIME = 20;
 const int MULTICLICK_TIME = 300;
 const int LONGCLICK_TIME = 1000;
+const long NOT_HELD = -1;
+const long MOTOR_START_DELAY = 300; // Time in ms that a lever needs
+//to be hold down until the motor goes from off to on. 
 
 /*
 * GLOBAL VARIABLES
 */
 int leftButtonState = DEPRESSED;
 int rightButtonState = DEPRESSED;
+int leftButtonHeldSince = NOT_HELD; //Time in MS at which 
+//the button was held down and has not been released since. 
+int rightButtonHeldSince = NOT_HELD; //Time in MS at which 
+//the button was held down and has not been released since. 
 ClickButton leftButton(PIN_LEFT_BUTTON, LOW);
 ClickButton rightButton(PIN_RIGHT_BUTTON, LOW);
 
@@ -33,10 +40,21 @@ void buttonLoop(){
   leftButton.Update();
   rightButton.Update();
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
+  if(leftButtonState == PRESSED){
+    if(leftButtonHeldSince == NOT_HELD){
+      leftButtonHeldSince = millis();
+    }
+  }else{
+    leftButtonHeldSince = NOT_HELD;
+  }
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
-  //log("rightButtonState", rightButtonState, EnableDebugLog);
-  //log("leftButtonState", leftButtonState, EnableDebugLog);
-
+  if(rightButtonState == PRESSED){
+    if(rightButtonHeldSince == NOT_HELD){
+      rightButtonHeldSince = millis();
+    }
+  }else{
+    rightButtonHeldSince = NOT_HELD;
+  }
 
   if (motorState == MOTOR_STANDBY) {
     //Wake up from Standup
@@ -44,16 +62,20 @@ void buttonLoop(){
         wakeUp();
     }
   }else{
-    if (rightButton.clicks == 2) {
+    if (rightButton.clicks == 2 && leftButtonState == PRESSED) {
       speedUp();
     }
-    if (leftButton.clicks == 2) {
+    if (leftButton.clicks == 2  && rightButtonState == PRESSED) {
       speedDown();
     }  
 
-    if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
+    if (heldForLong(leftButtonHeldSince) || heldForLong(rightButtonHeldSince)) {
       motorState = MOTOR_ON;
-    } else {
+    } else if(motorState == MOTOR_ON //When motor already on, holding one down to keep it on is
+    //enough. 
+      && (leftButtonState == PRESSED || rightButtonState == PRESSED)) {
+      motorState = MOTOR_ON;
+    }else{
       motorState = MOTOR_OFF;
     }
   
@@ -72,3 +94,6 @@ void buttonLoop(){
 
 }
 
+bool heldForLong(long heldDownSince){
+  return heldDownSince != NOT_HELD && millis()-heldDownSince >= MOTOR_START_DELAY;
+}
