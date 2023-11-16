@@ -31,16 +31,13 @@ them in the /libraries -Folder and install them into Arduino.
 # TODO
 
 - 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
-- 100% - **Battery warning:** Low battery beep. Every 10% rounded down. From 30% remaining.
 - 0% - **Energy Saver:** 20% - Reduce power to a maximum of 50% starting at X%.
 - 0% - **Emergency stop:** Immediately stop in case of sudden increase in current or drop in rotation speed (hand in rotor).
 - 0% - **Update via WiFi**
-- 90% - **Device must function even in case of water ingress. However, there must be a signal to alert the user.**
-- 60% - **Light at Level 1 if speed exceeds 80% to prevent battery overload. Light off at 100% power. Then revert to original value.**
+- 10% - **Prevent Overload **
 - 90% - **Implement click codes according to the table**
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
-- 100% - **LED bar with WS2812B to get information about speed lvl and battery life. maybe other information**
 - 0% - **cruise control** drive dpv without holding button 
 
 
