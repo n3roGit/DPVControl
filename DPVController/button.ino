@@ -89,6 +89,9 @@ void buttonLoop(){
     toggleLED();
   }
   if (leftButton.clicks == 3) {
+    flash();
+  }
+  if (leftButton.clicks == 4) {
     outputBatteryInfo();
   }
 

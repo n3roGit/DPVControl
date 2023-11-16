@@ -14,8 +14,18 @@ const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel'
 /*
 * GLOBAL VARIABLES 
 */
-int LED_State = 0;
-int LED_State_Last = 0;
+void turnLampOn(){setLEDState(LAMP_MAX);}
+void turnLampOff(){
+  setLEDState(LED_State);//Use previous
+}
+
+Blinker lampBlinker = Blinker(turnLampOn, turnLampOff);
+
+long lampDuration(char c){
+  return (c == '1') ? 200 : 600;
+}
+
+BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, 400);
 
 void ledLampSetup(){
     // Initialize LED PWM
@@ -24,38 +34,28 @@ void ledLampSetup(){
   ledcAttachPin(PIN_LAMP, LEDchannel);                  //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
 }
 
+void ledLampLoop(){
+  lampSequence.loop();
+  lampBlinker.loop();
+}
+
+void flash(){
+  lampBlinker.blink(300);
+}
+
 void toggleLED(){
-switch (LED_State) {
-      case 0:
-        LED_State = 1;
-        break;
-      case 1:
-        LED_State = 2;
-        break;
-      case 2:
-        LED_State = 3;
-        break;
-      case 3:
-        LED_State = 4;
-        break;
-      case 4:
-        LED_State = 0;
-        break;
-      default:
-        // If an invalid state is somehow reached, turn the LED off
-        LED_State = 0;
-        break;
-    }
-    setLEDState(LED_State);
-    setBarLED(LED_State);
-    log("LED_State", LED_State, true);
+  LED_State++;
+  if (LED_State > LAMP_MAX) LED_State = LAMP_OFF;
+  setLEDState(LED_State);
+  setBarLED(LED_State);
+  log("LED_State", LED_State, true);
 }
 
 void setLEDState(int state) {
 
   int brightness;
   switch (state) {
-    case 0:
+    case LAMP_OFF:
       brightness = 0;
       break;
     case 1:
@@ -67,7 +67,7 @@ void setLEDState(int state) {
     case 3:
       brightness = 153;
       break;
-    case 4:
+    case LAMP_MAX:
       brightness = 255;
       break;
     default:
@@ -82,26 +82,8 @@ void setLEDState(int state) {
   ledcWrite(LEDchannel, brightness);  // Set LED brightness using PWM
 }
 
-
-/*
-Its working but while blinking the esp doesnt response
-*/
 void blinkLED(const String& sequence) {
-  for (char c : sequence) {
-    setLEDState(0);
-    int blinkDuration = (c == '1') ? 200 : 600;
-    setLEDState(4);
-    float startMicros = micros();
-    while (micros() - startMicros < blinkDuration * 1000) {
-      // Wait until the desired duration is reached
-    }
-    setLEDState(0);
-    lastBlinkTime = micros();
-    while (micros() - lastBlinkTime < 400000) {
-      // Pause between blinking
-    }
-  }
-  //todo: after blink set led to the last state of LED_State after 5 seconds
+  lampSequence.blink(sequence);
 }
 
 
