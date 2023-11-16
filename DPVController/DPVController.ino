@@ -16,12 +16,9 @@
 
 #include "Blinker.h" //Local
 
-
-
 /*
 *  PINS
 */
-
 // It still has to be checked if the currently used GPIOs are the optimal ones.
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 const int PIN_LEFT_BUTTON = 26;   // GPIO pin for the left button
@@ -52,6 +49,10 @@ const int MOTOR_STANDBY = 2;
 const int PRESSED = 0;
 const int DEPRESSED = 1;
 
+//Lamp 
+const int LAMP_OFF = 0;
+const int LAMP_MAX = 4;
+
 const float LED_Energy_Limiter = 0.8;
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
@@ -67,6 +68,10 @@ const int batteryLevelMeasurements = 1000;
 DHTesp dhtSensor;
 int leakSensorState = 0;
 int motorState = MOTOR_STANDBY;
+int LED_State = LAMP_OFF;
+
+
+//Stuff below should be moved
 unsigned long lastActionTime = 0;
 unsigned long lastBeepTime = 0;
 unsigned long lastBlinkTime = 0;
@@ -133,6 +138,7 @@ void loop() {
   logVehicleState();
   FromTimeToTimeExecution();
   beepLoop();
+  ledLampLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;

@@ -58,10 +58,12 @@ them in the /libraries -Folder and install them into Arduino.
 | 2 Clicks |          | Reactivate |
 |          | 2 Clicks | Reactivate |
 | 3 Clicks | 3 Clicks |           |
-| 3 Clicks |          | Battery level |
+| 3 Clicks |          | Short light flash |
 |          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
+| 4 Clicks |          | Battery level |
+
 
 # Logic
 ![logic](./Logic.drawio.png)

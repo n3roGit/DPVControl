@@ -14,7 +14,12 @@ const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel'
 /*
 * GLOBAL VARIABLES 
 */
-int LED_State = 0;
+void turnLampOn(){setLEDState(LAMP_MAX);}
+void turnLampOff(){
+  setLEDState(LED_State);//Use previous
+}
+
+Blinker lampBlinker = Blinker(turnLampOn, turnLampOff);
 
 void ledLampSetup(){
     // Initialize LED PWM
@@ -23,9 +28,17 @@ void ledLampSetup(){
   ledcAttachPin(PIN_LAMP, LEDchannel);                  //Kopplung des GPIO-Pins 23 mit dem PWM-Kanal 0
 }
 
+void ledLampLoop(){
+  lampBlinker.loop();
+}
+
+void flash(){
+  lampBlinker.blink(300);
+}
+
 void toggleLED(){
   LED_State++;
-  if (LED_State == 5) LED_State = 0;
+  if (LED_State > LAMP_MAX) LED_State = LAMP_OFF;
   setLEDState(LED_State);
   setBarLED(LED_State);
   log("LED_State", LED_State, true);
@@ -35,7 +48,7 @@ void setLEDState(int state) {
 
   int brightness;
   switch (state) {
-    case 0:
+    case LAMP_OFF:
       brightness = 0;
       break;
     case 1:
@@ -47,7 +60,7 @@ void setLEDState(int state) {
     case 3:
       brightness = 153;
       break;
-    case 4:
+    case LAMP_MAX:
       brightness = 255;
       break;
     default:
@@ -68,14 +81,8 @@ Its working but while blinking the esp doesnt response
 */
 void blinkLED(const String& sequence) {
   for (char c : sequence) {
-    setLEDState(0);
     int blinkDuration = (c == '1') ? 200 : 600;
-    setLEDState(4);
-    float startMicros = micros();
-    while (micros() - startMicros < blinkDuration * 1000) {
-      // Wait until the desired duration is reached
-    }
-    setLEDState(0);
+    lampBlinker.blink(blinkDuration);
     lastBlinkTime = micros();
     while (micros() - lastBlinkTime < 400000) {
       // Pause between blinking
