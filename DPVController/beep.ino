@@ -29,13 +29,18 @@ long startNextBeepAt = NEVER; //Millisecond timestamp at which we start working 
 String beepSequence = BEEP_NONE;
 int beepPos = 0;//Current index within beepSequence.
 
+void turnOnFunction(){digitalWrite(PIN_BEEP, HIGH);}
+
+void turnOffFunction(){digitalWrite(PIN_BEEP, LOW);}
+
+Blinker beepBlinker = Blinker(turnOnFunction, turnOffFunction);
+
 /**
 * Perform a beep for the given time. Works asynchronously. 
 */
 void beep(long length_ms){
   log("Beeping for ms", length_ms, EnableDebugLog);
-  digitalWrite(PIN_BEEP, HIGH);
-  stopBeepAt = millis()+length_ms;
+  beepBlinker.blink(length_ms);
 }
 
 /**
@@ -73,11 +78,7 @@ void beepLoop(){
     }
   }
 
-  //Turn off buzzer after it was turned off on by beep()
-  if (stopBeepAt != NEVER && stopBeepAt < millis()){
-    digitalWrite(PIN_BEEP, LOW);
-    stopBeepAt = NEVER;
-  }
+  beepBlinker.loop();
 }
 
 
