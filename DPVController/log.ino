@@ -16,34 +16,30 @@ void log(const char* label, int value, boolean doLog) {
   }
 }
 
-
 void logVehicleState() {
   if (loopCount % NormalLogOutputIntervall == 0) {
     Serial.println("---");
-
     Serial.print("bat lvl: ");
     Serial.println(batteryLevel);  // test battery level
     Serial.println("up " + uptime_formatter::getUptime());
     Serial.print("RPM: ");
-    Serial.println(UART.data.rpm);
+    Serial.println(getVescUart().data.rpm);
     Serial.print("inpVoltage: ");
-    Serial.println(UART.data.inpVoltage);
+    Serial.println(getVescUart().data.inpVoltage);
     Serial.print("ampHours: ");
-    Serial.println(UART.data.ampHours);
+    Serial.println(getVescUart().data.ampHours);
     Serial.print("tempMosfet: ");
-    Serial.println(UART.data.tempMosfet);
+    Serial.println(getVescUart().data.tempMosfet);
     Serial.print("tempMotor: ");
-    Serial.println(UART.data.tempMotor);
+    Serial.println(getVescUart().data.tempMotor);
     Serial.print("wattHours: ");
-    Serial.println(UART.data.wattHours);
+    Serial.println(getVescUart().data.wattHours);
     Serial.print("avgInputCurrent: ");
-    Serial.println(UART.data.avgInputCurrent);
+    Serial.println(getVescUart().data.avgInputCurrent);
     Serial.print("avgMotorCurrent: ");
-    Serial.println(UART.data.avgMotorCurrent);
+    Serial.println(getVescUart().data.avgMotorCurrent);
     Serial.print("dutyCycleNow: ");
     Serial.println(UART.data.dutyCycleNow);
-
-
 
     TempAndHumidity data = dhtSensor.getTempAndHumidity();
     Serial.println("Temp: " + String(data.temperature, 2) + "°C");
