@@ -21,6 +21,12 @@ void turnLampOff(){
 
 Blinker lampBlinker = Blinker(turnLampOn, turnLampOff);
 
+long lampDuration(char c){
+  return (c == '1') ? 200 : 600;
+}
+
+BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, 400);
+
 void ledLampSetup(){
     // Initialize LED PWM
   pinMode(PIN_LAMP, OUTPUT);                            //Setzt den GPIO-Pin 23 als Output (Ausgang)
@@ -29,6 +35,7 @@ void ledLampSetup(){
 }
 
 void ledLampLoop(){
+  lampSequence.loop();
   lampBlinker.loop();
 }
 
@@ -75,20 +82,8 @@ void setLEDState(int state) {
   ledcWrite(LEDchannel, brightness);  // Set LED brightness using PWM
 }
 
-
-/*
-Its working but while blinking the esp doesnt response
-*/
 void blinkLED(const String& sequence) {
-  for (char c : sequence) {
-    int blinkDuration = (c == '1') ? 200 : 600;
-    lampBlinker.blink(blinkDuration);
-    lastBlinkTime = micros();
-    while (micros() - lastBlinkTime < 400000) {
-      // Pause between blinking
-    }
-  }
-  //todo: after blink set led to the last state of LED_State after 5 seconds
+  lampSequence.blink(sequence);
 }
 
 
