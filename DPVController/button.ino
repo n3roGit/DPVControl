@@ -3,6 +3,11 @@
 *
 */
 
+struct LastClick {
+  unsigned long time;
+  int clicks;
+};
+
 /**
 * CONSTANTS
 */
@@ -24,6 +29,8 @@ int rightButtonHeldSince = NOT_HELD; //Time in MS at which
 //the button was held down and has not been released since. 
 ClickButton leftButton(PIN_LEFT_BUTTON, LOW);
 ClickButton rightButton(PIN_RIGHT_BUTTON, LOW);
+LastClick lastLeftClick;
+LastClick lastRightClick;
 
 void buttonSetup(){
   // Set debounce and click times for buttons
@@ -35,8 +42,14 @@ void buttonSetup(){
   rightButton.longClickTime = LONGCLICK_TIME;
 }
 
-
 void buttonLoop(){
+  updateButtonState();
+  performActions();
+}
+
+LastClick getLastClick(ClickButton &button); // Forward declaration
+
+void updateButtonState(){
   leftButton.Update();
   rightButton.Update();
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
@@ -47,6 +60,7 @@ void buttonLoop(){
   }else{
     leftButtonHeldSince = NOT_HELD;
   }
+  lastLeftClick = getLastClick(leftButton);
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
   if(rightButtonState == PRESSED){
     if(rightButtonHeldSince == NOT_HELD){
@@ -55,6 +69,11 @@ void buttonLoop(){
   }else{
     rightButtonHeldSince = NOT_HELD;
   }
+  lastRightClick = getLastClick(rightButton);
+}
+
+
+void performActions(){
 
   if (motorState == MOTOR_STANDBY) {
     //Wake up from Standup
@@ -96,4 +115,11 @@ void buttonLoop(){
 
 bool heldForLong(long heldDownSince){
   return heldDownSince != NOT_HELD && millis()-heldDownSince >= MOTOR_START_DELAY;
+}
+
+LastClick getLastClick(ClickButton &button){
+  LastClick click;
+  click.time = millis();
+  click.clicks = button.clicks;
+  return click;
 }
