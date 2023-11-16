@@ -16,24 +16,24 @@
 const long SHORT_BEEP_MS = 200;
 const long LONG_BEEP_MS = 600;
 const long PAUSE_MS = 400;
-//Marker values.
-const int NEVER = -1;
-String BEEP_NONE = "NONE"; 
 
 /**
 * GLOBAL VARIABLES
 */
-long stopBeepAt = NEVER; //Millisecond timestamp at which we stop beeping. 
-long startNextBeepAt = NEVER; //Millisecond timestamp at which we start working on 
-//the next character in a sequence. 
-String beepSequence = BEEP_NONE;
-int beepPos = 0;//Current index within beepSequence.
 
 void turnOnFunction(){digitalWrite(PIN_BEEP, HIGH);}
 
 void turnOffFunction(){digitalWrite(PIN_BEEP, LOW);}
 
 Blinker beepBlinker = Blinker(turnOnFunction, turnOffFunction);
+
+
+long beepDuration(char c){
+   return (c == '1') ? SHORT_BEEP_MS : LONG_BEEP_MS;
+}
+
+BlinkSequence beepSequence = BlinkSequence(beepBlinker, beepDuration, PAUSE_MS);
+
 
 /**
 * Perform a beep for the given time. Works asynchronously. 
@@ -50,34 +50,11 @@ void beep(long length_ms){
 */
 void beep(const String& sequence) {
   if(EnableDebugLog) Serial.println("beepSequence:"+sequence);
-  if (!beepSequence.equals(BEEP_NONE)){
-    Serial.println("Warning! overriding beep "+beepSequence+ " with "+sequence);
-  }
-  beepSequence = sequence;
-  beepPos = 0;
-  startNextBeepAt = millis();
+  beepSequence.blink(sequence);
 }
 
 void beepLoop(){
-
-  //Process the current beepsequence. 
-  if (!beepSequence.equals(BEEP_NONE)){
-    if (startNextBeepAt != NEVER && startNextBeepAt <= millis()){
-      char c = beepSequence[beepPos++];
-      int toneDuration = (c == '1') ? SHORT_BEEP_MS : LONG_BEEP_MS;
-      beep(toneDuration);
-      if (beepPos == beepSequence.length()){
-        //Reached end of string. we are done. 
-        beepSequence = BEEP_NONE;
-        startNextBeepAt = NEVER;
-        Serial.println("Done beeping sequence.");
-      }else{
-        //Schedule next run to continue after a pause.
-        startNextBeepAt = millis()+toneDuration+PAUSE_MS;
-      }
-    }
-  }
-
+  beepSequence.loop();
   beepBlinker.loop();
 }
 

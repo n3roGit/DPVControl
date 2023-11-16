@@ -16,6 +16,8 @@
 
 #include "Blinker.h" //Local
 
+#include "BlinkSequence.h" //Local
+
 /*
 *  PINS
 */
