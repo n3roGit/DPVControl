@@ -147,7 +147,7 @@ void setup() {
   // Booting finished
   Serial.println("Booting finished!");
   // BEEP end
-  beep("1121");
+  beep("1");
 }
 
 void loop() {
