@@ -38,6 +38,8 @@ void logVehicleState() {
     Serial.println(getVescUart().data.avgInputCurrent);
     Serial.print("avgMotorCurrent: ");
     Serial.println(getVescUart().data.avgMotorCurrent);
+    Serial.print("dutyCycleNow: ");
+    Serial.println(UART.data.dutyCycleNow);
 
     TempAndHumidity data = dhtSensor.getTempAndHumidity();
     Serial.println("Temp: " + String(data.temperature, 2) + "°C");
