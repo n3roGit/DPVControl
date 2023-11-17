@@ -103,7 +103,7 @@ void performActions(){
       leaveCruiseMode();
     }
   }else if(motorState == turbo){
-    if (!(leftButton.depressed && rightButton.depressed)){
+    if (!(leftButton.depressed || rightButton.depressed)){
       leaveTurboMode();
     }
   }else{
