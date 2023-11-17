@@ -14,14 +14,13 @@
 
 #include <Adafruit_NeoPixel.h>  //https://github.com/adafruit/Adafruit_NeoPixel
 
+#include "Blinker.h" //Local
 
-
+#include "BlinkSequence.h" //Local
 
 /*
 *  PINS
 */
-
-// It still has to be checked if the currently used GPIOs are the optimal ones.
 // https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
 const int PIN_LEFT_BUTTON = 26;   // GPIO pin for the left button
 const int PIN_RIGHT_BUTTON = 27;  // GPIO pin for the right button
@@ -47,6 +46,10 @@ enum MotorState {standby, on, off, cruise, turbo};
 const int PRESSED = 0;
 const int DEPRESSED = 1;
 
+//Lamp 
+const int LAMP_OFF = 0;
+const int LAMP_MAX = 4;
+
 const float LED_Energy_Limiter = 0.8;
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
@@ -62,6 +65,9 @@ const int batteryLevelMeasurements = 1000;
 DHTesp dhtSensor;
 int leakSensorState = 0;
 MotorState motorState = standby;
+int LED_State = LAMP_OFF;
+
+//Stuff below should be moved
 unsigned long lastActionTime = 0;
 unsigned long lastBeepTime = 0;
 unsigned long lastBlinkTime = 0;
@@ -93,9 +99,8 @@ void setup() {
   // Initialize serial communication
   Serial.begin(115200);
 
-  // BEEP Initial
   Serial.println("Booting started...!");
-  beep("1");
+
 
   buttonSetup();
 
@@ -128,6 +133,7 @@ void loop() {
   logVehicleState();
   FromTimeToTimeExecution();
   beepLoop();
+  ledLampLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;
