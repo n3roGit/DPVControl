@@ -17,6 +17,9 @@ const int LONGCLICK_TIME = 1000;
 const long NOT_HELD = -1;
 const long MOTOR_START_DELAY = 300; // Time in ms that a lever needs
 //to be hold down until the motor goes from off to on. 
+const long BOTH_HAND_CLICK_TOLERANCE = 150; //maximum time in ms
+//between the end of clicks on two separate buttons for them to 
+//be considered "at the same time".
 
 /*
 * GLOBAL VARIABLES
@@ -47,7 +50,8 @@ void buttonLoop(){
   performActions();
 }
 
-LastClick getLastClick(ClickButton &button); // Forward declaration
+void updateLastClick(LastClick &click, ClickButton &button); // Forward declaration
+bool checkCruise(ClickButton &button, LastClick &lastClick);
 
 void updateButtonState(){
   leftButton.Update();
@@ -60,7 +64,7 @@ void updateButtonState(){
   }else{
     leftButtonHeldSince = NOT_HELD;
   }
-  lastLeftClick = getLastClick(leftButton);
+  updateLastClick(lastLeftClick, leftButton);
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
   if(rightButtonState == PRESSED){
     if(rightButtonHeldSince == NOT_HELD){
@@ -69,16 +73,20 @@ void updateButtonState(){
   }else{
     rightButtonHeldSince = NOT_HELD;
   }
-  lastRightClick = getLastClick(rightButton);
+  updateLastClick(lastRightClick, rightButton);
 }
 
 
 void performActions(){
 
-  if (motorState == MOTOR_STANDBY) {
+  if (motorState == standby) {
     //Wake up from Standup
     if (leftButton.clicks == 2 || rightButton.clicks == 2) {
         wakeUp();
+    }
+  }else if(motorState == cruise){
+    if (leftButton.changed || rightButton.changed){
+      leaveCruiseMode();
     }
   }else{
     if (rightButton.clicks == 2 && leftButtonState == PRESSED) {
@@ -89,13 +97,16 @@ void performActions(){
     }  
 
     if (heldForLong(leftButtonHeldSince) || heldForLong(rightButtonHeldSince)) {
-      motorState = MOTOR_ON;
-    } else if(motorState == MOTOR_ON //When motor already on, holding one down to keep it on is
+      motorState = on;
+    }else if(motorState == on //When motor already on, holding one down to keep it on is
     //enough. 
       && (leftButtonState == PRESSED || rightButtonState == PRESSED)) {
-      motorState = MOTOR_ON;
+      motorState = on;
+    }else if (checkCruise(rightButton, lastLeftClick)
+            ||checkCruise(leftButton,  lastRightClick)){
+      enterCruiseMode(); 
     }else{
-      motorState = MOTOR_OFF;
+      motorState = off;
     }
   
     if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
@@ -117,9 +128,18 @@ bool heldForLong(long heldDownSince){
   return heldDownSince != NOT_HELD && millis()-heldDownSince >= MOTOR_START_DELAY;
 }
 
-LastClick getLastClick(ClickButton &button){
-  LastClick click;
-  click.time = millis();
-  click.clicks = button.clicks;
-  return click;
+void updateLastClick(LastClick &click, ClickButton &button){
+  if (button.clicks != 0){
+    click.time = millis();
+    click.clicks = button.clicks;
+  }
+}
+
+/**
+*  Checks our condition for entering cruise mode.
+*  But considering only one button and the other ones lastClick
+*/
+bool checkCruise(ClickButton &button, LastClick &lastClick){
+  return button.clicks == 1 && lastClick.clicks == 1 
+    && millis() - lastClick.time <= BOTH_HAND_CLICK_TOLERANCE;
 }

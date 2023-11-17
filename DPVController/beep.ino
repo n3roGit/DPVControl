@@ -89,7 +89,7 @@ void BeepForLeak() {
   }
 }
 void BeepForStandby() {
-  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
+  if (motorState == standby && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
     beep("1");  // Hier die gewünschte Sequenz für den Ton
     log("still in standby", 1, true);
     lastStandbyBeepTime = micros();  // Update the time of the last call

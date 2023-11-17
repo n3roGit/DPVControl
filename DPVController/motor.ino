@@ -68,7 +68,7 @@ void speedDown(){
 
 // Function to control standby mode
 void controlStandby() {
-  if (motorState != MOTOR_STANDBY)  {
+  if (motorState != standby)  {
     if (lastActionTime + STANDBY_DELAY_US < micros()) {
       standBy();
     }
@@ -76,7 +76,7 @@ void controlStandby() {
 }
 
 void wakeUp(){
-  motorState = MOTOR_OFF;
+  motorState = off;
   log("leaving standby", 1, true);
   lastActionTime = micros();
   beep("2");
@@ -85,7 +85,7 @@ void wakeUp(){
 
 void standBy(){
   log("going to standby", micros(), true);
-  motorState = MOTOR_STANDBY;
+  motorState = standby;
   beep("2");
   setBarStandby();
 }
@@ -93,10 +93,10 @@ void standBy(){
 void controlMotor() {
   //log("motorstate", motorState, EnableDebugLog);
 
-  if (motorState == MOTOR_STANDBY || motorState == MOTOR_OFF) {
+  if (motorState == standby || motorState == off) {
     // Motor is off
     targetMotorSpeed = 0.0;
-  } else if (motorState == MOTOR_ON) {
+  } else if (motorState == on || motorState == cruise) {
     targetMotorSpeed = MIN_SPEED_DUTY + ((double)currentMotorStep)/SPEED_STEPS * (1-MIN_SPEED_DUTY);
   }
 
@@ -167,4 +167,14 @@ void PreventOverload() {
     speedSetting += MOTOR_SPEED_CHANGE;
   }
   */
+}
+
+void enterCruiseMode(){
+  log("Entering cruise mode", 0, EnableDebugLog);
+  motorState = cruise;
+}
+
+void leaveCruiseMode(){
+  log("leaving cruise mode", 0, EnableDebugLog);
+  motorState = off;
 }

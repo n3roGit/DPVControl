@@ -106,7 +106,7 @@ void blinkLED(const String& sequence) {
 
 
 void BlinkForLongStandby() {
-  if (motorState == MOTOR_STANDBY && micros() - lastStandbyBlinkTime >= StandbyBlinkWarningtime && LED_State == 0) {
+  if (motorState == standby && micros() - lastStandbyBlinkTime >= StandbyBlinkWarningtime && LED_State == 0) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
     log("sos iam alone", 111222111, true);
     StandbyBlinkWarningtime = (StandbyBlinkDuration * 1000000);  //every 30 sec
