@@ -38,7 +38,7 @@ them in the /libraries -Folder and install them into Arduino.
 - 90% - **Implement click codes according to the table**
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
-- 0% - **cruise control** drive dpv without holding button 
+
 
 
 
