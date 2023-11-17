@@ -26,9 +26,9 @@ const long BOTH_HAND_CLICK_TOLERANCE = 150; //maximum time in ms
 */
 int leftButtonState = DEPRESSED;
 int rightButtonState = DEPRESSED;
-int leftButtonHeldSince = NOT_HELD; //Time in MS at which 
+unsigned long leftButtonHeldSince = NOT_HELD; //Time in MS at which 
 //the button was held down and has not been released since. 
-int rightButtonHeldSince = NOT_HELD; //Time in MS at which 
+unsigned long rightButtonHeldSince = NOT_HELD; //Time in MS at which 
 //the button was held down and has not been released since. 
 ClickButton leftButton(PIN_LEFT_BUTTON, LOW);
 ClickButton rightButton(PIN_RIGHT_BUTTON, LOW);
@@ -50,12 +50,15 @@ void buttonLoop(){
   performActions();
 }
 
-void updateLastClick(LastClick &click, ClickButton &button); // Forward declaration
+// Forward declarations
+void updateLastClick(LastClick &click, ClickButton &button); 
 bool checkCruise(ClickButton &button, LastClick &lastClick);
+bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs);
+
 
 void updateButtonState(){
+  //LEFT BUTTON
   leftButton.Update();
-  rightButton.Update();
   leftButtonState = digitalRead(PIN_LEFT_BUTTON);
   if(leftButtonState == PRESSED){
     if(leftButtonHeldSince == NOT_HELD){
@@ -65,6 +68,9 @@ void updateButtonState(){
     leftButtonHeldSince = NOT_HELD;
   }
   updateLastClick(lastLeftClick, leftButton);
+
+  //RIGHT BUTTON
+  rightButton.Update();
   rightButtonState = digitalRead(PIN_RIGHT_BUTTON);
   if(rightButtonState == PRESSED){
     if(rightButtonHeldSince == NOT_HELD){
@@ -74,6 +80,14 @@ void updateButtonState(){
     rightButtonHeldSince = NOT_HELD;
   }
   updateLastClick(lastRightClick, rightButton);
+
+  //Logging
+  if (leftButton.clicks != 0){
+    log("leftClick", leftButton.clicks, EnableDebugLog);
+  }
+  if (rightButton.clicks != 0){
+    log("rightClick", rightButton.clicks, EnableDebugLog);
+  }
 }
 
 
@@ -88,6 +102,10 @@ void performActions(){
     if (leftButton.changed || rightButton.changed){
       leaveCruiseMode();
     }
+  }else if(motorState == turbo){
+    if (!(leftButton.depressed && rightButton.depressed)){
+      leaveTurboMode();
+    }
   }else{
     if (rightButton.clicks == 2 && leftButtonState == PRESSED) {
       speedUp();
@@ -95,8 +113,10 @@ void performActions(){
     if (leftButton.clicks == 2  && rightButtonState == PRESSED) {
       speedDown();
     }  
-
-    if (heldForLong(leftButtonHeldSince) || heldForLong(rightButtonHeldSince)) {
+    if(isDoubleClickHold(lastLeftClick, leftButtonHeldSince) 
+      && isDoubleClickHold(lastRightClick, rightButtonHeldSince)){
+        enterTurboMode();
+    }else if (heldForLong(leftButtonHeldSince) || heldForLong(rightButtonHeldSince)) {
       motorState = on;
     }else if(motorState == on //When motor already on, holding one down to keep it on is
     //enough. 
@@ -142,4 +162,14 @@ void updateLastClick(LastClick &click, ClickButton &button){
 bool checkCruise(ClickButton &button, LastClick &lastClick){
   return button.clicks == 1 && lastClick.clicks == 1 
     && millis() - lastClick.time <= BOTH_HAND_CLICK_TOLERANCE;
+}
+
+/**
+* Checks if a button has been clicked twice, pressed and held until now.
+**/
+bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs){
+  return lastClick.clicks == -3// -3 means two clicks, 
+  //then reached longButtonClick-timeout while holding.
+   && heldSinceMs != NOT_HELD
+   && lastClick.time >= heldSinceMs;
 }

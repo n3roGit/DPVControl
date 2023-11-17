@@ -98,6 +98,11 @@ void controlMotor() {
     targetMotorSpeed = 0.0;
   } else if (motorState == on || motorState == cruise) {
     targetMotorSpeed = MIN_SPEED_DUTY + ((double)currentMotorStep)/SPEED_STEPS * (1-MIN_SPEED_DUTY);
+  } else if (motorState == turbo) {
+    targetMotorSpeed = 1.0;
+  } else{
+    Serial.print("Unhandled motorstate: ");
+    Serial.println(motorState);
   }
 
   if(EnableDebugLog && abs(lastTargetMotorSpeed - targetMotorSpeed) >= 0.01){
@@ -176,5 +181,15 @@ void enterCruiseMode(){
 
 void leaveCruiseMode(){
   log("leaving cruise mode", 0, EnableDebugLog);
+  motorState = off;
+}
+
+void enterTurboMode(){
+  log("enter turbo mode", 0, EnableDebugLog);
+  motorState = turbo;
+}
+
+void leaveTurboMode(){
+  log("leaving turbo mode", 0, EnableDebugLog);
   motorState = off;
 }

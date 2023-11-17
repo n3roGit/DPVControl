@@ -41,7 +41,7 @@ const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
 
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
-enum MotorState{standby,on,off,cruise};
+enum MotorState {standby, on, off, cruise, turbo};
 
 // Button Values
 const int PRESSED = 0;
