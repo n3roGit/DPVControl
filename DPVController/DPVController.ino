@@ -54,11 +54,6 @@ const float LED_Energy_Limiter = 0.8;
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
-// Constant for the number of cells in series
-const int CellsInSeries = 13;
-// Constant for the number of measurements used to calculate the average
-const int batteryLevelMeasurements = 1000;
-
 /*
 *   GLOBAL VARIABLES
 */
@@ -78,7 +73,6 @@ unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
-int batteryLevel = 0;
 int loopCount = 0;
 int NormalLogOutputIntervall = 1000*10;
 int batteryAlerted = 0;
@@ -115,9 +109,10 @@ void setup() {
   ledLampSetup();
   ledBarSetup();
 
+  testBattery();
+
   // Booting finished
   Serial.println("Booting finished!");
-  // BEEP end
   beep("1");
 }
 
