@@ -104,9 +104,8 @@ void setup() {
   // Initialize serial communication
   Serial.begin(115200);
 
-  // BEEP Initial
   Serial.println("Booting started...!");
-  //beep("1");
+
 
   buttonSetup();
 
