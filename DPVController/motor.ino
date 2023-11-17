@@ -186,10 +186,12 @@ void leaveCruiseMode(){
 
 void enterTurboMode(){
   log("enter turbo mode", 0, EnableDebugLog);
+  setBarSpeed(SPEED_STEPS);
   motorState = turbo;
 }
 
 void leaveTurboMode(){
   log("leaving turbo mode", 0, EnableDebugLog);
+  setBarSpeed(currentMotorStep);
   motorState = off;
 }
