@@ -59,7 +59,7 @@ them in the /libraries -Folder and install them into Arduino.
 |          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
-| 4 Clicks |          | Battery level |
+| 4 Clicks |          | beep Battery level |
 
 
 # Logic
