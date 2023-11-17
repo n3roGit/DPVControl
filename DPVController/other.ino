@@ -11,22 +11,24 @@ only output. needs to be stored in database
 */
 void GetVESCValues() {
 
-    if (UART.getVescValues()) {
-      /*
-      Serial.print("RPM: ");
-      Serial.println(UART.data.rpm);
-      Serial.print("inpVoltage: ");
-      Serial.println(UART.data.inpVoltage);
-      Serial.print("ampHours: ");
-      Serial.println(UART.data.ampHours);
-      Serial.print("tachometerAbs: ");
-      Serial.println(UART.data.tachometerAbs);
-      */
+  if (!hasMotor) return;
 
-      updateBatteryLevel(UART.data.inpVoltage);
-    } else {
-      log("Failed to get VESC data!", 00000, EnableDebugLog);
-    }
+  if (UART.getVescValues()) {
+    /*
+    Serial.print("RPM: ");
+    Serial.println(UART.data.rpm);
+    Serial.print("inpVoltage: ");
+    Serial.println(UART.data.inpVoltage);
+    Serial.print("ampHours: ");
+    Serial.println(UART.data.ampHours);
+    Serial.print("tachometerAbs: ");
+    Serial.println(UART.data.tachometerAbs);
+    */
+
+    updateBatteryLevel(UART.data.inpVoltage);
+  } else {
+    log("Failed to get VESC data!", 00000, EnableDebugLog);
+  }
 
 }
 void checkForLeak() {

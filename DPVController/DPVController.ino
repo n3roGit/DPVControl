@@ -40,11 +40,7 @@ const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
 
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
-
-// Values for motorState
-const int MOTOR_OFF = 0;
-const int MOTOR_ON = 1;
-const int MOTOR_STANDBY = 2;
+enum MotorState {standby, on, off, cruise, turbo};
 
 // Button Values
 const int PRESSED = 0;
@@ -68,9 +64,8 @@ const int batteryLevelMeasurements = 1000;
 */
 DHTesp dhtSensor;
 int leakSensorState = 0;
-int motorState = MOTOR_STANDBY;
+MotorState motorState = standby;
 int LED_State = LAMP_OFF;
-
 
 //Stuff below should be moved
 unsigned long lastActionTime = 0;
