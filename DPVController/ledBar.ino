@@ -7,8 +7,8 @@
 *  CONSTANTS
 */
 const int LedBar_Num = 10;          // Number of LEDs in the strip
-const int LEDBar_Brightness = 25;
-const int LEDBar_BrightnessSecond = 1;
+const int LEDBar_Brightness = 30;
+const int LEDBar_BrightnessSecond = 3;
 
 /*
 * GLOBAL VARIABLES 
