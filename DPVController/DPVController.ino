@@ -50,7 +50,7 @@ const int DEPRESSED = 1;
 const int LAMP_OFF = 0;
 const int LAMP_MAX = 4;
 
-const float LED_Energy_Limiter = 0.8;
+
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
 
