@@ -54,7 +54,7 @@ them in the /libraries -Folder and install them into Arduino.
 | 2 Clicks | 2 Clicks | Boost Mode |
 | 2 Clicks |          | Reactivate |
 |          | 2 Clicks | Reactivate |
-| 3 Clicks | 3 Clicks |           |
+| 3 Clicks | 3 Clicks |      PowerBank ON/OFF     |
 | 3 Clicks |          | Short light flash |
 |          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
