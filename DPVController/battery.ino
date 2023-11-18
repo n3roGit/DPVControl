@@ -58,7 +58,8 @@ void outputBatteryInfo(){
     beep("1");
   } else {
     // Determine how many full 10% steps have been reached
-    int steps = batteryLevel / 10;
+    int steps = (batteryLevel +5) / 10;
+    steps = constrain(steps, 0, 10 - 1);
 
     // Generate a string with '1' for each full 10% step
     String beepSequence = "";
