@@ -101,3 +101,13 @@ void setBarLED(int num) {
     int calc = LedBar_Num-num;
     setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
 }
+
+void setBarFlasher(bool status) {
+  if (status){
+    setBar(1,10,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
+  } 
+  else {
+    //setBarSpeed(SPEED_STEPS);
+  }
+    
+}
