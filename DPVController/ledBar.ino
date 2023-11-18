@@ -88,6 +88,15 @@ void setBarLeak() {
     }
 }
 
+void setBarPowerBank(bool status) {
+  if (status){
+      setBar(1,9,"#000000", 0, "#036ffc", LEDBar_Brightness);
+  }
+  else {
+      setBar(1,9,"#000000", 0, "#ff0000", LEDBar_Brightness);
+  }  
+}
+
 void setBarLED(int num) {
     int calc = LedBar_Num-num;
     setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
