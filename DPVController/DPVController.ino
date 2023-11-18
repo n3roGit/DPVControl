@@ -32,6 +32,8 @@ const int PIN_BEEP = 18;  //G18 OK
 #define VESCRX 22  // GPIO pin for VESC UART RX
 #define VESCTX 23  // GPIO pin for VESC UART TX
 const int PIN_LEDBAR = 12; // Pin to which the LED strip is connected
+const int PIN_POWERBANK = 13; // Pin to which the LED strip is connected
+
 
 /*
 *  CONSTANTS
