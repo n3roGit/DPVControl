@@ -53,7 +53,7 @@ void batterySetup(){
 *
 */
 void outputBatteryInfo(){
-  log("battery info", batteryLevel, EnableDebugLog);
+  log("battery info", batteryLevel);
   if (batteryLevel < 10) {
     beep("1");
   } else {

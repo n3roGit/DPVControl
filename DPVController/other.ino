@@ -27,7 +27,7 @@ void GetVESCValues() {
 
     updateBatteryLevel(UART.data.inpVoltage);
   } else {
-    log("Failed to get VESC data!", 00000, EnableDebugLog);
+    log("Failed to get VESC data!", 00000);
   }
 
 }
