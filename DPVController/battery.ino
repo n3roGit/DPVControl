@@ -28,11 +28,24 @@ const VoltToSoc VOLT_TO_SOC[] = {
 const int VOLT_TO_SOC_length = sizeof(VOLT_TO_SOC) / sizeof(VOLT_TO_SOC[0]);
 
 const int CELLS_IN_SERIES = 13;//number of cells in series
+const int MEASUREMENTS = 60;
+const int MEASUREMENT_INTERVAL = 1000;//Time between measurements in ms
+const float EMPTY = -3.0;
 
 /*
 * GLOBAL VARIABLES
 */
 int batteryLevel = 0;// 0 to 100% state of charge. 
+float voltageHistory[MEASUREMENTS] ;
+int voltageHistoryIndex = 0;
+unsigned long lastMeasurement = 0; //ms timestamp of last time we made measurement
+
+
+void batterySetup(){
+  //Clear measurement table
+  for(int i = 0;i<MEASUREMENTS;i++) voltageHistory[i] = EMPTY;
+}
+
 
 /**
 *
@@ -79,48 +92,20 @@ void BatteryLevelAlert() {
   }
 }
 
-
-// make a map function for this mapiopenigrecord
 void updateBatteryLevel(float voltage) {
-  batteryLevel = calculateStateOfCharge(voltage);
+  recordVoltage(voltage);
+  batteryLevel = calculateStateOfCharge(getAvergageVoltage());
   int steps = (batteryLevel + 5) / LedBar2_Num;
   steps = constrain(steps, 0, LedBar2_Num - 1);
   setBarBattery(steps);
 }
 
 int calculateStateOfCharge(float voltage){
-  if (voltage >= 5 && CELLS_IN_SERIES >= 2) {
-    float singleCellVoltages[] = {4.18, 4.1, 3.99, 3.85, 3.77, 3.58, 3.42, 3.33, 3.21, 3.00, 2.87};
-    int singleCellPercentages[] = {100, 96, 82, 68, 58, 34, 20, 14, 8, 2, 0};
-
-    for (int i = 0; i < sizeof(singleCellVoltages) / sizeof(singleCellVoltages[0]); i++) {
-      if (voltage >= singleCellVoltages[i] * CELLS_IN_SERIES) {
-        // Interpolation
-        if (i > 0) {
-          float voltageRange = singleCellVoltages[i] * CELLS_IN_SERIES - singleCellVoltages[i - 1] * CELLS_IN_SERIES;
-          int percentageRange = singleCellPercentages[i - 1] - singleCellPercentages[i];
-          float voltageDifference = singleCellVoltages[i] * CELLS_IN_SERIES - voltage;
-          float interpolationFactor = voltageDifference / voltageRange;
-          return singleCellPercentages[i] + interpolationFactor * percentageRange;
-        } else {
-          return singleCellPercentages[i];
-        }
-        break;
-      }
-    }
-    // Ensure that the battery level is limited to the range [0, 100]
-    return constrain(batteryLevel, 0, 100);
-  } else {
-    return 100;
-  }
-}
-
-int calculateStateOfCharge2(float voltage){
   float voltagePerCell = voltage/CELLS_IN_SERIES;
   //Move along the table until we find the row where we have a lower voltage; 
   int i = 0;
   while (i < VOLT_TO_SOC_length && voltagePerCell < VOLT_TO_SOC[i].volt) i++;
-
+  
   //We did not move along the table at all. So our voltage is above the maxinum.
   if (i == 0) return 100;
 
@@ -136,13 +121,39 @@ int calculateStateOfCharge2(float voltage){
   return lower.soc + interpolationFactor * percentageRange;  
 }
 
+
+void recordVoltage(float voltage){
+  if (millis() > lastMeasurement + MEASUREMENT_INTERVAL){
+    log("recordVoltage(mV)", (int)(voltage*1000));
+    lastMeasurement = millis();
+    voltageHistory[voltageHistoryIndex] = voltage;
+    //Move Index
+    voltageHistoryIndex = voltageHistoryIndex == MEASUREMENTS ? 0 : voltageHistoryIndex + 1;
+  }
+}
+
+float getAvergageVoltage(){
+  float sum = 0.0;
+  int i = 0;
+  while (i < MEASUREMENTS && voltageHistory[i] != EMPTY){
+    sum += voltageHistory[i];
+    i++;
+  }
+  if (i==0) return 0.0;
+  return sum/i;
+}
+
+
+/*
+* TESTING
+*/
+
 //Checks that the two battery calculation functions work the same. 
 void testBattery(){
   for(int i = 0;i<40;i++){
     float voltage = 35.0+i*0.5;
     Serial.print(voltage);Serial.print("V ");
-    Serial.print(calculateStateOfCharge(voltage));Serial.println("% SOC");
-    int soc = calculateStateOfCharge2(voltage);
+    int soc = calculateStateOfCharge(voltage);
     Serial.print(soc);Serial.println("% SOC");
   }
 }

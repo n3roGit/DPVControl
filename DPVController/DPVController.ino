@@ -108,8 +108,8 @@ void setup() {
   motorSetup();
   ledLampSetup();
   ledBarSetup();
+  batterySetup();
 
-  testBattery();
 
   // Booting finished
   Serial.println("Booting finished!");
