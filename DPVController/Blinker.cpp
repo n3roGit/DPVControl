@@ -1,7 +1,6 @@
 #include "Blinker.h"
 #include "Arduino.h"
-
-const int NEVER = -1;
+#include "constants.h"
 
 Blinker::Blinker(void (*onFunction)(), void (*offFunction)()) {
     turnOnFunction = onFunction;
@@ -11,7 +10,7 @@ Blinker::Blinker(void (*onFunction)(), void (*offFunction)()) {
 
 void Blinker::blink(long ms) {
     turnOnFunction();
-    stopAt = millis()+ms;
+    stopAt = millis() + ms;
 }
 
 void Blinker::loop() {
