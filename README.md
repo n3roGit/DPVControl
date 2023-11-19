@@ -62,6 +62,26 @@ them in the /libraries -Folder and install them into Arduino.
 | 4 Clicks |          | beep Battery level |
 
 
+# Click Codes
+1 = short beep
+2= long beep
+| Beep | Function | 
+|:--------:|:--------:|
+| 22222     | Leak warning     |
+|1|going to standby or still in standby|
+|2|wake up from standby|
+|2|10% battery left|
+|22|20% battery left|
+|222|30% battery left|
+|1| once after boot|
+|11|No speedup because overloaded|
+|1|speed steps exeeded|
+|12|Overloaded for too long. Lowering speed.|
+|21|No longer overloaded|
+|111222111|SOS - Long time without any action|
+
+
+
 # Logic
 ![logic](./Logic.drawio.png)
 
