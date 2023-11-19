@@ -1,22 +1,19 @@
 /*
 *   LIBRARIES
 */
-
 #include "ClickButton.h"  //https://github.com/marcobrianza/ClickButton
-
 #include "DHTesp.h"  //https://github.com/beegee-tokyo/DHTesp
-
 #include <HardwareSerial.h>
-
 #include <VescUart.h>  //https://github.com/SolidGeek/VescUart
-
 #include "uptime_formatter.h"  //https://github.com/YiannisBourkelis/Uptime-Library
-
 #include <Adafruit_NeoPixel.h>  //https://github.com/adafruit/Adafruit_NeoPixel
 
-#include "Blinker.h" //Local
-
-#include "BlinkSequence.h" //Local
+/*
+* LOCAL C++ CODE
+*/
+#include "constants.h"
+#include "Blinker.h" 
+#include "BlinkSequence.h" 
 
 /*
 *  PINS
@@ -38,8 +35,7 @@ const int PIN_POWERBANK = 13; // Pin to which the LED strip is connected
 /*
 *  CONSTANTS
 */
-const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
-
+const bool EnableDebugLog = true; //Enable/Disable Serial Log
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 enum MotorState {standby, on, off, cruise, turbo};
@@ -124,7 +120,6 @@ void loop() {
 
   buttonLoop();
   motorLoop();
-  PreventOverload();
   checkForLeak();
   GetVESCValues();
   logVehicleState();

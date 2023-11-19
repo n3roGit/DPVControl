@@ -97,3 +97,17 @@ void BlinkForLongStandby() {
     StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);  //every 3 minutes
   }
 }
+
+/**
+* Return current power consumption in Ampere. 
+*/
+float getLedLampPower(){
+  switch (LED_State){
+    case LAMP_MAX:
+      return 4;
+    case 3:
+      return 3;
+    default:
+      return 0;
+  }
+}
