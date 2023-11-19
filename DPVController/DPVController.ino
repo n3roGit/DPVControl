@@ -70,6 +70,7 @@ DHTesp dhtSensor;
 int leakSensorState = 0;
 MotorState motorState = standby;
 int LED_State = LAMP_OFF;
+bool hasMotor = true;//Indicates that we have an actual motor plugged in.
 
 //Stuff below should be moved
 unsigned long lastActionTime = 0;
@@ -88,6 +89,12 @@ int NormalLogOutputIntervall = 1000*10;
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
 int FromTimeToTimeIntervall = 500;
+
+//Has to be here or the compiler puts it in weird places
+struct LogdataRow {
+  long time;
+  float tempMotor;
+};
 
 /*
 The Setup is chaotic. Needs a cleanup
