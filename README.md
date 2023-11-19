@@ -78,7 +78,7 @@ them in the /libraries -Folder and install them into Arduino.
 |1|speed steps exeeded|
 |12|Overloaded for too long. Lowering speed.|
 |21|No longer overloaded|
-|111222111|SOS - Long time without any action|
+|111222111|SOS - Long time without any action. The lamp is also activated with the same code|
 
 
 
