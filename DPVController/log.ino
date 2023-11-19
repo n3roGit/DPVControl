@@ -3,9 +3,6 @@
 * Code that mostly just logs information to serial.
 *
 */ 
-
-
-// Function for logging
 void log(const char* label, int value, boolean doLog) {
   if (doLog) {
     Serial.print(" ");
@@ -17,7 +14,13 @@ void log(const char* label, int value, boolean doLog) {
 }
 
 void log(const char* label, int value) {
-  log(label, value);
+  log(label, value, EnableDebugLog);
+}
+
+void log(const char* label) {
+  if (EnableDebugLog) {
+    Serial.println(label);
+  }
 }
 
 void logVehicleState() {
