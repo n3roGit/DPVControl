@@ -62,7 +62,7 @@ them in the /libraries -Folder and install them into Arduino.
 | 4 Clicks |          | beep Battery level |
 
 
-# Click Codes
+# Beep Codes
 1 = short beep
 2= long beep
 | Beep | Function | 
