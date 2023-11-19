@@ -16,6 +16,10 @@ void log(const char* label, int value, boolean doLog) {
   }
 }
 
+void log(const char* label, int value) {
+  log(label, value, EnableDebugLog);
+}
+
 void logVehicleState() {
   if (loopCount % NormalLogOutputIntervall == 0) {
     Serial.println("---");

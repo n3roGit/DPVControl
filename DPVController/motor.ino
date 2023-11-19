@@ -55,7 +55,7 @@ void speedUp(){
   if (currentMotorStep < SPEED_STEPS){
     currentMotorStep++;
   }
-  log("speed up", currentMotorStep, EnableDebugLog);
+  log("speed up", currentMotorStep);
   setBarSpeed(currentMotorStep);
 }
 
@@ -63,7 +63,7 @@ void speedDown(){
   if (currentMotorStep > 1){
     currentMotorStep--;
   }
-  log("speed down", currentMotorStep, EnableDebugLog);
+  log("speed down", currentMotorStep);
   setBarSpeed(currentMotorStep);
 }
 
@@ -93,7 +93,7 @@ void standBy(){
 }
 
 void controlMotor() {
-  //log("motorstate", motorState, EnableDebugLog);
+  //log("motorstate", motorState);
 
   if (motorState == standby || motorState == off) {
     // Motor is off
@@ -177,23 +177,23 @@ void PreventOverload() {
 }
 
 void enterCruiseMode(){
-  log("Entering cruise mode", 0, EnableDebugLog);
+  log("Entering cruise mode", 0);
   motorState = cruise;
 }
 
 void leaveCruiseMode(){
-  log("leaving cruise mode", 0, EnableDebugLog);
+  log("leaving cruise mode", 0);
   motorState = off;
 }
 
 void enterTurboMode(){
-  log("enter turbo mode", 0, EnableDebugLog);
+  log("enter turbo mode", 0);
   setBarSpeed(SPEED_STEPS);
   motorState = turbo;
 }
 
 void leaveTurboMode(){
-  log("leaving turbo mode", 0, EnableDebugLog);
+  log("leaving turbo mode", 0);
   setBarSpeed(currentMotorStep);
   motorState = off;
 }
