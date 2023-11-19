@@ -125,7 +125,7 @@ int calculateStateOfCharge(float voltage){
 
 void recordVoltage(float voltage){
   if (millis() > lastMeasurement + MEASUREMENT_INTERVAL){
-    log("recordVoltage(mV)", (int)(voltage*1000));
+    //log("recordVoltage(mV)", (int)(voltage*1000));
     lastMeasurement = millis();
     voltageHistory[voltageHistoryIndex] = voltage;
     //Move Index
