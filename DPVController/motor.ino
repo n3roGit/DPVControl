@@ -156,6 +156,7 @@ void setSoftMotorSpeed() {
 }
 
 float getMotorPower(){
+  //return 50.0*currentMotorSpeed;//Great for testing with no motor.
   return UART.data.avgInputCurrent;
 }
 
@@ -175,6 +176,8 @@ void preventOverload(){
       beep("12");
       speedDown();
       overloadSpeedThrottle = currentMotorStep;
+      overLoadedSince = millis();//causes us to wait again
+      //and if necessary, reduce speed again.
     }
   }else if(overLoadedSince != NEVER){
     overLoadedSince = NEVER;
