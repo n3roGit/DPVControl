@@ -73,6 +73,7 @@ them in the /libraries -Folder and install them into Arduino.
 |2|10% battery left|
 |22|20% battery left|
 |222|30% battery left|
+|n*2| Get n beep for every 10% left in battery (beep Battery level)|
 |1| once after boot|
 |11|No speedup because overloaded|
 |1|speed steps exeeded|
