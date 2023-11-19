@@ -46,18 +46,20 @@ them in the /libraries -Folder and install them into Arduino.
 | Hold     | Hold     | Turn motor ON |
 | Hold     |          | Turn motor ON |
 |          | Hold     | Turn motor ON |
-| 1 Click  | 1 Click  |  cruise control       |
+| 1 Click  | 1 Click  |  cruise control |
+| 1 Click  |          |           |
 |          | 1 Click  |           |
 | 2 Clicks | 2 Clicks | Boost Mode |
 | 2 Clicks |          | Reactivate |
 |          | 2 Clicks | Reactivate |
-| 3 Clicks | 3 Clicks |      PowerBank ON/OFF     |
-| 3 Clicks |          | Short light flash |
-|          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
+| 3 Clicks | 3 Clicks | PowerBank ON/OFF|
+| 3 Clicks |          | Short light flash |
+|          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
+| 4 Clicks | 4 Clicks |  |
 | 4 Clicks |          | beep Battery level |
-
+|          | 4 Clicks |  |
 
 # Beep Codes
 1 = short beep
