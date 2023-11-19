@@ -17,6 +17,8 @@
 #include "Blinker.h" //Local
 
 #include "BlinkSequence.h" //Local
+#include "FS.h" //Provided by framework
+#include "SPIFFS.h"//Provided by framework
 
 /*
 *  PINS
@@ -116,6 +118,7 @@ void setup() {
   motorSetup();
   ledLampSetup();
   ledBarSetup();
+  datalogSetup();
 
   // Booting finished
   Serial.println("Booting finished!");
@@ -136,6 +139,7 @@ void loop() {
   FromTimeToTimeExecution();
   beepLoop();
   ledLampLoop();
+  datalogLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;

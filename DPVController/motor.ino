@@ -41,7 +41,7 @@ void motorSetup(){
     Serial.println("Connected to VESC.");
   } else {
     Serial.println("Failed to connect to VESC.");
-    //hasMotor = false;
+    hasMotor = false;
   }
 }
 
