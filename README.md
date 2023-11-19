@@ -68,8 +68,8 @@ them in the /libraries -Folder and install them into Arduino.
 | Beep | Function | 
 |:--------:|:--------:|
 | 22222     | Leak warning     |
-|1|going to standby or still in standby|
-|2|wake up from standby|
+|1|still in standby|
+|2|going to standby or wake up from standby|
 |2|10% battery left|
 |22|20% battery left|
 |222|30% battery left|
