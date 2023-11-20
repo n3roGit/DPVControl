@@ -1,24 +1,23 @@
 /*
 *   LIBRARIES
 */
-
 #include "ClickButton.h"  //https://github.com/marcobrianza/ClickButton
-
 #include "DHTesp.h"  //https://github.com/beegee-tokyo/DHTesp
-
 #include <HardwareSerial.h>
-
 #include <VescUart.h>  //https://github.com/SolidGeek/VescUart
-
 #include "uptime_formatter.h"  //https://github.com/YiannisBourkelis/Uptime-Library
-
 #include <Adafruit_NeoPixel.h>  //https://github.com/adafruit/Adafruit_NeoPixel
 
-#include "Blinker.h" //Local
-
-#include "BlinkSequence.h" //Local
 #include "FS.h" //Provided by framework
 #include "SPIFFS.h"//Provided by framework
+
+/*
+* LOCAL C++ CODE
+*/
+#include "constants.h"
+#include "Blinker.h" 
+#include "BlinkSequence.h" 
+
 
 /*
 *  PINS
@@ -34,14 +33,13 @@ const int PIN_BEEP = 18;  //G18 OK
 #define VESCRX 22  // GPIO pin for VESC UART RX
 #define VESCTX 23  // GPIO pin for VESC UART TX
 const int PIN_LEDBAR = 12; // Pin to which the LED strip is connected
-const int PIN_POWERBANK = 13; // Pin to which the LED strip is connected
+const int PIN_POWERBANK = 13; // Pin to which the relay for power bank is connected
 
 
 /*
 *  CONSTANTS
 */
-const bool EnableDebugLog = true;                    //Enable/Disable Serial Log
-
+const bool EnableDebugLog = true; //Enable/Disable Serial Log
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 enum MotorState {standby, on, off, cruise, turbo};
@@ -57,11 +55,6 @@ const int LAMP_MAX = 4;
 
 const int StandbyBlinkStart = 15;         // Minutes for blink start
 const int StandbyBlinkDuration = 10;      // Seconds between blink
-
-// Constant for the number of cells in series
-const int CellsInSeries = 13;
-// Constant for the number of measurements used to calculate the average
-const int batteryLevelMeasurements = 1000;
 
 /*
 *   GLOBAL VARIABLES
@@ -83,7 +76,6 @@ unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
-int batteryLevel = 0;
 int loopCount = 0;
 int NormalLogOutputIntervall = 1000*10;
 int batteryAlerted = 0;
@@ -126,10 +118,11 @@ void setup() {
   ledLampSetup();
   ledBarSetup();
   datalogSetup();
+  batterySetup();
+
 
   // Booting finished
   Serial.println("Booting finished!");
-  // BEEP end
   beep("1");
 }
 
@@ -139,7 +132,6 @@ void loop() {
 
   buttonLoop();
   motorLoop();
-  PreventOverload();
   checkForLeak();
   GetVESCValues();
   logVehicleState();

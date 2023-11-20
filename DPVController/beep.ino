@@ -39,7 +39,7 @@ BlinkSequence beepSequence = BlinkSequence(beepBlinker, beepDuration, PAUSE_MS);
 * Perform a beep for the given time. Works asynchronously. 
 */
 void beep(long length_ms){
-  log("Beeping for ms", length_ms, EnableDebugLog);
+  log("Beeping for ms", length_ms);
   beepBlinker.blink(length_ms);
 }
 

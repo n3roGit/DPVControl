@@ -83,10 +83,10 @@ void updateButtonState(){
 
   //Logging
   if (leftButton.clicks != 0){
-    log("leftClick", leftButton.clicks, EnableDebugLog);
+    log("leftClick", leftButton.clicks);
   }
   if (rightButton.clicks != 0){
-    log("rightClick", rightButton.clicks, EnableDebugLog);
+    log("rightClick", rightButton.clicks);
   }
 }
 
