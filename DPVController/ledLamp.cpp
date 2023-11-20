@@ -4,6 +4,11 @@
 #include "ledLamp.h"
 #include "BlinkSequence.h"
 #include "constants.h"
+#include "ledBar.h"
+#include "log.h"
+#include "motor.h"
+#include "beep.h"
+#include "Arduino.h"
 
 /*
 *  CONSTANTS
@@ -13,10 +18,21 @@
 const int LEDfrequency = 960;  // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
 const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
 const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
+const int LAMP_OFF = 0;
+const int LAMP_MAX = 4;
+const int StandbyBlinkStart = 15;         // Minutes for blink start
+const int StandbyBlinkDuration = 10;      // Seconds between blink
 
 /*
-* GLOBAL VARIABLES 
+* VARIABLES 
 */
+int LED_State = LAMP_OFF;
+unsigned long lastStandbyBlinkTime = 0;
+unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
+
+void setLEDState(int state);
+
+
 void turnLampOn(){setLEDState(LAMP_MAX);}
 void turnLampOff(){
   setLEDState(LED_State);//Use previous

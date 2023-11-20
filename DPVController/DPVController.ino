@@ -31,28 +31,16 @@
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 
-
-//Lamp 
-const int LAMP_OFF = 0;
-const int LAMP_MAX = 4;
-
-
-const int StandbyBlinkStart = 15;         // Minutes for blink start
-const int StandbyBlinkDuration = 10;      // Seconds between blink
-
 /*
 *   GLOBAL VARIABLES
 */
 DHTesp dhtSensor;
-int LED_State = LAMP_OFF;
 
 //Stuff below should be moved
 unsigned long lastBlinkTime = 0;
-unsigned long lastStandbyBlinkTime = 0;
 unsigned long buttonPressStartTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
-unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
 
