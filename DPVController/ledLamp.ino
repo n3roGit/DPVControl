@@ -105,9 +105,13 @@ void BlinkForLongStandby() {
 float getLedLampPower(){
   switch (LED_State){
     case LAMP_MAX:
-      return 4;
+      return 3.9;
     case 3:
-      return 3;
+      return 1.73;
+    case 2:
+      return 0.8;
+    case 1:
+      return 0.2;
     default:
       return 0;
   }
