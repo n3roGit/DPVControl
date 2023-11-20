@@ -66,7 +66,7 @@ them in the /libraries -Folder and install them into Arduino.
 2= long beep
 | Beep | Function | 
 |:--------:|:--------:|
-| 22222     | Leak warning     |
+| 12121212 | Leak warning |
 |1|still in standby|
 |2|going to standby or wake up from standby|
 |2|10% battery left|
