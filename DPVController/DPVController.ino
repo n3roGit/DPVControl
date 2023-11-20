@@ -8,12 +8,18 @@
 #include "uptime_formatter.h"  //https://github.com/YiannisBourkelis/Uptime-Library
 #include <Adafruit_NeoPixel.h>  //https://github.com/adafruit/Adafruit_NeoPixel
 
+#include "FS.h" //Provided by framework
+#include "SPIFFS.h"//Provided by framework
+
 /*
 * LOCAL C++ CODE
 */
 #include "constants.h"
+#include "all.h"
 #include "Blinker.h" 
 #include "BlinkSequence.h" 
+#include "log.h"
+
 
 /*
 *  PINS
@@ -35,7 +41,6 @@ const int PIN_POWERBANK = 13; // Pin to which the relay for power bank is connec
 /*
 *  CONSTANTS
 */
-const bool EnableDebugLog = true; //Enable/Disable Serial Log
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 enum MotorState {standby, on, off, cruise, turbo};
@@ -59,6 +64,7 @@ DHTesp dhtSensor;
 int leakSensorState = 0;
 MotorState motorState = standby;
 int LED_State = LAMP_OFF;
+bool hasMotor = true;//Indicates that we have an actual motor plugged in.
 
 //Stuff below should be moved
 unsigned long lastActionTime = 0;
@@ -71,11 +77,15 @@ unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
-int loopCount = 0;
-int NormalLogOutputIntervall = 1000*10;
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
 int FromTimeToTimeIntervall = 500;
+
+//Has to be here or the compiler puts it in weird places
+struct LogdataRow {
+  long time;
+  float tempMotor;
+};
 
 /*
 The Setup is chaotic. Needs a cleanup
@@ -106,6 +116,7 @@ void setup() {
   motorSetup();
   ledLampSetup();
   ledBarSetup();
+  datalogSetup();
   batterySetup();
 
 
@@ -126,6 +137,7 @@ void loop() {
   FromTimeToTimeExecution();
   beepLoop();
   ledLampLoop();
+  datalogLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;

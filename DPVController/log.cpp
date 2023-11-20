@@ -1,9 +1,10 @@
-/**
-*
-* Code that mostly just logs information to serial.
-*
-*/ 
-void log(const char* label, int value, boolean doLog) {
+#include "log.h"
+#include <DHTesp.h>
+#include "all.h"
+#include <uptime_formatter.h>
+
+
+void log(const char* label, int value, bool doLog) {
   if (doLog) {
     Serial.print(" ");
     Serial.print(label);

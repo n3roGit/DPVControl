@@ -35,7 +35,6 @@ const float EMPTY = -3.0;
 /*
 * GLOBAL VARIABLES
 */
-int batteryLevel = 0;// 0 to 100% state of charge. 
 float voltageHistory[MEASUREMENTS] ;
 int voltageHistoryIndex = 0;
 unsigned long lastMeasurement = 0; //ms timestamp of last time we made measurement

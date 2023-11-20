@@ -27,7 +27,6 @@ unsigned long currentMotorTime = micros();  //Time in microseconds when we last 
 double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-power.
 double lastTargetMotorSpeed = targetMotorSpeed;
 double lastPrintedMotorSpeed = -1;
-bool hasMotor = true;
 VescUart UART;
 VescUart getVescUart(){return UART;}//Accessor
 unsigned long overLoadedSince = NEVER; //microsecond timestamp.
@@ -43,7 +42,7 @@ void motorSetup(){
     Serial.println("Connected to VESC.");
   } else {
     Serial.println("Failed to connect to VESC.");
-    //hasMotor = false;
+    hasMotor = false;
   }
 }
 
