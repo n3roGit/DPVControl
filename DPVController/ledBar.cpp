@@ -1,4 +1,6 @@
 #include "ledBar.h"
+#include <Adafruit_NeoPixel.h>
+#include "constants.h"
 
 /**
 * Code that controls the two led strips

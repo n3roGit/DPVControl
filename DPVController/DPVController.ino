@@ -28,7 +28,6 @@
 /*
 *  CONSTANTS
 */
-const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 
 /*
