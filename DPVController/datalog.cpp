@@ -3,7 +3,7 @@
 #include <FS.h>
 #include <SPIFFS.h>
 #include "motor.h"
-#include "all.h"
+#include "main.h"
 /**
 * Regularly saves data about the state of the vehicle to disc.
 */
@@ -22,25 +22,6 @@ const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in
 File csvFile;
 unsigned long lastDataLogTime = millis();
 
-void datalogSetup(){
-  if(!SPIFFS.begin(true)){
-      Serial.println("SPIFFS Mount Failed");
-      return;
-  }
-
-  openCSVFile();
-
-  listLogFiles();
-}
-
-void datalogLoop(){
-  if (millis()>lastDataLogTime+DATALOG_INTERVAL){
-    Serial.println("Creating datapoint");
-    LogdataRow data = createDatapoint();
-    saveDatapoint(data, csvFile);
-    lastDataLogTime = millis();
-  }
-}
 
 void openCSVFile(){
   String filename;
@@ -99,4 +80,24 @@ void saveDatapoint(LogdataRow datapoint, File &file){
   file.print(datapoint.tempMotor);
   file.println();
   file.flush();
+}
+
+void datalogSetup(){
+  if(!SPIFFS.begin(true)){
+      Serial.println("SPIFFS Mount Failed");
+      return;
+  }
+
+  openCSVFile();
+
+  listLogFiles();
+}
+
+void datalogLoop(){
+  if (millis()>lastDataLogTime+DATALOG_INTERVAL){
+    Serial.println("Creating datapoint");
+    LogdataRow data = createDatapoint();
+    saveDatapoint(data, csvFile);
+    lastDataLogTime = millis();
+  }
 }

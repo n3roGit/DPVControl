@@ -1,6 +1,6 @@
 #include "log.h"
 #include <DHTesp.h>
-#include "all.h"
+#include "main.h"
 #include <uptime_formatter.h>
 #include "motor.h"
 #include "battery.h"

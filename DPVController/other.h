@@ -1,6 +1,6 @@
 #ifndef other_h
 #define other_h
-#include "all.h"
+#include "main.h"
 #include "constants.h"
 #include "beep.h"
 #include "log.h"
