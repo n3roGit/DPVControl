@@ -1,1 +1,3 @@
 libraries
+build-output
+.vscode/c_cpp_properties.json
