@@ -1,6 +1,6 @@
-<mxfile host="Electron" modified="2023-11-14T19:49:00.048Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.0.3 Chrome/114.0.5735.289 Electron/25.8.4 Safari/537.36" etag="E6zRSRoNdR4vXxIMxbFs" version="22.0.3" type="device">
+<mxfile host="Electron" modified="2023-11-20T12:16:11.580Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/22.0.3 Chrome/114.0.5735.289 Electron/25.8.4 Safari/537.36" etag="oA5W8LxaAT7IZtrZ_aMt" version="22.0.3" type="device">
   <diagram id="C5RBs43oDa-KdzZeNtuy" name="Page-1">
-    <mxGraphModel dx="1929" dy="772" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1985" dy="783" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-0" />
         <mxCell id="WIyWlLk6GJQsqaUBKTNV-1" parent="WIyWlLk6GJQsqaUBKTNV-0" />
@@ -159,9 +159,6 @@
             <mxPoint x="895.1200000000003" y="1063.9199999999998" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Yp1p43OJmVTOBkdnjgKH-25" value="Left Button" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#f8cecc;strokeColor=#b85450;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
-          <mxGeometry x="150" y="660" width="120" height="80" as="geometry" />
-        </mxCell>
         <mxCell id="Yp1p43OJmVTOBkdnjgKH-28" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;fillColor=#dae8fc;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="WIyWlLk6GJQsqaUBKTNV-1" source="Yp1p43OJmVTOBkdnjgKH-26" target="Yp1p43OJmVTOBkdnjgKH-23" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
@@ -214,7 +211,7 @@
         </mxCell>
         <mxCell id="Yp1p43OJmVTOBkdnjgKH-54" value="2 Ckick Hold" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Yp1p43OJmVTOBkdnjgKH-53" vertex="1" connectable="0">
           <mxGeometry x="0.4946" y="3" relative="1" as="geometry">
-            <mxPoint x="-3" y="33" as="offset" />
+            <mxPoint x="-3" y="1" as="offset" />
           </mxGeometry>
         </mxCell>
         <mxCell id="Yp1p43OJmVTOBkdnjgKH-55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;fillColor=#dae8fc;strokeColor=#6c8ebf;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="WIyWlLk6GJQsqaUBKTNV-1" source="Yp1p43OJmVTOBkdnjgKH-26" target="Yp1p43OJmVTOBkdnjgKH-7" edge="1">
@@ -227,10 +224,10 @@
         </mxCell>
         <mxCell id="Yp1p43OJmVTOBkdnjgKH-56" value="3 Click" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Yp1p43OJmVTOBkdnjgKH-55" vertex="1" connectable="0">
           <mxGeometry x="0.6106" y="-5" relative="1" as="geometry">
-            <mxPoint as="offset" />
+            <mxPoint y="55" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Yp1p43OJmVTOBkdnjgKH-26" value="Right Button" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
+        <mxCell id="Yp1p43OJmVTOBkdnjgKH-26" value="Right Button" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
           <mxGeometry x="520" y="660" width="120" height="80" as="geometry" />
         </mxCell>
         <mxCell id="Yp1p43OJmVTOBkdnjgKH-41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="WIyWlLk6GJQsqaUBKTNV-1" source="Yp1p43OJmVTOBkdnjgKH-37" target="Yp1p43OJmVTOBkdnjgKH-4" edge="1">
@@ -274,7 +271,7 @@
             <mxPoint x="552" y="155" as="offset" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="FB2J1Ub2URTnIzYR-CgQ-24" value="3 Click" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Yp1p43OJmVTOBkdnjgKH-61" vertex="1" connectable="0">
+        <mxCell id="FB2J1Ub2URTnIzYR-CgQ-24" value="4 Click" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="Yp1p43OJmVTOBkdnjgKH-61" vertex="1" connectable="0">
           <mxGeometry x="0.837" y="-4" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
@@ -363,8 +360,34 @@
         <mxCell id="FB2J1Ub2URTnIzYR-CgQ-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="WIyWlLk6GJQsqaUBKTNV-1" source="FB2J1Ub2URTnIzYR-CgQ-22" target="Yp1p43OJmVTOBkdnjgKH-6" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="FB2J1Ub2URTnIzYR-CgQ-22" value="OR" style="rounded=1;whiteSpace=wrap;html=1;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
+        <mxCell id="FB2J1Ub2URTnIzYR-CgQ-22" value="AND" style="rounded=1;whiteSpace=wrap;html=1;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
           <mxGeometry x="720" y="920" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ndvtFiLn-80FO-JE1mR1-0" value="LED flash" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;movable=1;resizable=1;rotatable=1;deletable=1;editable=1;locked=0;connectable=1;" vertex="1" parent="WIyWlLk6GJQsqaUBKTNV-1">
+          <mxGeometry x="1270" y="1030" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="ndvtFiLn-80FO-JE1mR1-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fillColor=#f8cecc;strokeColor=#b85450;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="WIyWlLk6GJQsqaUBKTNV-1" target="ndvtFiLn-80FO-JE1mR1-0">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="210" y="760" />
+              <mxPoint x="1340" y="760" />
+            </Array>
+            <mxPoint x="210" y="730" as="sourcePoint" />
+            <mxPoint x="1330.06" y="1018" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ndvtFiLn-80FO-JE1mR1-2" value="2 Click Hold" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ndvtFiLn-80FO-JE1mR1-1">
+          <mxGeometry x="-0.8439" y="-5" relative="1" as="geometry">
+            <mxPoint x="578" y="125" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ndvtFiLn-80FO-JE1mR1-3" value="3 Click" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="ndvtFiLn-80FO-JE1mR1-1">
+          <mxGeometry x="0.837" y="-4" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yp1p43OJmVTOBkdnjgKH-25" value="Left Button" style="shape=step;perimeter=stepPerimeter;whiteSpace=wrap;html=1;fixedSize=1;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;" parent="WIyWlLk6GJQsqaUBKTNV-1" vertex="1">
+          <mxGeometry x="150" y="660" width="120" height="80" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
