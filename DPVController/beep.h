@@ -1,3 +1,7 @@
+#ifndef beep_h
+#define beep_h
+#include "Arduino.h"
+
 /**
 * Code for making beeps. Surprisingly hard, because we avoid
 * using delay() so that we do not block all execution while
@@ -23,3 +27,5 @@ void beep(const String& sequence);
 void beepLoop();
 void BeepForLeak();
 void BeepForStandby();
+
+#endif

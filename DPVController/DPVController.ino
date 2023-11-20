@@ -40,7 +40,6 @@ unsigned long lastBlinkTime = 0;
 unsigned long buttonPressStartTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
-int batteryAlerted = 0;
 int FromTimeToTime = 0;
 
 /*

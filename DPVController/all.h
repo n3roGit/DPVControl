@@ -12,8 +12,6 @@ extern int leakSensorState;
 extern int loopCount;
 extern int NormalLogOutputIntervall;
 
-//Battery
-extern int batteryLevel;// 0 to 100% state of charge. 
 
 extern DHTesp dhtSensor;
 

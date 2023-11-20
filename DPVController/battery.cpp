@@ -1,4 +1,8 @@
 #include "battery.h"
+#include "log.h"
+#include "beep.h"
+#include "ledBar.h"
+#include "string"
 
 /*
 * Manages the battery
@@ -8,6 +12,9 @@ struct VoltToSoc{
   float volt;
   int soc;
 };
+
+//Battery
+int batteryLevel = 0;// 0 to 100% state of charge. 
 
 /*
 *  CONSTANTS
@@ -40,6 +47,7 @@ const float EMPTY = -3.0;
 float voltageHistory[MEASUREMENTS] ;
 int voltageHistoryIndex = 0;
 unsigned long lastMeasurement = 0; //ms timestamp of last time we made measurement
+int batteryAlerted = 0;
 
 
 void batterySetup(){
@@ -94,14 +102,6 @@ void BatteryLevelAlert() {
   }
 }
 
-void updateBatteryLevel(float voltage) {
-  recordVoltage(voltage);
-  batteryLevel = calculateStateOfCharge(getAvergageVoltage());
-  int steps = (batteryLevel + 5) / LedBar2_Num;
-  steps = constrain(steps, 0, LedBar2_Num);
-  setBarBattery(steps);
-}
-
 int calculateStateOfCharge(float voltage){
   float voltagePerCell = voltage/CELLS_IN_SERIES;
   //Move along the table until we find the row where we have a lower voltage; 
@@ -145,6 +145,13 @@ float getAvergageVoltage(){
   return sum/i;
 }
 
+void updateBatteryLevel(float voltage) {
+  recordVoltage(voltage);
+  batteryLevel = calculateStateOfCharge(getAvergageVoltage());
+  int steps = (batteryLevel + 5) / LedBar2_Num;
+  steps = constrain(steps, 0, LedBar2_Num);
+  setBarBattery(steps);
+}
 
 /*
 * TESTING

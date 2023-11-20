@@ -1,6 +1,10 @@
 #ifndef battery_h
 #define bettery_h
 
+
+//Battery
+extern int batteryLevel;// 0 to 100% state of charge. 
+
 void batterySetup();
 
 void outputBatteryInfo();

@@ -3,6 +3,7 @@
 #include "all.h"
 #include <uptime_formatter.h>
 #include "motor.h"
+#include "battery.h"
 
 
 void log(const char* label, int value, bool doLog) {
