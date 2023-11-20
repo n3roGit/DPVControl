@@ -2,6 +2,8 @@
 *  Code that controls the main lamp.
 ***/
 #include "ledLamp.h"
+#include "BlinkSequence.h"
+#include "constants.h"
 
 /*
 *  CONSTANTS

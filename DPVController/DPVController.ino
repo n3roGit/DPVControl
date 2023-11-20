@@ -21,7 +21,8 @@
 #include "log.h"
 #include "beep.h"
 #include "other.h"
-
+#include "button.h"
+#include "datalog.h"
 
 
 /*
@@ -30,9 +31,6 @@
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 
-// Button Values
-const int PRESSED = 0;
-const int DEPRESSED = 1;
 
 //Lamp 
 const int LAMP_OFF = 0;
@@ -49,7 +47,6 @@ DHTesp dhtSensor;
 int LED_State = LAMP_OFF;
 
 //Stuff below should be moved
-unsigned long lastActionTime = 0;
 unsigned long lastBlinkTime = 0;
 unsigned long lastStandbyBlinkTime = 0;
 unsigned long buttonPressStartTime = 0;
@@ -58,12 +55,6 @@ unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
-
-//Has to be here or the compiler puts it in weird places
-struct LogdataRow {
-  long time;
-  float tempMotor;
-};
 
 /*
 The Setup is chaotic. Needs a cleanup

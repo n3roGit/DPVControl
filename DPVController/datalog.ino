@@ -1,3 +1,9 @@
+#include "datalog.h"
+#include "log.h"
+#include <FS.h>
+#include <SPIFFS.h>
+#include "motor.h"
+#include "all.h"
 /**
 * Regularly saves data about the state of the vehicle to disc.
 */
@@ -5,6 +11,7 @@
 /*
 * CONSTANTS
 */ 
+
 const String HEADER = "time,motor temp";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in milliseconds.

@@ -1,8 +1,15 @@
+#include "button.h"
+#include "motor.h"
+#include <ClickButton.h>
+#include "constants.h"
+#include "ledLamp.h"
+#include "battery.h"
+#include "log.h"
+
 /**
 * Control of the two levers.
 *
 */
-
 struct LastClick {
   unsigned long time;
   int clicks;
@@ -26,6 +33,7 @@ const long BOTH_HAND_CLICK_TOLERANCE = 150; //maximum time in ms
 */
 int leftButtonState = DEPRESSED;
 int rightButtonState = DEPRESSED;
+unsigned long lastActionTime = 0;
 unsigned long leftButtonHeldSince = NOT_HELD; //Time in MS at which 
 //the button was held down and has not been released since. 
 unsigned long rightButtonHeldSince = NOT_HELD; //Time in MS at which 
