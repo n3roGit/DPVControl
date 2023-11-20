@@ -1,3 +1,5 @@
+#include "battery.h"
+
 /*
 * Manages the battery
 */

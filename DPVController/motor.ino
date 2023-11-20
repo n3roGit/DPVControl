@@ -1,3 +1,6 @@
+#include "motor.h"
+#include "constants.h"
+
 /**
 *
 * Methods that control motor and speed.
@@ -27,8 +30,6 @@ unsigned long currentMotorTime = micros();  //Time in microseconds when we last 
 double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-power.
 double lastTargetMotorSpeed = targetMotorSpeed;
 double lastPrintedMotorSpeed = -1;
-VescUart UART;
-VescUart getVescUart(){return UART;}//Accessor
 unsigned long overLoadedSince = NEVER; //microsecond timestamp.
 
 void motorSetup(){
@@ -36,9 +37,9 @@ void motorSetup(){
   Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
   while (!Serial1) { ; }
   delay(500);
-  UART.setSerialPort(&Serial1);
+  getVescUart().setSerialPort(&Serial1);
   delay(500);
-  if (UART.getVescValues()) {
+  if (getVescUart().getVescValues()) {
     Serial.println("Connected to VESC.");
   } else {
     Serial.println("Failed to connect to VESC.");
@@ -143,7 +144,7 @@ void setSoftMotorSpeed() {
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   if(abs(currentMotorSpeed) > 0.0){
-    UART.setDuty(currentMotorSpeed * DUTY_FACTOR);
+    getVescUart().setDuty(currentMotorSpeed * DUTY_FACTOR);
   }
   currentMotorTime = micros();
 
@@ -156,7 +157,7 @@ void setSoftMotorSpeed() {
 
 float getMotorPower(){
   //return 50.0*currentMotorSpeed;//Great for testing with no motor.
-  return UART.data.avgInputCurrent;
+  return getVescUart().data.avgInputCurrent;
 }
 
 void preventOverload(){

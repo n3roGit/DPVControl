@@ -2,6 +2,7 @@
 #include <DHTesp.h>
 #include "all.h"
 #include <uptime_formatter.h>
+#include "motor.h"
 
 
 void log(const char* label, int value, bool doLog) {

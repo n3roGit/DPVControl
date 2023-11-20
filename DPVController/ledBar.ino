@@ -1,7 +1,8 @@
+#include "ledBar.h"
+
 /**
 * Code that controls the two led strips
 */
-
 
 /*
 *  CONSTANTS

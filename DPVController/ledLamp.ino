@@ -1,6 +1,7 @@
 /***
 *  Code that controls the main lamp.
 ***/
+#include "ledLamp.h"
 
 /*
 *  CONSTANTS

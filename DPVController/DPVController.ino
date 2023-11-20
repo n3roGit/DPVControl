@@ -20,6 +20,7 @@
 #include "BlinkSequence.h" 
 #include "log.h"
 #include "beep.h"
+#include "other.h"
 
 
 
@@ -46,7 +47,6 @@ const int StandbyBlinkDuration = 10;      // Seconds between blink
 */
 DHTesp dhtSensor;
 int LED_State = LAMP_OFF;
-bool hasMotor = true;//Indicates that we have an actual motor plugged in.
 
 //Stuff below should be moved
 unsigned long lastActionTime = 0;
@@ -58,7 +58,6 @@ unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
-int FromTimeToTimeIntervall = 500;
 
 //Has to be here or the compiler puts it in weird places
 struct LogdataRow {

@@ -21,6 +21,7 @@ extern int batteryLevel;// 0 to 100% state of charge.
 
 extern DHTesp dhtSensor;
 
+extern bool hasMotor;//Indicates that we have an actual motor plugged in.
 
 
 //FUNCTIONS

@@ -1,9 +1,21 @@
+#include "all.h"
+#include "constants.h"
+#include "beep.h"
+#include "log.h"
+#include "motor.h"
+#include "battery.h"
+#include "ledBar.h"
+#include "ledLamp.h"
+
 /**
 * For code that I did not find a better place for.
 */
 
 
 const int VESC_VALUES_INTERVAL = 100;
+
+
+int FromTimeToTimeIntervall = 500;
 
 
 /*
@@ -13,7 +25,7 @@ void GetVESCValues() {
 
   if (!hasMotor) return;
 
-  if (UART.getVescValues()) {
+  if (getVescUart().getVescValues()) {
     /*
     Serial.print("RPM: ");
     Serial.println(UART.data.rpm);
@@ -25,7 +37,7 @@ void GetVESCValues() {
     Serial.println(UART.data.tachometerAbs);
     */
 
-    updateBatteryLevel(UART.data.inpVoltage);
+    updateBatteryLevel(getVescUart().data.inpVoltage);
   } else {
     log("Failed to get VESC data!", 00000);
   }
