@@ -10,16 +10,27 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 
 # Development
 
-## IDE 
-We currently use the <a href="https://www.arduino.cc/en/software">Arduino IDE</a> for Development. 
+## VSCode
+We switched from using the Arduino IDE to VS Code. 
+
+Install Arduino extension from microsoft.
+
+Then install the [gcc compiler](https://nuwen.net/mingw.html) and select it in vscode.
+Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
+
+
+## Anduino IDE
+We used to use the <a href="https://www.arduino.cc/en/software">Arduino IDE</a> for Development. 
 Open the file **DPVControl/DPVController/DPVController.ino** to open the project. 
 
 ### Board Config
 I am using a wroom esp32 board for development. 
 
-Follow this tutorial to install the board https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/
+Follow 
+<a href="https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/">
+this tutorial</a> to install the board .
 
-You might need a windows driver: https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads
+You might need a <a href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads">windows driver</a>.
 
 
 ### Download Libraries
