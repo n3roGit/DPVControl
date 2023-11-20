@@ -7,9 +7,11 @@
 //that should be moved to their own places.
 
 
+enum MotorState {standby, on, off, cruise, turbo};
 
 //VARIABLES
-
+extern int leakSensorState;
+extern MotorState motorState;
 
 extern int loopCount;
 extern int NormalLogOutputIntervall;

@@ -1,5 +1,8 @@
 #include "all.h"
 
+int leakSensorState = 0;
+MotorState motorState = standby;
+
 int loopCount = 0;
 int NormalLogOutputIntervall = 1000*10;
 

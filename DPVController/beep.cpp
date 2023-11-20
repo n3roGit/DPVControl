@@ -1,14 +1,8 @@
-/**
-* Code for making beeps. Surprisingly hard, because we avoid
-* using delay() so that we do not block all execution while
-* we beep. We achieve this by using running a loop that checks the current time with
-* a timestamp to determine if we need to stop beeping or continue the next beep
-* in a series of beeps. 
-*
-* Since we use global variables for this, we can only do one beep or beepSeuence at a time. Extra calls will override the current one. 
-* We could instead queue them using a ... queue.
-*/
-
+#include "constants.h"
+#include "Blinker.h"
+#include "BlinkSequence.h"
+#include "log.h"
+#include "all.h"
 
 /**
 * CONSTANTS
@@ -18,8 +12,12 @@ const long LONG_BEEP_MS = 600;
 const long PAUSE_MS = 400;
 
 /**
-* GLOBAL VARIABLES
+* VARIABLES
 */
+unsigned long lastBeepTime = 0;
+unsigned long lastStandbyBeepTime = 0;
+unsigned long lastLeakBeepTime = 0;
+
 
 void turnOnFunction(){digitalWrite(PIN_BEEP, HIGH);}
 

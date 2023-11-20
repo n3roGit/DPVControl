@@ -19,23 +19,8 @@
 #include "Blinker.h" 
 #include "BlinkSequence.h" 
 #include "log.h"
+#include "beep.h"
 
-
-/*
-*  PINS
-*/
-// https://wolles-elektronikkiste.de/en/programming-the-esp32-with-arduino-code
-const int PIN_LEFT_BUTTON = 26;   // GPIO pin for the left button
-const int PIN_RIGHT_BUTTON = 27;  // GPIO pin for the right button
-const int PIN_LEAK_FRONT = 32;  // GPIO pin for front leak sensor
-const int PIN_LEAK_BACK = 33;   // GPIO pin for back leak sensor
-const int PIN_LAMP = 25;  // GPIO pin for LED
-const int PIN_DHT = 14;  // GPIO pin for the buzzer
-const int PIN_BEEP = 18;  //G18 OK
-#define VESCRX 22  // GPIO pin for VESC UART RX
-#define VESCTX 23  // GPIO pin for VESC UART TX
-const int PIN_LEDBAR = 12; // Pin to which the LED strip is connected
-const int PIN_POWERBANK = 13; // Pin to which the relay for power bank is connected
 
 
 /*
@@ -43,7 +28,6 @@ const int PIN_POWERBANK = 13; // Pin to which the relay for power bank is connec
 */
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
-enum MotorState {standby, on, off, cruise, turbo};
 
 // Button Values
 const int PRESSED = 0;
@@ -61,19 +45,14 @@ const int StandbyBlinkDuration = 10;      // Seconds between blink
 *   GLOBAL VARIABLES
 */
 DHTesp dhtSensor;
-int leakSensorState = 0;
-MotorState motorState = standby;
 int LED_State = LAMP_OFF;
 bool hasMotor = true;//Indicates that we have an actual motor plugged in.
 
 //Stuff below should be moved
 unsigned long lastActionTime = 0;
-unsigned long lastBeepTime = 0;
 unsigned long lastBlinkTime = 0;
-unsigned long lastStandbyBeepTime = 0;
 unsigned long lastStandbyBlinkTime = 0;
 unsigned long buttonPressStartTime = 0;
-unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
