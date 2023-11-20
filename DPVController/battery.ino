@@ -59,7 +59,7 @@ void outputBatteryInfo(){
   } else {
     // Determine how many full 10% steps have been reached
     int steps = (batteryLevel +5) / 10;
-    steps = constrain(steps, 0, 10 - 1);
+    steps = constrain(steps, 0, 10);
 
     // Generate a string with '1' for each full 10% step
     String beepSequence = "";
@@ -97,7 +97,7 @@ void updateBatteryLevel(float voltage) {
   recordVoltage(voltage);
   batteryLevel = calculateStateOfCharge(getAvergageVoltage());
   int steps = (batteryLevel + 5) / LedBar2_Num;
-  steps = constrain(steps, 0, LedBar2_Num - 1);
+  steps = constrain(steps, 0, LedBar2_Num);
   setBarBattery(steps);
 }
 
