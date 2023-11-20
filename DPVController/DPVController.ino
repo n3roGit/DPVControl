@@ -15,8 +15,10 @@
 * LOCAL C++ CODE
 */
 #include "constants.h"
+#include "all.h"
 #include "Blinker.h" 
 #include "BlinkSequence.h" 
+#include "log.h"
 
 
 /*
@@ -39,7 +41,6 @@ const int PIN_POWERBANK = 13; // Pin to which the relay for power bank is connec
 /*
 *  CONSTANTS
 */
-const bool EnableDebugLog = true; //Enable/Disable Serial Log
 const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 enum MotorState {standby, on, off, cruise, turbo};
@@ -76,8 +77,6 @@ unsigned long lastLeakBeepTime = 0;
 unsigned long leftButtonDownTime = 0;
 unsigned long rightButtonDownTime = 0;
 unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
-int loopCount = 0;
-int NormalLogOutputIntervall = 1000*10;
 int batteryAlerted = 0;
 int FromTimeToTime = 0;
 int FromTimeToTimeIntervall = 500;
