@@ -90,6 +90,7 @@ void blinkLED(const String& sequence) {
 void BlinkForLongStandby() {
   if (motorState == standby && micros() - lastStandbyBlinkTime >= StandbyBlinkWarningtime && LED_State == 0) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
+    beep("111222111");
     log("sos iam alone", 111222111, true);
     StandbyBlinkWarningtime = (StandbyBlinkDuration * 1000000);  //every 30 sec
     lastStandbyBlinkTime = micros();                             // Update the time of the last call
@@ -104,9 +105,13 @@ void BlinkForLongStandby() {
 float getLedLampPower(){
   switch (LED_State){
     case LAMP_MAX:
-      return 4;
+      return 3.9;
     case 3:
-      return 3;
+      return 1.73;
+    case 2:
+      return 0.8;
+    case 1:
+      return 0.2;
     default:
       return 0;
   }

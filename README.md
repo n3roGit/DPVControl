@@ -31,11 +31,8 @@ them in the /libraries -Folder and install them into Arduino.
 # TODO
 
 - 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
-- 0% - **Energy Saver:** 20% - Reduce power to a maximum of 50% starting at X%.
 - 0% - **Emergency stop:** Immediately stop in case of sudden increase in current or drop in rotation speed (hand in rotor).
 - 0% - **Update via WiFi**
-- 10% - **Prevent Overload **
-- 90% - **Implement click codes according to the table**
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
 
@@ -49,17 +46,40 @@ them in the /libraries -Folder and install them into Arduino.
 | Hold     | Hold     | Turn motor ON |
 | Hold     |          | Turn motor ON |
 |          | Hold     | Turn motor ON |
-| 1 Click  | 1 Click  |  cruise control       |
+| 1 Click  | 1 Click  |  cruise control |
+| 1 Click  |          |           |
 |          | 1 Click  |           |
 | 2 Clicks | 2 Clicks | Boost Mode |
 | 2 Clicks |          | Reactivate |
 |          | 2 Clicks | Reactivate |
-| 3 Clicks | 3 Clicks |      PowerBank ON/OFF     |
-| 3 Clicks |          | Short light flash |
-|          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
 | 2 Clicks | Hold     | Stepwise slower |
 | Hold     | 2 Clicks | Stepwise faster |
+| 3 Clicks | 3 Clicks | PowerBank ON/OFF|
+| 3 Clicks |          | Short light flash |
+|          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
+| 4 Clicks | 4 Clicks |  |
 | 4 Clicks |          | beep Battery level |
+|          | 4 Clicks |  |
+
+# Beep Codes
+1 = short beep
+2= long beep
+| Beep | Function | 
+|:--------:|:--------:|
+| 22222     | Leak warning     |
+|1|still in standby|
+|2|going to standby or wake up from standby|
+|2|10% battery left|
+|22|20% battery left|
+|222|30% battery left|
+|n*2| Get n beep for every 10% left in battery (beep Battery level)|
+|1| once after boot|
+|11|No speedup because overloaded|
+|1|speed steps exeeded|
+|12|Overloaded for too long. Lowering speed.|
+|21|No longer overloaded|
+|111222111|SOS - Long time without any action. The lamp is also activated with the same code|
+
 
 
 # Logic
@@ -88,3 +108,10 @@ them in the /libraries -Folder and install them into Arduino.
 ![Build](./buildprocess/13.jpg)
 ![Build](./buildprocess/14.jpg)
 ![Build](./buildprocess/15.jpg)
+![Build](./buildprocess/16.jpg)
+![Build](./buildprocess/17.jpg)
+![Build](./buildprocess/18.jpg)
+![Build](./buildprocess/19.jpg)
+![Build](./buildprocess/20.jpg)
+![Build](./buildprocess/21.jpg)
+![Build](./buildprocess/22.jpg)
