@@ -18,6 +18,8 @@ Install Arduino extension from microsoft.
 Then install the [gcc compiler](https://nuwen.net/mingw.html) and select it in vscode.
 Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
 
+Please someone include the documentation from here https://github.com/n3roGit/DPVControl/issues/26 into this document. 
+
 
 ## Anduino IDE
 We used to use the <a href="https://www.arduino.cc/en/software">Arduino IDE</a> for Development. 
