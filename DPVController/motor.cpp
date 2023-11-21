@@ -86,7 +86,7 @@ void speedDown(){
 
 // Function to control standby mode
 void controlStandby() {
-  if (motorState != standby)  {
+  if (motorState == off)  {
     if (lastActionTime + STANDBY_DELAY_US < micros()) {
       standBy();
     }
