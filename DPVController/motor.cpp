@@ -32,8 +32,13 @@ const double MAX_SPEED_RPM = 14500; //Maximum speed in rpm. Speed of 100%
 const int SPEED_UP_TIME_US = 5/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_US = 500/*ms*/ * 1000;  //time we want to take to  speed the motor from full power to 0.
 const long MAX_TIME_OVERLOADED = 5/*s*/ * 1000; //Maximum time in ms that we overload the battery before lowering motor power.
+
+const float JAM_MIN = 0.2; //The minumum speed in % for jam detection
+const float JAM_DETECTION_THRESHOLD = 0.5; //Percentage of target speed
+//that we must be under for a jam to be detected.
+
 /*
-* GLOBAL VARIABLES 
+* VARIABLES 
 */
 double currentMotorSpeed = 0;           //Speed the motor is currently running at(0.0-1.0)
 int currentMotorStep = 1;//The current speed setting. stays the same, even if motor is turned off. 
@@ -143,7 +148,7 @@ void setSoftMotorSpeed() {
 }
 
 void controlMotor() {
-  if (motorState == standby || motorState == off) {
+  if (motorState == standby || motorState == off || motorState == jammed) {
     // Motor is off
     targetMotorSpeed = 0.0;
   } else if (motorState == on || motorState == cruise) {
@@ -225,8 +230,28 @@ void leaveTurboMode(){
   motorState = off;
 }
 
+/**
+ * Try to detect if there is a jam. If so, shut down the motor. 
+*/
+void checkJam(){
+  // Do not check for jam when running with no motor.
+  if(!hasMotor) return;
+
+  if (motorState != jammed && currentMotorSpeed >= JAM_MIN
+  && getVescUart().data.rpm/currentMotorSpeed/MAX_SPEED_RPM < JAM_DETECTION_THRESHOLD){
+    log("MOTOR JAMMED!");
+    beep("211");
+    motorState = jammed;
+  }
+  if (motorState == jammed && currentMotorSpeed < 0.0001 ){
+    log("motor stopped after being jammed. going standby.");
+    standBy();  
+  }
+}
+
 void motorLoop(){
   preventOverload();
+  checkJam();
   controlStandby();
   controlMotor();
 }
