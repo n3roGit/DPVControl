@@ -146,7 +146,7 @@ void controlMotor() {
     // Motor is off
     targetMotorSpeed = 0.0;
   } else if (motorState == on || motorState == cruise) {
-    targetMotorSpeed = MIN_SPEED_DUTY + ((double)currentMotorStep)/SPEED_STEPS * (1-MIN_SPEED_DUTY);
+    targetMotorSpeed = MIN_SPEED_DUTY + ((double)currentMotorStep-1)/(SPEED_STEPS-1) * (1-MIN_SPEED_DUTY);
   } else if (motorState == turbo) {
     targetMotorSpeed = 1.0;
   } else{
