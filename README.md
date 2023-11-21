@@ -15,10 +15,17 @@ We switched from using the Arduino IDE to VS Code.
 
 Install Arduino extension from microsoft.
 
-Then install the [gcc compiler](https://nuwen.net/mingw.html) and select it in vscode.
+Then install the [Arduino CLI]([https://nuwen.net/mingw.html](https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.msi)) and select it in vscode.
 Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
 
-Please someone include the documentation from here https://github.com/n3roGit/DPVControl/issues/26 into this document. 
+Install the Arduino Plugin for vscode and set "Arduino: Path" to the Arduino-CLI Install directory.
+![image](https://github.com/n3roGit/DPVControl/assets/8565847/e6b9f035-acb5-4fe0-a935-02e1e99f49af)
+
+The bottom of you IDE should now looks like this:
+![image](https://github.com/n3roGit/DPVControl/assets/8565847/ff7176c8-c297-4b1b-a639-8d142603f475)
+
+
+More information about in https://github.com/n3roGit/DPVControl/issues/26. 
 
 
 ## Anduino IDE
