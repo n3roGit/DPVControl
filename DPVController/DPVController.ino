@@ -23,6 +23,6 @@
 unsigned long lastBlinkTime = 0;    
 unsigned long buttonPressStartTime = 0;
 unsigned long leftButtonDownTime = 0;
-unsigned long rightButtonDownTime = 0;
+unsigned long rightButtfgdfgdfgdfsgonDownTime = 0;
 int FromTimeToTime = 0;
 
