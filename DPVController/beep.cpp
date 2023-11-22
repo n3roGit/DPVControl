@@ -16,9 +16,7 @@ const long PAUSE_MS = 400;
 * VARIABLES
 */
 unsigned long lastBeepTime = 0;
-unsigned long lastStandbyBeepTime = 0;
 unsigned long lastLeakBeepTime = 0;
-
 
 void turnOnFunction(){digitalWrite(PIN_BEEP, HIGH);}
 
@@ -65,10 +63,4 @@ void BeepForLeak() {
     lastLeakBeepTime = micros();  // update the time of the last call
   }
 }
-void BeepForStandby() {
-  if (motorState == standby && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
-    beep("1");  // Hier die gewünschte Sequenz für den Ton
-    log("still in standby", 1, true);
-    lastStandbyBeepTime = micros();  // Update the time of the last call
-  }
-}
+
