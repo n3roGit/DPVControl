@@ -4,13 +4,13 @@
 // https://github.com/espressif/arduino-esp32/blob/master/libraries/WebServer/examples/AdvancedWebServer/AdvancedWebServer.ino
 // as a basis.
 
-#include <WiFi.h>
+#include <WiFi.h> //https://github.com/arduino-libraries/WiFi
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
-const char *ssid = "YourSSIDHere";
-const char *password = "YourPSKHere";
+const char *ssid = "Aquazepp";
+const char *password = "Aquazepp";
 
 WebServer server(80);
 
