@@ -8,6 +8,7 @@
 #include "other.h"
 #include "button.h"
 #include "datalog.h"
+#include "web.h"
 
 int leakSensorState = 0;
 
@@ -48,7 +49,7 @@ void setup() {
   ledBarSetup();
   datalogSetup();
   batterySetup();
-
+  webSetup();
 
   // Booting finished
   Serial.println("Booting finished!");
@@ -68,6 +69,7 @@ void loop() {
   beepLoop();
   ledLampLoop();
   datalogLoop();
+  webLoop();
 
   long loopEnd = millis();
   long diff = loopEnd-loopStart;
