@@ -15,7 +15,7 @@ We switched from using the Arduino IDE to VS Code.
 
 Install Arduino extension from microsoft.
 
-Then install the [Arduino CLI](https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.msi) and select it in vscode or just copy template files. You only need to click ".\.vscode_template\copy_it.bat" to do that.
+Then install the [Arduino CLI](https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.msi) and select it in vscode or just copy template files. You only need to click ".\\.vscode_template\copy_it.bat" to do that.
 Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
 
 Install the Arduino Plugin for vscode and set "Arduino: Path" to the Arduino-CLI Install directory.
