@@ -19,7 +19,8 @@ Then install the [Arduino CLI](https://downloads.arduino.cc/arduino-cli/arduino-
 Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
 
 Install the Arduino Plugin for vscode.
-![image](https://github.com/n3roGit/DPVControl/assets/8565847/e6b9f035-acb5-4fe0-a935-02e1e99f49af)
+![image](https://github.com/n3roGit/DPVControl/assets/8565847/588f0802-2234-4474-96cd-7569acd2c5f0)
+
 
 The bottom of you IDE should now looks like this:
 ![image](https://github.com/n3roGit/DPVControl/assets/8565847/ff7176c8-c297-4b1b-a639-8d142603f475)
