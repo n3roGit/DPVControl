@@ -18,7 +18,7 @@ Install Arduino extension from microsoft.
 Then install the [Arduino CLI](https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.msi) and select it in vscode or just copy template files. You only need to click ".\\.vscode_template\copy_it.bat" to do that.
 Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
 
-Install the Arduino Plugin for vscode and set "Arduino: Path" to the Arduino-CLI Install directory.
+Install the Arduino Plugin for vscode.
 ![image](https://github.com/n3roGit/DPVControl/assets/8565847/e6b9f035-acb5-4fe0-a935-02e1e99f49af)
 
 The bottom of you IDE should now looks like this:
