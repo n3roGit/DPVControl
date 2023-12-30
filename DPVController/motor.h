@@ -9,7 +9,7 @@ extern MotorState motorState;
 
 extern bool hasMotor;//Indicates that we have an actual motor plugged in.
 
-VescUart getVescUart();//Accessor
+VescUart& getVescUart();//Accessor
 
 void motorSetup();
 void motorLoop();

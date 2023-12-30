@@ -16,7 +16,7 @@ bool hasMotor = true;//Indicates that we have an actual motor plugged in.
 
 VescUart UART;
 
-VescUart getVescUart(){return UART;}
+VescUart& getVescUart(){return UART;}
 
 
 /*
@@ -52,7 +52,7 @@ void motorSetup(){
   Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
   while (!Serial1) { ; }
   delay(500);
-  UART.setSerialPort(&Serial1);
+  getVescUart().setSerialPort(&Serial1);
   delay(500);
   if (getVescUart().getVescValues()) {
     Serial.println("Connected to VESC.");

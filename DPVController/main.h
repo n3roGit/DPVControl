@@ -8,17 +8,8 @@
 
 //VARIABLES
 extern int leakSensorState;
-
 extern int loopCount;
 extern int NormalLogOutputIntervall;
-
-
 extern DHTesp dhtSensor;
-
-
-//FUNCTIONS
-VescUart getVescUart();
-
-
 
 #endif
