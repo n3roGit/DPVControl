@@ -52,7 +52,7 @@ void motorSetup(){
   Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
   while (!Serial1) { ; }
   delay(500);
-  getVescUart().setSerialPort(&Serial1);
+  UART.setSerialPort(&Serial1);
   delay(500);
   if (getVescUart().getVescValues()) {
     Serial.println("Connected to VESC.");
