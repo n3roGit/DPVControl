@@ -4,5 +4,5 @@
     "programmer": "esptool",
     "sketch": "DPVController\\DPVController.ino",
     "output": "build-output",
-    "port": "COM3"
+    "port": "COM4"
 }
