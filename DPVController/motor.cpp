@@ -220,6 +220,7 @@ void enterCruiseMode(){
 void leaveCruiseMode(){
   log("leaving cruise mode", 0);
   motorState = off;
+  lastActionTime = micros();//Prevent standby right after leaving cruise control
 }
 
 void enterTurboMode(){
