@@ -12,11 +12,11 @@
 */
 
 MotorState motorState = standby;
-bool hasMotor = true;//Indicates that we have an actual motor plugged in.
+const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
 
 VescUart UART;
 
-VescUart getVescUart(){return UART;}
+VescUart& getVescUart(){return UART;}
 
 
 /*
@@ -57,13 +57,12 @@ void motorSetup(){
   Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
   while (!Serial1) { ; }
   delay(500);
-  UART.setSerialPort(&Serial1);
+  getVescUart().setSerialPort(&Serial1);
   delay(500);
   if (getVescUart().getVescValues()) {
     Serial.println("Connected to VESC.");
   } else {
     Serial.println("Failed to connect to VESC.");
-    hasMotor = false;
   }
 }
 
@@ -246,7 +245,7 @@ void leaveTurboMode(){
 */
 void checkJam(){
   // Do not check for jam when running with no motor.
-  if(!hasMotor) return;
+  if(!HAS_MOTOR) return;
 
   if (motorState != jammed && currentMotorSpeed >= JAM_MIN
   && getVescUart().data.rpm/currentMotorSpeed/MAX_SPEED_RPM < JAM_DETECTION_THRESHOLD){
