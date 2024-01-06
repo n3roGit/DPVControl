@@ -7,7 +7,7 @@ enum MotorState {standby, on, off, cruise, turbo, jammed};
 
 extern MotorState motorState;
 
-extern bool hasMotor;//Indicates that we have an actual motor plugged in.
+extern const bool HAS_MOTOR;//Indicates that we have an actual motor plugged in.
 
 VescUart& getVescUart();//Accessor
 
