@@ -15,7 +15,7 @@
 const int VESC_VALUES_INTERVAL = 100;
 
 
-int FromTimeToTimeIntervall = 500;
+int FromTimeToTimeIntervall = 50;
 
 
 /*
@@ -23,20 +23,9 @@ only output. needs to be stored in database
 */
 void GetVESCValues() {
 
-  if (!hasMotor) return;
+  if (!HAS_MOTOR) return;
 
   if (getVescUart().getVescValues()) {
-    /*
-    Serial.print("RPM: ");
-    Serial.println(UART.data.rpm);
-    Serial.print("inpVoltage: ");
-    Serial.println(UART.data.inpVoltage);
-    Serial.print("ampHours: ");
-    Serial.println(UART.data.ampHours);
-    Serial.print("tachometerAbs: ");
-    Serial.println(UART.data.tachometerAbs);
-    */
-
     updateBatteryLevel(getVescUart().data.inpVoltage);
   } else {
     log("Failed to get VESC data!", 00000);
@@ -52,7 +41,6 @@ void checkForLeak() {
     leakSensorState = 1;  // There is a leak
     log("leakSensorState", leakSensorState, true);
     setBarLeak();    
-
   }
 }
 
@@ -60,7 +48,6 @@ void checkForLeak() {
 void FromTimeToTimeExecution() {
   if (loopCount % FromTimeToTimeIntervall == 0) {
   BeepForLeak();
-  BeepForStandby();
   BlinkForLongStandby();
   BatteryLevelAlert();
   }

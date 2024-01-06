@@ -66,7 +66,7 @@ void listLogFiles(){
 LogdataRow createDatapoint(){
   LogdataRow dp;
   dp.time = millis();
-  if (hasMotor){
+  if (HAS_MOTOR){
     dp.tempMotor = getVescUart().data.tempMotor;
   }else{
     dp.tempMotor = 20.0+loopCount%10;
@@ -95,7 +95,6 @@ void datalogSetup(){
 
 void datalogLoop(){
   if (millis()>lastDataLogTime+DATALOG_INTERVAL){
-    Serial.println("Creating datapoint");
     LogdataRow data = createDatapoint();
     saveDatapoint(data, csvFile);
     lastDataLogTime = millis();

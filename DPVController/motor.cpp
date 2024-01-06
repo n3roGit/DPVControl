@@ -12,11 +12,11 @@
 */
 
 MotorState motorState = standby;
-bool hasMotor = true;//Indicates that we have an actual motor plugged in.
+const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
 
 VescUart UART;
 
-VescUart getVescUart(){return UART;}
+VescUart& getVescUart(){return UART;}
 
 
 /*
@@ -26,14 +26,19 @@ const int SPEED_STEPS = 10;                  //Number speed steps
 const int STANDBY_DELAY_US = 60 /*s*/ * 1000 * 1000;  // Time until the motor goes into standby.
 const int BATTERY_POWER_MAX = 40; // in Ampere
 const unsigned long MAX_DELTA_US = 30/*microseconds*/ * 1000; //Maximum time from last run to consider for smooth acceleration
-const double DUTY_FACTOR = 1.0;
-const double MIN_SPEED_DUTY = 0.38; //Duty on lowest setting.
-const double MIN_DUTY_SOFT = 0.23; //Minumum Duty we sent to the motor during soft acceleration. 
+const double MIN_SPEED_PERCENT = 0.38; //Speed on lowest setting in percent of max.
+const double MIN_SPEED_SOFT = 0.1; //Minumum % we sent to the motor during soft acceleration. 
+const double MAX_SPEED_RPM = 14500; //Maximum speed in rpm. Speed of 100% 
 const int SPEED_UP_TIME_US = 5/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_US = 500/*ms*/ * 1000;  //time we want to take to  speed the motor from full power to 0.
 const long MAX_TIME_OVERLOADED = 5/*s*/ * 1000; //Maximum time in ms that we overload the battery before lowering motor power.
+
+const float JAM_MIN = 0.2; //The minumum speed in % for jam detection
+const float JAM_DETECTION_THRESHOLD = 0.5; //Percentage of target speed
+//that we must be under for a jam to be detected.
+
 /*
-* GLOBAL VARIABLES 
+* VARIABLES 
 */
 double currentMotorSpeed = 0;           //Speed the motor is currently running at(0.0-1.0)
 int currentMotorStep = 1;//The current speed setting. stays the same, even if motor is turned off. 
@@ -44,6 +49,8 @@ double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-pow
 double lastTargetMotorSpeed = targetMotorSpeed;
 double lastPrintedMotorSpeed = -1;
 unsigned long overLoadedSince = NEVER; //microsecond timestamp.
+unsigned long lastStandbyBeepTime = 0;
+
 
 void motorSetup(){
   // Initialize VESC UART communication
@@ -56,7 +63,6 @@ void motorSetup(){
     Serial.println("Connected to VESC.");
   } else {
     Serial.println("Failed to connect to VESC.");
-    hasMotor = false;
   }
 }
 
@@ -86,23 +92,31 @@ void speedDown(){
 
 // Function to control standby mode
 void controlStandby() {
-  if (motorState != standby)  {
+  if (motorState == off)  {
     if (lastActionTime + STANDBY_DELAY_US < micros()) {
       standBy();
     }
+  }
+  
+  if (motorState == standby && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
+    beep("1"); 
+    log("still in standby");
+    lastStandbyBeepTime = micros(); 
   }
 }
 
 void wakeUp(){
   motorState = off;
-  log("leaving standby", 1, true);
+  lastActionTime = micros();
+  log("leaving standby");
   beep("2");
   setBarSpeed(currentMotorStep);
 }
 
 void standBy(){
-  log("going to standby", micros(), true);
+  log("going to standby");
   motorState = standby;
+  lastStandbyBeepTime = micros();//Avoid the regular beep to be triggered just hwen going to standby
   beep("2");
   setBarStandby();
 }
@@ -120,7 +134,7 @@ void setSoftMotorSpeed() {
     currentMotorSpeed += maxChange;
     currentMotorSpeed = 
       //Do not go lower than minimal setting.
-      max(MIN_DUTY_SOFT, 
+      max(MIN_SPEED_SOFT, 
       //Do not overshoot the actual targetMotorSpeed
       min(currentMotorSpeed, targetMotorSpeed));
   } else if(currentMotorSpeed > targetMotorSpeed) {
@@ -129,24 +143,25 @@ void setSoftMotorSpeed() {
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
-  if(abs(currentMotorSpeed) > 0.0){
-    getVescUart().setDuty(currentMotorSpeed * DUTY_FACTOR);
+  double effectiveSpeed = currentMotorSpeed * MAX_SPEED_RPM;
+  if(abs(effectiveSpeed) > 0.0){
+    getVescUart().setRPM(effectiveSpeed);
   }
   currentMotorTime = micros();
 
   if(EnableDebugLog && abs(currentMotorSpeed - lastPrintedMotorSpeed) >= 0.01){
-    Serial.print("currentMotorSpeed: ");
-    Serial.println(currentMotorSpeed);
+    Serial.printf("%5.0f RPM (%2.0f%%)",effectiveSpeed, currentMotorSpeed*100);
+    Serial.println();
     lastPrintedMotorSpeed = currentMotorSpeed;
   }
 }
 
 void controlMotor() {
-  if (motorState == standby || motorState == off) {
+  if (motorState == standby || motorState == off || motorState == jammed) {
     // Motor is off
     targetMotorSpeed = 0.0;
   } else if (motorState == on || motorState == cruise) {
-    targetMotorSpeed = MIN_SPEED_DUTY + ((double)currentMotorStep-1)/(SPEED_STEPS-1) * (1-MIN_SPEED_DUTY);
+    targetMotorSpeed = MIN_SPEED_PERCENT + ((double)currentMotorStep-1)/(SPEED_STEPS-1) * (1-MIN_SPEED_PERCENT);
   } else if (motorState == turbo) {
     targetMotorSpeed = 1.0;
   } else{
@@ -210,6 +225,7 @@ void enterCruiseMode(){
 void leaveCruiseMode(){
   log("leaving cruise mode", 0);
   motorState = off;
+  lastActionTime = micros();//Prevent standby right after leaving cruise control
 }
 
 void enterTurboMode(){
@@ -224,8 +240,28 @@ void leaveTurboMode(){
   motorState = off;
 }
 
+/**
+ * Try to detect if there is a jam. If so, shut down the motor. 
+*/
+void checkJam(){
+  // Do not check for jam when running with no motor.
+  if(!HAS_MOTOR) return;
+
+  if (motorState != jammed && currentMotorSpeed >= JAM_MIN
+  && getVescUart().data.rpm/currentMotorSpeed/MAX_SPEED_RPM < JAM_DETECTION_THRESHOLD){
+    log("MOTOR JAMMED!");
+    beep("211");
+    motorState = jammed;
+  }
+  if (motorState == jammed && currentMotorSpeed < 0.0001 ){
+    log("motor stopped after being jammed. going standby.");
+    standBy();  
+  }
+}
+
 void motorLoop(){
   preventOverload();
+  checkJam();
   controlStandby();
   controlMotor();
 }
