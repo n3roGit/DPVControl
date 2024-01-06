@@ -93,7 +93,7 @@ void speedDown(){
 
 // Function to control standby mode
 void controlStandby() {
-  if (motorState != standby)  {
+  if (motorState == off)  {
     if (lastActionTime + STANDBY_DELAY_US < micros()) {
       standBy();
     }
@@ -226,6 +226,7 @@ void enterCruiseMode(){
 void leaveCruiseMode(){
   log("leaving cruise mode", 0);
   motorState = off;
+  lastActionTime = micros();//Prevent standby right after leaving cruise control
 }
 
 void enterTurboMode(){
