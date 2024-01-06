@@ -3,7 +3,7 @@
 
 #include <VescUart.h>
 
-enum MotorState {standby, on, off, cruise, turbo};
+enum MotorState {standby, on, off, cruise, turbo, jammed};
 
 extern MotorState motorState;
 

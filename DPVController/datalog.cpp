@@ -95,7 +95,6 @@ void datalogSetup(){
 
 void datalogLoop(){
   if (millis()>lastDataLogTime+DATALOG_INTERVAL){
-    Serial.println("Creating datapoint");
     LogdataRow data = createDatapoint();
     saveDatapoint(data, csvFile);
     lastDataLogTime = millis();
