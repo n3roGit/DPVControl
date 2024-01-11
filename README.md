@@ -52,7 +52,6 @@ them in the /libraries -Folder and install them into Arduino.
 # TODO
 
 - 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
-- 0% - **Emergency stop:** Immediately stop in case of sudden increase in current or drop in rotation speed (hand in rotor).
 - 0% - **Update via WiFi**
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
