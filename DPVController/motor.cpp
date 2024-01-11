@@ -5,6 +5,7 @@
 #include "ledBar.h"
 #include "button.h"
 #include "ledLamp.h"
+#include "localConfig.h"
 
 /**
 *
