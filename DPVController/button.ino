@@ -114,6 +114,8 @@ void performActions(){
     if (!(leftButton.depressed || rightButton.depressed)){
       leaveTurboMode();
     }
+  }else if (motorState == jammed) {
+    //No special action when jammed.
   }else{
     if (rightButton.clicks == 2 && leftButtonState == PRESSED) {
       speedUp();
