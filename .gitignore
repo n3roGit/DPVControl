@@ -1,6 +1,6 @@
 libraries
 documents/.$Logic.drawio.dtmp
 build-output
-.vscode/c_cpp_properties.json
+.vscode
 check-cppcheck-build-dir
-.vscode/arduino.json
+

@@ -1,0 +1,6 @@
+{
+    "C_Cpp.default.compilerPath": "c:\\Program Files\\Arduino CLI\\arduino-cli.exe",
+    "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+        "clang-diagnostic-error"
+    ]
+}

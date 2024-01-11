@@ -1,5 +1,5 @@
 #ifndef battery_h
-#define bettery_h
+#define battery_h
 
 
 //Battery

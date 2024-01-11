@@ -44,13 +44,15 @@ double targetMotorSpeed = 0.0;  //The desired motor speed. In Percent of max-pow
 double lastTargetMotorSpeed = targetMotorSpeed;
 double lastPrintedMotorSpeed = -1;
 unsigned long overLoadedSince = NEVER; //microsecond timestamp.
+unsigned long lastStandbyBeepTime = 0;
+
 
 void motorSetup(){
   // Initialize VESC UART communication
   Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
   while (!Serial1) { ; }
   delay(500);
-  getVescUart().setSerialPort(&Serial1);
+  UART.setSerialPort(&Serial1);
   delay(500);
   if (getVescUart().getVescValues()) {
     Serial.println("Connected to VESC.");
@@ -86,23 +88,31 @@ void speedDown(){
 
 // Function to control standby mode
 void controlStandby() {
-  if (motorState != standby)  {
+  if (motorState == off)  {
     if (lastActionTime + STANDBY_DELAY_US < micros()) {
       standBy();
     }
+  }
+  
+  if (motorState == standby && micros() - lastStandbyBeepTime >= (1 * 60 * 1000000)) {
+    beep("1"); 
+    log("still in standby");
+    lastStandbyBeepTime = micros(); 
   }
 }
 
 void wakeUp(){
   motorState = off;
-  log("leaving standby", 1, true);
+  lastActionTime = micros();
+  log("leaving standby");
   beep("2");
   setBarSpeed(currentMotorStep);
 }
 
 void standBy(){
-  log("going to standby", micros(), true);
+  log("going to standby");
   motorState = standby;
+  lastStandbyBeepTime = micros();//Avoid the regular beep to be triggered just hwen going to standby
   beep("2");
   setBarStandby();
 }
@@ -210,6 +220,7 @@ void enterCruiseMode(){
 void leaveCruiseMode(){
   log("leaving cruise mode", 0);
   motorState = off;
+  lastActionTime = micros();//Prevent standby right after leaving cruise control
 }
 
 void enterTurboMode(){

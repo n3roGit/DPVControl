@@ -60,7 +60,6 @@ void checkForLeak() {
 void FromTimeToTimeExecution() {
   if (loopCount % FromTimeToTimeIntervall == 0) {
   BeepForLeak();
-  BeepForStandby();
   BlinkForLongStandby();
   BatteryLevelAlert();
   }
