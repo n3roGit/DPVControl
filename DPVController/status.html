@@ -224,10 +224,10 @@
                     <td><input type="text" id="standbyTime" value="45" /> s</td>
                 </tr>
                 <!-- Neue Konfigurationseinstellungen hinzugefügt -->
-                <tr>
-                    <td>Beeper Enabled:</td>
-                    <td><input type="text" id="beeperEnabled" value="true" /></td>
-                </tr>
+				<tr>
+					<td>Beeper Enabled:</td>
+					<td><input type="checkbox" id="beeperEnabled" checked /></td>
+				</tr>
                 <tr>
                     <td>Left Button PIN:</td>
                     <td><input type="text" id="leftButtonPIN" value="2" /></td>
@@ -248,18 +248,15 @@
                     <td>LONGCLICK_TIME:</td>
                     <td><input type="text" id="longclickTime" value="1000" /> ms</td>
                 </tr>
-                <tr>
-                    <td>LED PIN:</td>
-                    <td><input type="text" id="ledPIN" value="5" /></td>
-                </tr>
-                <tr>
-                    <td>Leak Sensor Front PIN:</td>
-                    <td><input type="text" id="leakSensorFrontPIN" value="true" /></td>
-                </tr>
-                <tr>
-                    <td>Leak Sensor Back PIN:</td>
-                    <td><input type="text" id="leakSensorBackPIN" value="false" /></td>
-                </tr>
+				<tr>
+					<td>Leak Sensor Front PIN:</td>
+					<td><input type="checkbox" id="leakSensorFrontPIN" checked disabled /></td>
+				</tr>
+				<tr>
+					<td>Leak Sensor Back PIN:</td>
+					<td><input type="checkbox" id="leakSensorBackPIN" disabled /></td>
+				</tr>
+
                 <tr>
                     <td>OverloadLimitMax:</td>
                     <td><input type="text" id="overloadLimitMax" value="10" /> Ampere</td>
@@ -331,7 +328,6 @@
         </div>
 
         <h4 style="text-align: center; color: #3498db;">Version 0.1</h4>
-    </div>
 
     <script>
         // JavaScript functions remain unchanged
