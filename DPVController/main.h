@@ -1,7 +1,9 @@
-#ifndef all_h
-#define all_h
+#ifndef main_h
+#define main_h
 #include <VescUart.h>
 #include "DHTesp.h"
+
+#include "localConfig.h"
 
 //temporary collection of header definitions 
 //that should be moved to their own places.

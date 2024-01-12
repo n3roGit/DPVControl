@@ -1,0 +1,8 @@
+//Copy this file and call it localConfig.h
+//Then you can make changes to it. 
+
+// Override default settings here
+// This file is not committed to git
+
+//This is for Carlos because he has no motor at home. 
+#define HAS_MOTOR_VALUE true

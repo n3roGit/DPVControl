@@ -1,6 +1,6 @@
 libraries
 documents/.$Logic.drawio.dtmp
 build-output
-.vscode
+.vscode/
 check-cppcheck-build-dir
-
+DPVController/localConfig.h
