@@ -9,7 +9,6 @@
 #include "motor.h"
 #include "beep.h"
 #include "Arduino.h"
-#include "button.h"
 
 /*
 *  CONSTANTS
@@ -21,15 +20,15 @@ const int LEDresolution = 8;   // Initializing the integer variable 'LEDresoluti
 const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
 const int LAMP_OFF = 0;
 const int LAMP_MAX = 4;
-const int StandbyBlinkStart = 15 * 60/*s*/ * 1000 * 1000;         //in microseconds. 15 Minutes for blink start
-const int standbyBlinkInterval = 10*1000*1000;      // microseconds between blink
+const int StandbyBlinkStart = 15;         // Minutes for blink start
+const int StandbyBlinkDuration = 10;      // Seconds between blink
 
 /*
 * VARIABLES 
 */
 int LED_State = LAMP_OFF;
-int lastStandbyBlinkTime = 0; //The timestamp(ms) when we last blinked for standby-warning.
-
+unsigned long lastStandbyBlinkTime = 0;
+unsigned long StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);
 
 void setLEDState(int state);
 
@@ -108,12 +107,15 @@ void blinkLED(const String& sequence) {
 
 
 void BlinkForLongStandby() {
-  if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && LED_State == 0 && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
+  if (motorState == standby && micros() - lastStandbyBlinkTime >= StandbyBlinkWarningtime && LED_State == 0) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
     beep("111222111");
     log("sos iam alone", 111222111, true);
+    StandbyBlinkWarningtime = (StandbyBlinkDuration * 1000000);  //every 30 sec
     lastStandbyBlinkTime = micros();                             // Update the time of the last call
-  } 
+  } else {
+    StandbyBlinkWarningtime = (StandbyBlinkStart * 60 * 1000000);  //every 3 minutes
+  }
 }
 
 /**

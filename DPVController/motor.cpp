@@ -5,7 +5,6 @@
 #include "ledBar.h"
 #include "button.h"
 #include "ledLamp.h"
-#include "localConfig.h"
 
 /**
 *
@@ -13,12 +12,7 @@
 */
 
 MotorState motorState = standby;
-
-
-#ifndef HAS_MOTOR_VALUE
-#define HAS_MOTOR_VALUE true
-#endif
-const bool HAS_MOTOR = HAS_MOTOR_VALUE;//Indicates that we have an actual motor plugged in.
+const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
 
 VescUart UART;
 
