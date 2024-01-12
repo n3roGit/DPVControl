@@ -4,3 +4,4 @@ build-output
 .vscode
 check-cppcheck-build-dir
 
+DPVController/localConfig.h
