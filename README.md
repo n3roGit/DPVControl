@@ -8,6 +8,8 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
   <img src="./paypal-donate-button.png" alt="Donate with PayPal" style="width: 50%;">
 </a>
 
+![PROMO](./images/promo1.png)
+
 # Development
 
 ## VSCode
