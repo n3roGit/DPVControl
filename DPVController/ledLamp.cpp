@@ -21,7 +21,7 @@ const int LEDresolution = 8;   // Initializing the integer variable 'LEDresoluti
 const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
 const int LAMP_OFF = 0;
 const int LAMP_MAX = 4;
-const int StandbyBlinkStart = 1 * 60/*s*/ * 1000 * 1000;         //in microseconds. 15 Minutes for blink start
+const int StandbyBlinkStart = 15 * 60/*s*/ * 1000 * 1000;         //in microseconds. 15 Minutes for blink start
 const int standbyBlinkInterval = 10*1000*1000;      // microseconds between blink
 
 /*
@@ -108,7 +108,7 @@ void blinkLED(const String& sequence) {
 
 
 void BlinkForLongStandby() {
-  if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && LED_State == 0 && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
+  if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
     beep("111222111");
     log("sos iam alone", 111222111, true);
