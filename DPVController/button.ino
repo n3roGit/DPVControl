@@ -19,7 +19,7 @@ struct LastClick {
 * CONSTANTS
 */
 const int DEBOUNCE_TIME = 20;
-const int MULTICLICK_TIME = 300;
+const int MULTICLICK_TIME = 600;
 const int LONGCLICK_TIME = 1000;
 const long NOT_HELD = -1;
 const long MOTOR_START_DELAY = 300; // Time in ms that a lever needs
