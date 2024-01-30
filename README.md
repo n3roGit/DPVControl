@@ -113,6 +113,8 @@ them in the /libraries -Folder and install them into Arduino.
 # Pinout
 ![ESP32](./ESP32.png)
 
+# Videos
+[<img src="./images/video1.png" width="50%">](https://youtu.be/6myfqZKiGTU "Aquazepp first ride")
 
 # Build Process
 ![Build](./buildprocess/1.jpg)
