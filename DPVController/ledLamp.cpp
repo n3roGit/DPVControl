@@ -108,7 +108,7 @@ void blinkLED(const String& sequence) {
 
 
 void BlinkForLongStandby() {
-  if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && LED_State == 0 && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
+  if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
     blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
     beep("111222111");
     log("sos iam alone", 111222111, true);

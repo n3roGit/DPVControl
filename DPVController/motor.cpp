@@ -244,6 +244,7 @@ void leaveTurboMode(){
   log("leaving turbo mode", 0);
   setBarSpeed(currentMotorStep);
   motorState = off;
+  lastActionTime = micros();//Prevent standby right after leaving turbo
 }
 
 /**

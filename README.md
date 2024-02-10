@@ -1,4 +1,4 @@
-![logic](./logo.jpg)
+![logic](./images/logo.jpg)
 # THE PROJECT
 In this GitHub project, the aim is to build and operate a DPV (Dive Propulsion Vehicle) using standard components. In my case, I will breathe new life into an old Aquazepp. The motor I'm using is a common 2000-watt scooter motor, controlled by a VESC (Vedder Electronic Speed Controller). The entire system is controlled through Reed switches activated by magnets with a Bowden cable.
 
@@ -7,6 +7,8 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6ZFSVPZWLLAMC">
   <img src="./paypal-donate-button.png" alt="Donate with PayPal" style="width: 50%;">
 </a>
+
+![PROMO](./images/promo1.png)
 
 # Development
 
@@ -52,7 +54,6 @@ them in the /libraries -Folder and install them into Arduino.
 # TODO
 
 - 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
-- 0% - **Emergency stop:** Immediately stop in case of sudden increase in current or drop in rotation speed (hand in rotor).
 - 0% - **Update via WiFi**
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
@@ -112,6 +113,8 @@ them in the /libraries -Folder and install them into Arduino.
 # Pinout
 ![ESP32](./ESP32.png)
 
+# Videos
+[<img src="./images/video1.png" width="50%">](https://youtu.be/6myfqZKiGTU "Aquazepp first ride")
 
 # Build Process
 ![Build](./buildprocess/1.jpg)
