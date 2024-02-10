@@ -2,9 +2,11 @@
 #include "log.h"
 #include <FS.h>
 #include <SPIFFS.h>
+#include "string.h"
 #include "motor.h"
 #include "main.h"
 #include "dht.h"
+#include "Arduino.h" //For String
 /**
 * Regularly saves data about the state of the vehicle to disc.
 */
@@ -62,6 +64,33 @@ void listLogFiles(){
       }
       file = root.openNextFile();
   }
+}
+
+String createLogfilesHtml(){
+  String html = "<html><body>\r\n";
+
+  File root = SPIFFS.open(DATALOG_DIR);
+  if(!root){
+      return "- failed to open directory";
+  }
+  if(!root.isDirectory()){
+      return " - not a directory";
+  }
+
+  File file = root.openNextFile();
+  while(file){
+      if(!file.isDirectory()){
+        html += "<a href=\"log/";
+        html += file.name();
+        html += "\">";
+        html += file.name();
+        html += "</a><br />";
+        html += "\r\n";
+      } 
+      file = root.openNextFile();
+  }
+  html += "</body></html>";
+  return html;
 }
 
 LogdataRow createDatapoint(){

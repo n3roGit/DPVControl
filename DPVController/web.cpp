@@ -8,6 +8,9 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
+#include "Arduino.h" //For String
+
+#include "datalog.h"
 
 const char *ssid = "Aquazepp";
 const char *password = "Aquazepp";
@@ -31,15 +34,19 @@ void handleRoot() {
     </style>\
   </head>\
   <body>\
-    <h1>Hello from ESP32!</h1>\
+    <h1>Open Source Diver Propulsion Vehicle</h1>\
     <p>Uptime: %02d:%02d:%02d</p>\
-    <img src=\"/test.svg\" />\
+    <p><a href=\"/logs\">View logs</a></p>\
   </body>\
 </html>",
 
            hr, min % 60, sec % 60
           );
   server.send(200, "text/html", temp);
+}
+
+void handleListLogs(){
+  server.send(200, "text/html", createLogfilesHtml());
 }
 
 void handleNotFound() {
@@ -74,6 +81,7 @@ void webSetup(){
   server.begin();
 
   server.on("/", handleRoot);
+  server.on("/logs", handleListLogs);
   server.on("/inline", []() {
     server.send(200, "text/plain", "this works as well");
   });
