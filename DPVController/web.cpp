@@ -45,8 +45,13 @@ void handleRoot() {
   server.send(200, "text/html", temp);
 }
 
-void handleListLogs(){
-  server.send(200, "text/html", createLogfilesHtml());
+void handleLogs(){
+  if (server.hasArg("log")){
+    String logname = server.arg(0);
+    server.send(200, "text/csv", readLogFile(logname));
+  }else{
+    server.send(200, "text/html", createLogfilesHtml());
+  }
 }
 
 void handleNotFound() {
@@ -81,7 +86,7 @@ void webSetup(){
   server.begin();
 
   server.on("/", handleRoot);
-  server.on("/logs", handleListLogs);
+  server.on("/logs", handleLogs);
   server.on("/inline", []() {
     server.send(200, "text/plain", "this works as well");
   });

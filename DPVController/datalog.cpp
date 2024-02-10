@@ -80,7 +80,7 @@ String createLogfilesHtml(){
   File file = root.openNextFile();
   while(file){
       if(!file.isDirectory()){
-        html += "<a href=\"log/";
+        html += "<a href=\"logs?log=";
         html += file.name();
         html += "\">";
         html += file.name();
@@ -91,6 +91,14 @@ String createLogfilesHtml(){
   }
   html += "</body></html>";
   return html;
+}
+
+String readLogFile(String logname){
+  File file = SPIFFS.open(DATALOG_DIR+"/"+logname);
+  if (!file.available()){
+    return "can not read " + logname;
+  }
+  return file.readString();
 }
 
 LogdataRow createDatapoint(){

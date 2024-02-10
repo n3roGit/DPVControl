@@ -16,6 +16,7 @@ struct LogdataRow {
 void datalogSetup();
 void datalogLoop();
 void listLogFiles();
+String readLogFile(String logname);
 String createLogfilesHtml();
 
 
