@@ -44,6 +44,9 @@ LastClick lastLeftClick;
 LastClick lastRightClick;
 
 void buttonSetup(){
+  pinMode(PIN_LEFT_BUTTON, INPUT);
+  pinMode(PIN_RIGHT_BUTTON, INPUT);
+  
   // Set debounce and click times for buttons
   leftButton.debounceTime = DEBOUNCE_TIME;
   leftButton.multiclickTime = MULTICLICK_TIME;
@@ -51,11 +54,6 @@ void buttonSetup(){
   rightButton.debounceTime = DEBOUNCE_TIME;     
   rightButton.multiclickTime = MULTICLICK_TIME; 
   rightButton.longClickTime = LONGCLICK_TIME;
-}
-
-void buttonLoop(){
-  updateButtonState();
-  performActions();
 }
 
 // Forward declarations
@@ -98,6 +96,9 @@ void updateButtonState(){
   }
 }
 
+bool heldForLong(long heldDownSince){
+  return heldDownSince != NOT_HELD && millis()-heldDownSince >= MOTOR_START_DELAY;
+}
 
 void performActions(){
 
@@ -157,10 +158,6 @@ void performActions(){
 
 }
 
-bool heldForLong(long heldDownSince){
-  return heldDownSince != NOT_HELD && millis()-heldDownSince >= MOTOR_START_DELAY;
-}
-
 void updateLastClick(LastClick &click, ClickButton &button){
   if (button.clicks != 0){
     click.time = millis();
@@ -185,4 +182,10 @@ bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs){
   //then reached longButtonClick-timeout while holding.
    && heldSinceMs != NOT_HELD
    && lastClick.time >= heldSinceMs;
+}
+
+
+void buttonLoop(){
+  updateButtonState();
+  performActions();
 }

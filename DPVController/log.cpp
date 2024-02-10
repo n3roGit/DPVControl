@@ -1,5 +1,5 @@
 #include "log.h"
-#include <DHTesp.h>
+#include "dht.h"
 #include "main.h"
 #include <uptime_formatter.h>
 #include "motor.h"
@@ -51,9 +51,8 @@ void logVehicleState() {
     Serial.print("dutyCycleNow: ");
     Serial.println(getVescUart().data.dutyCycleNow);
 
-    TempAndHumidity data = dhtSensor.getTempAndHumidity();
-    Serial.println("Temp: " + String(data.temperature, 2) + "°C");
-    Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+    Serial.println("Temp: " + String(getTemp(), 2) + "°C");
+    Serial.println("Humidity: " + String(getHuminity(), 1) + "%");
 
     Serial.println("---");
   }

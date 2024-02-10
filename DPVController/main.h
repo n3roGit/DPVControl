@@ -1,7 +1,5 @@
 #ifndef main_h
 #define main_h
-#include <VescUart.h>
-#include "DHTesp.h"
 
 #include "localConfig.h"
 
@@ -12,6 +10,5 @@
 extern int leakSensorState;
 extern int loopCount;
 extern int NormalLogOutputIntervall;
-extern DHTesp dhtSensor;
 
 #endif

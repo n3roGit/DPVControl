@@ -32,6 +32,11 @@ long beepDuration(char c){
 BlinkSequence beepSequence = BlinkSequence(beepBlinker, beepDuration, PAUSE_MS);
 
 
+void beepSetup(){
+    pinMode(PIN_BEEP, OUTPUT);
+}
+
+
 /**
 * Perform a beep for the given time. Works asynchronously. 
 */
