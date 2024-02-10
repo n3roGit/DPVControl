@@ -5,6 +5,8 @@
 struct LogdataRow {
   long time;
   float tempMotor;
+  float chassisTemp;
+  float chassisHumidity;
 };
 
 

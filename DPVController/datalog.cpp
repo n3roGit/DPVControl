@@ -4,6 +4,7 @@
 #include <SPIFFS.h>
 #include "motor.h"
 #include "main.h"
+#include "dht.h"
 /**
 * Regularly saves data about the state of the vehicle to disc.
 */
@@ -12,7 +13,7 @@
 * CONSTANTS
 */ 
 
-const String HEADER = "time,motor temp";
+const String HEADER = "time,motor temp, chassis temp, chassis humidity";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in milliseconds.
 
@@ -71,6 +72,8 @@ LogdataRow createDatapoint(){
   }else{
     dp.tempMotor = 20.0+loopCount%10;
   }
+  dp.chassisHumidity = getHuminity();
+  dp.chassisTemp = getTemp();
   return dp;
 }
 
@@ -78,6 +81,10 @@ void saveDatapoint(LogdataRow datapoint, File &file){
   file.print(datapoint.time);
   file.print(",");
   file.print(datapoint.tempMotor);
+  file.print(",");
+  file.print(datapoint.chassisTemp);
+  file.print(",");
+  file.print(datapoint.chassisHumidity);
   file.println();
   file.flush();
 }
