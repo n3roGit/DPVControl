@@ -13,10 +13,10 @@ void leakSetup(){
 }
 
 bool getLeakFront(){
-    return digitalRead(PIN_LEAK_FRONT) == HIGH;
+    return digitalRead(PIN_LEAK_FRONT) == LOW;
 }
 bool getLeakBack(){
-    return digitalRead(PIN_LEAK_BACK) == HIGH;
+    return digitalRead(PIN_LEAK_BACK) == LOW;
 }
 
 void checkForLeak() {
