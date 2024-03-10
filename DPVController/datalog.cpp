@@ -89,7 +89,9 @@ String createLogfilesHtml(){
         html += file.name();
         html += "\">";
         html += file.name();
-        html += "</a><br />";
+        html += "</a>\r\n";
+        html += "Size: "+ String(file.size())+" bytes";
+        html += "<br />";
         html += "\r\n";
       } 
       file.close();
