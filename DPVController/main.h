@@ -7,7 +7,6 @@
 //that should be moved to their own places.
 
 //VARIABLES
-extern int leakSensorState;
 extern int loopCount;
 extern int NormalLogOutputIntervall;
 

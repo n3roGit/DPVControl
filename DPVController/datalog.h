@@ -18,6 +18,9 @@ struct LogdataRow {
   float chassisHumidity;
   int ledLampState;
   int speedSetting;
+  int soc;
+  int leakBack;
+  int leakFront;
 };
 
 

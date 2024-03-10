@@ -10,8 +10,12 @@
 #include "datalog.h"
 #include "web.h"
 #include "dht.h"
+#include "leak.h"
+#include "motor.h"
+#include "ledLamp.h"
+#include "ledBar.h"
+#include "battery.h"
 
-int leakSensorState = 0;
 
 
 int loopCount = 0;
@@ -21,8 +25,6 @@ int NormalLogOutputIntervall = 1000*10;
 The Setup is chaotic. Needs a cleanup
 */
 void setup() {
-  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP);
-  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);
 
   // Initialize serial communication
   Serial.begin(115200);
@@ -38,6 +40,7 @@ void setup() {
   batterySetup();
   webSetup();
   dhtSetup();
+  leakSetup();
 
   // Booting finished
   Serial.println("Booting finished!");

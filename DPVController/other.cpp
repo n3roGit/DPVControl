@@ -32,17 +32,6 @@ void GetVESCValues() {
   }
 
 }
-void checkForLeak() {
-  int frontLeakState = digitalRead(PIN_LEAK_FRONT);
-  int backLeakState = digitalRead(PIN_LEAK_BACK);
-
-  // Check whether one of the pins is "HIGH"
-  if (frontLeakState == LOW || backLeakState == LOW) {
-    leakSensorState = 1;  // There is a leak
-    log("leakSensorState", leakSensorState, true);
-    setBarLeak();    
-  }
-}
 
 
 void FromTimeToTimeExecution() {
