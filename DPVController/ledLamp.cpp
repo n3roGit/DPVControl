@@ -32,7 +32,9 @@ int lastStandbyBlinkTime = 0; //The timestamp(ms) when we last blinked for stand
 
 
 void setLEDState(int state);
-
+int getLampState(){
+  return LED_State;
+}
 
 void turnLampOn(){setLEDState(LAMP_MAX);}
 void turnLampOff(){

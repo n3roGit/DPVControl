@@ -15,6 +15,7 @@ struct LogdataRow {
   float mosfetTemp;
   float chassisTemp;
   float chassisHumidity;
+  int ledLampState;
 };
 
 

@@ -6,6 +6,7 @@
 #include "motor.h"
 #include "main.h"
 #include "dht.h"
+#include "ledLamp.h"
 #include "Arduino.h" //For String
 /**
 * Regularly saves data about the state of the vehicle to disc.
@@ -17,7 +18,7 @@
 
 const String HEADER = "time,motor temp,motor input voltage,motor average input current,"
 "motor average current,motor duty cycle,motor RPM,mosfet temp,"
-"chassis temp,chassis humidity";
+"chassis temp,chassis humidity,led lamp state";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in milliseconds.
 
@@ -139,6 +140,7 @@ LogdataRow createDatapoint(){
   }
   dp.chassisHumidity = getHuminity();
   dp.chassisTemp = getTemp();
+  dp.ledLampState = getLampState();
   return dp;
 }
 
@@ -162,6 +164,8 @@ void saveDatapoint(LogdataRow datapoint, File &file){
   file.print(datapoint.chassisTemp);
   file.print(",");
   file.print(datapoint.chassisHumidity);
+  file.print(",");
+  file.print(datapoint.ledLampState);  
   file.println();
   file.flush();
 }

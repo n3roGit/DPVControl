@@ -10,4 +10,5 @@ void toggleLED();
 void flash();
 void ledLampSetup();
 void ledLampLoop();
+int getLampState();
 #endif
