@@ -19,7 +19,7 @@
 */ 
 
 const String HEADER = "time,motor temp,motor input voltage,motor average input current,"
-"motor average current,motor duty cycle,motor RPM, motor state,mosfet temp,"
+"motor average current,motor duty cycle,motor RPM,motor state,mosfet temp,"
 "chassis temp,chassis humidity,led lamp state,speed setting,SOC,leak back sensor, leak front sensor";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in milliseconds.
