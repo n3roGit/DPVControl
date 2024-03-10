@@ -58,7 +58,11 @@ them in the /libraries -Folder and install them into Arduino.
 - 0% - **Implement watchdog to make it smooth and stable**
 - 30% - **display uptime and overall runtime in gui**
 
-
+# Generate Graph from Log
+There is currently no GUI to display the data from the log in the GUI. We currently use the following website for this.
+https://webutility.io/csv-to-chart-online
+The data can be easily uploaded here. By selecting the required data points, the desired graph can be easily created.
+![image](https://github.com/n3roGit/DPVControl/assets/8565847/2a79a5eb-a1ae-43c2-acb3-1f9f516d8ac6)
 
 
 # Click Codes
