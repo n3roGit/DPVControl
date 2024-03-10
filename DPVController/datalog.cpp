@@ -15,7 +15,9 @@
 * CONSTANTS
 */ 
 
-const String HEADER = "time,motor temp, chassis temp, chassis humidity";
+const String HEADER = "time,motor temp,motor input voltage,motor average input current,"
+"motor average current,motor duty cycle,motor RPM,mosfet temp,"
+"chassis temp,chassis humidity";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in milliseconds.
 
@@ -105,9 +107,21 @@ LogdataRow createDatapoint(){
   LogdataRow dp;
   dp.time = millis();
   if (HAS_MOTOR){
-    dp.tempMotor = getVescUart().data.tempMotor;
+    dp.motorTemp = getVescUart().data.tempMotor;
+    dp.motorInpVoltage = getVescUart().data.inpVoltage;
+    dp.motorAvgInputCurrent = getVescUart().data.avgInputCurrent;
+    dp.motorAvgCurrent = getVescUart().data.avgMotorCurrent;
+    dp.motorDutyCycleNow = getVescUart().data.dutyCycleNow;
+    dp.motorRpm = getVescUart().data.rpm;
+    dp.mosfetTemp = getVescUart().data.tempMosfet;
   }else{
-    dp.tempMotor = 20.0+loopCount%10;
+    dp.motorTemp = 20.0+loopCount%10;
+    dp.motorInpVoltage = 20.0+loopCount%11;
+    dp.motorAvgInputCurrent = 20.0+loopCount%12;
+    dp.motorAvgCurrent = 20.0+loopCount%13;
+    dp.motorDutyCycleNow = 20.0+loopCount%14;
+    dp.motorRpm = 20.0+loopCount%15;
+    dp.mosfetTemp = 20.0+loopCount%16;    
   }
   dp.chassisHumidity = getHuminity();
   dp.chassisTemp = getTemp();
@@ -117,8 +131,20 @@ LogdataRow createDatapoint(){
 void saveDatapoint(LogdataRow datapoint, File &file){
   file.print(datapoint.time);
   file.print(",");
-  file.print(datapoint.tempMotor);
+  file.print(datapoint.motorTemp);
   file.print(",");
+  file.print(datapoint.motorInpVoltage);
+  file.print(",");
+  file.print(datapoint.motorAvgInputCurrent);
+  file.print(",");
+  file.print(datapoint.motorAvgCurrent);
+  file.print(",");
+  file.print(datapoint.motorDutyCycleNow);
+  file.print(",");      
+  file.print(datapoint.motorRpm);
+  file.print(",");    
+  file.print(datapoint.mosfetTemp);
+  file.print(",");             
   file.print(datapoint.chassisTemp);
   file.print(",");
   file.print(datapoint.chassisHumidity);

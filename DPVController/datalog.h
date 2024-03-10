@@ -6,7 +6,13 @@
 
 struct LogdataRow {
   long time;
-  float tempMotor;
+  float motorTemp;
+  float motorInpVoltage;
+  float motorAvgInputCurrent;
+  float motorAvgCurrent;
+  float motorDutyCycleNow;
+  float motorRpm;
+  float mosfetTemp;
   float chassisTemp;
   float chassisHumidity;
 };
