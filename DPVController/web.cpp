@@ -54,6 +54,11 @@ void handleLogs(){
   }
 }
 
+void handleDeleteLogs(){
+  deleteAllFiles();
+  server.send(200, "text/html", "all logs deleted.");
+}
+
 void handleNotFound() {
   String message = "File Not Found\n\n";
   message += "URI: ";
@@ -87,6 +92,7 @@ void webSetup(){
 
   server.on("/", handleRoot);
   server.on("/logs", handleLogs);
+  server.on("/logs/delete-all", HTTP_POST, handleDeleteLogs);
   server.on("/inline", []() {
     server.send(200, "text/plain", "this works as well");
   });

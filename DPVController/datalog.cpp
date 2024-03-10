@@ -25,6 +25,7 @@ const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in
 * GLOBAL VARIABLES
 */ 
 File csvFile;
+bool loggingActive = false;
 unsigned long lastDataLogTime = millis();
 
 
@@ -64,8 +65,10 @@ void listLogFiles(){
           Serial.print("\tSIZE: ");
           Serial.println(file.size());
       }
+      file.close();
       file = root.openNextFile();
   }
+  root.close();
 }
 
 String createLogfilesHtml(){
@@ -89,9 +92,16 @@ String createLogfilesHtml(){
         html += "</a><br />";
         html += "\r\n";
       } 
+      file.close();
       file = root.openNextFile();
   }
-  html += "</body></html>";
+  root.close();
+  html += "<form action=\"/logs/delete-all\" method=\"post\" "
+  "onsubmit=\"return confirm('Do you really want to delete all logs?');\">\r\n";
+  html += "   <input type=\"submit\" value=\"DELETE ALL LOGS\">\r\n";
+  html += "</form>\r\n";
+
+  html += "</body></html>\r\n";
   return html;
 }
 
@@ -100,7 +110,9 @@ String readLogFile(String logname){
   if (!file.available()){
     return "can not read " + logname;
   }
-  return file.readString();
+  String content = file.readString();
+  file.close();
+  return content;
 }
 
 LogdataRow createDatapoint(){
@@ -152,19 +164,51 @@ void saveDatapoint(LogdataRow datapoint, File &file){
   file.flush();
 }
 
-void datalogSetup(){
-  if(!SPIFFS.begin(true)){
-      Serial.println("SPIFFS Mount Failed");
+void deleteAllFiles(){
+  Serial.printf("Deleting files in: %s\r\n", DATALOG_DIR);
+  if (loggingActive){
+    csvFile.close();
+  }
+
+  File root = SPIFFS.open(DATALOG_DIR);
+  if(!root){
+      Serial.println("- failed to open directory");
+      return;
+  }
+  if(!root.isDirectory()){
+      Serial.println(" - not a directory");
       return;
   }
 
-  openCSVFile();
+  String filename = root.getNextFileName();
+  
+  while(filename != ""){
+    String fullpath = filename;
+    Serial.print(fullpath);
+    Serial.print("DELETED: "+SPIFFS.remove(fullpath));
+    Serial.println();
+    filename = root.getNextFileName();
+  }  
+  root.close();
 
+  if (loggingActive){
+    openCSVFile();
+  }
+}
+
+void datalogSetup(){
+  if(!SPIFFS.begin(true)){
+      Serial.println("SPIFFS Mount Failed");
+      loggingActive = false;
+      return;
+  }
+  loggingActive = true;
+  openCSVFile();
   listLogFiles();
 }
 
 void datalogLoop(){
-  if (millis()>lastDataLogTime+DATALOG_INTERVAL){
+  if (loggingActive && millis()>lastDataLogTime+DATALOG_INTERVAL){
     LogdataRow data = createDatapoint();
     saveDatapoint(data, csvFile);
     lastDataLogTime = millis();
