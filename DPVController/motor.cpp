@@ -57,6 +57,10 @@ double lastPrintedMotorSpeed = -1;
 unsigned long overLoadedSince = NEVER; //microsecond timestamp.
 unsigned long lastStandbyBeepTime = 0;
 
+int getSpeedSetting(){
+  return currentMotorStep;
+}
+
 
 void motorSetup(){
   // Initialize VESC UART communication

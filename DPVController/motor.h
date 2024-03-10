@@ -15,6 +15,7 @@ void motorSetup();
 void motorLoop();
 void speedUp();
 void speedDown();
+int getSpeedSetting();
 void wakeUp();
 void standBy();
 void enterCruiseMode();

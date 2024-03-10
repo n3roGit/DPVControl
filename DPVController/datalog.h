@@ -12,10 +12,12 @@ struct LogdataRow {
   float motorAvgCurrent;
   float motorDutyCycleNow;
   float motorRpm;
+  int motorState;
   float mosfetTemp;
   float chassisTemp;
   float chassisHumidity;
   int ledLampState;
+  int speedSetting;
 };
 
 

@@ -17,8 +17,8 @@
 */ 
 
 const String HEADER = "time,motor temp,motor input voltage,motor average input current,"
-"motor average current,motor duty cycle,motor RPM,mosfet temp,"
-"chassis temp,chassis humidity,led lamp state";
+"motor average current,motor duty cycle,motor RPM, motor state,mosfet temp,"
+"chassis temp,chassis humidity,led lamp state,speed setting";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000;//how often we record a datapoint in milliseconds.
 
@@ -138,9 +138,11 @@ LogdataRow createDatapoint(){
     dp.motorRpm = 20.0+loopCount%15;
     dp.mosfetTemp = 20.0+loopCount%16;    
   }
+  dp.motorState = motorState;
   dp.chassisHumidity = getHuminity();
   dp.chassisTemp = getTemp();
   dp.ledLampState = getLampState();
+  dp.speedSetting = getSpeedSetting();
   return dp;
 }
 
@@ -159,6 +161,8 @@ void saveDatapoint(LogdataRow datapoint, File &file){
   file.print(",");      
   file.print(datapoint.motorRpm);
   file.print(",");    
+  file.print(datapoint.motorState);
+  file.print(",");    
   file.print(datapoint.mosfetTemp);
   file.print(",");             
   file.print(datapoint.chassisTemp);
@@ -166,6 +170,8 @@ void saveDatapoint(LogdataRow datapoint, File &file){
   file.print(datapoint.chassisHumidity);
   file.print(",");
   file.print(datapoint.ledLampState);  
+  file.print(",");    
+  file.print(datapoint.speedSetting);
   file.println();
   file.flush();
 }
