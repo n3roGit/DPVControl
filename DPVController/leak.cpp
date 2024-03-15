@@ -26,10 +26,12 @@ bool getLeakBack()
 void checkForLeak()
 {
 
-  if ((getLeakFront() || getLeakBack()) && millis() - lastNoLeakMs >= 1000){
-    leakSensorState = 1; // There is a leak
-    log("leakSensorState", leakSensorState, true);
-    setBarLeak();
+  if (getLeakFront() || getLeakBack()){
+    if (millis() - lastNoLeakMs >= 1000){
+      leakSensorState = 1; // There is a leak
+      log("leakSensorState", leakSensorState, true);
+      setBarLeak();
+    }
   }else{
     lastNoLeakMs = millis();
   }
