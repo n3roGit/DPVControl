@@ -79,16 +79,17 @@ void setBarBattery(int num) {
 }
 
 void setBarLeak() {
-    int frontLeakState = digitalRead(PIN_LEAK_FRONT);
-    int backLeakState = digitalRead(PIN_LEAK_BACK);
+  setBar(1,10,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
+    // int frontLeakState = digitalRead(PIN_LEAK_FRONT);
+    // int backLeakState = digitalRead(PIN_LEAK_BACK);
 
-    if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(1,10,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
-    } else if (backLeakState == LOW) {
-      setBar(1,5,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
-    } else if(frontLeakState == LOW) {
-      setBar(1,5,"#0000FF", 0, "#0000FF", LEDBar_Brightness);
-    }
+    // if (backLeakState == LOW && frontLeakState == LOW) {
+    //   setBar(1,10,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
+    // } else if (backLeakState == LOW) {
+    //   setBar(1,5,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
+    // } else if(frontLeakState == LOW) {
+    //   setBar(1,5,"#0000FF", 0, "#0000FF", LEDBar_Brightness);
+    // }
 }
 
 void setBarPowerBank(bool status) {
