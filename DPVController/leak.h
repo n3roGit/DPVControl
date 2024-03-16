@@ -1,7 +1,7 @@
 #ifndef leak_h
 #define leak_h
 
-extern int leakSensorState;
+extern bool hasLeak;
 
 void checkForLeak();
 

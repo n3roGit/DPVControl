@@ -4,7 +4,7 @@
 #include "ledBar.h"
 #include "Arduino.h"
 
-int leakSensorState = 0;
+bool hasLeak = false;
 
 int lastNoLeakMs = 0;
 
@@ -26,10 +26,10 @@ bool getLeakBack()
 void checkForLeak()
 {
 
-  if (getLeakFront() || getLeakBack()){
+  if (!hasLeak && (getLeakFront() || getLeakBack())){
     if (millis() - lastNoLeakMs >= 1000){
-      leakSensorState = 1; // There is a leak
-      log("leakSensorState", leakSensorState, true);
+      hasLeak = true; 
+      log("hasLeak", hasLeak, true);
       setBarLeak();
     }
   }else{

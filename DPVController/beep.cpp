@@ -62,7 +62,7 @@ void beepLoop(){
 
 
 void BeepForLeak() {
-  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
+  if (hasLeak && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
     beep("12121212");                                                              // Here is the desired sequence for the sound
     log("WARNING LEAK", 12121212, true);
     lastLeakBeepTime = micros();  // update the time of the last call
