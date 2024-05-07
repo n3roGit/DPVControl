@@ -113,6 +113,16 @@ them in the /libraries -Folder and install them into Arduino.
 # Pinout
 ![ESP32](./ESP32.png)
 
+# Hardware Updates
+| Change                                        |
+|-----------------------------------------------|
+| Handle replaced with POM tube                 |
+| Caveline replaced by thin V4A steel cable    |
+| Stator integrated to eliminate lateral torque|
+| Tow/haul line attached at the top            |
+| Impact protection fitted over the magnetic switches|
+
+
 # Videos
 [<img src="./images/video1.png" width="50%">](https://youtu.be/6myfqZKiGTU "Aquazepp first ride")
 [<img src="./images/video2.png" width="50%">](https://youtube.com/shorts/ZGKomkWQHeM "Aquazepp Stator")
