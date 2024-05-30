@@ -126,6 +126,7 @@ them in the /libraries -Folder and install them into Arduino.
 # Videos
 [<img src="./images/video1.png" width="50%">](https://youtu.be/6myfqZKiGTU "Aquazepp first ride")
 [<img src="./images/video2.png" width="50%">](https://youtube.com/shorts/ZGKomkWQHeM "Aquazepp Stator")
+[<img src="./images/video3.png" width="50%">](https://www.youtube.com/watch?v=6m43nQFAH6o "Full speed drive")
 
 
 # Build Process
