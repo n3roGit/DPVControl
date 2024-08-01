@@ -130,6 +130,8 @@ them in the /libraries -Folder and install them into Arduino.
 
 
 # Build Process
+![Build](./buildprocess/00.jpg)
+![Build](./buildprocess/01.jpg)
 ![Build](./buildprocess/1.jpg)
 ![Build](./buildprocess/2.jpg)
 ![Build](./buildprocess/3.jpg)
@@ -154,3 +156,17 @@ them in the /libraries -Folder and install them into Arduino.
 ![Build](./buildprocess/22.jpg)
 ![Build](./buildprocess/23.jpg)
 ![Build](./buildprocess/24.jpg)
+![Build](./buildprocess/25.jpg)
+![Build](./buildprocess/26.jpg)
+![Build](./buildprocess/27.jpg)
+![Build](./buildprocess/28.jpg)
+![Build](./buildprocess/29.jpg)
+![Build](./buildprocess/30.jpg)
+![Build](./buildprocess/31.jpg)
+![Build](./buildprocess/32.jpg)
+![Build](./buildprocess/33.jpg)
+![Build](./buildprocess/34.jpg)
+![Build](./buildprocess/35.jpg)
+![Build](./buildprocess/36.jpg)
+![Build](./buildprocess/37.jpg)
+![Build](./buildprocess/38.jpg)
