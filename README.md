@@ -117,29 +117,59 @@ The data can be easily uploaded here. By selecting the required data points, the
 # Pinout
 ![ESP32](./ESP32.png)
 
+# Hardware Updates
+| Change                                        |
+|-----------------------------------------------|
+| Handle replaced with POM tube                 |
+| Caveline replaced by thin V4A steel cable    |
+| Stator integrated to eliminate lateral torque|
+| Tow/haul line attached at the top            |
+| Impact protection fitted over the magnetic switches|
+
+
 # Videos
 [<img src="./images/video1.png" width="50%">](https://youtu.be/6myfqZKiGTU "Aquazepp first ride")
+[<img src="./images/video2.png" width="50%">](https://youtube.com/shorts/ZGKomkWQHeM "Aquazepp Stator")
+[<img src="./images/video3.png" width="50%">](https://www.youtube.com/watch?v=6m43nQFAH6o "Full speed drive")
+
 
 # Build Process
-![Build](./buildprocess/1.jpg)
-![Build](./buildprocess/2.jpg)
-![Build](./buildprocess/3.jpg)
-![Build](./buildprocess/4.jpg)
-![Build](./buildprocess/5.jpg)
-![Build](./buildprocess/6.jpg)
-![Build](./buildprocess/7.jpg)
-![Build](./buildprocess/8.jpg)
-![Build](./buildprocess/9.jpg)
-![Build](./buildprocess/10.jpg)
-![Build](./buildprocess/11.jpg)
-![Build](./buildprocess/12.jpg)
-![Build](./buildprocess/13.jpg)
-![Build](./buildprocess/14.jpg)
-![Build](./buildprocess/15.jpg)
-![Build](./buildprocess/16.jpg)
-![Build](./buildprocess/17.jpg)
-![Build](./buildprocess/18.jpg)
-![Build](./buildprocess/19.jpg)
-![Build](./buildprocess/20.jpg)
-![Build](./buildprocess/21.jpg)
-![Build](./buildprocess/22.jpg)
+![Build](./buildprocess/3dzepp.jpg)
+![Build](./buildprocess/3dzepp_inner.jpg)
+![Build](./buildprocess/aquazepp.jpg)
+![Build](./buildprocess/prototype_magswitch.jpg)
+![Build](./buildprocess/prototype_magswitch2.jpg)
+![Build](./buildprocess/testboard.jpg)
+![Build](./buildprocess/testboard2.jpg)
+![Build](./buildprocess/gear.jpg)
+![Build](./buildprocess/gear2.jpg)
+![Build](./buildprocess/handle.jpg)
+![Build](./buildprocess/handle2.jpg)
+![Build](./buildprocess/handle3.jpg)
+![Build](./buildprocess/ledtest.jpg)
+![Build](./buildprocess/prototype_led.jpg)
+![Build](./buildprocess/led.jpg)
+![Build](./buildprocess/ledcooler.jpg)
+![Build](./buildprocess/leddisplay_hole1.jpg)
+![Build](./buildprocess/leddisplay_hole2.jpg)
+![Build](./buildprocess/leddisplay_hole3.jpg)
+![Build](./buildprocess/leddisplay.jpg)
+![Build](./buildprocess/leddisplay2.jpg)
+![Build](./buildprocess/magswitch.jpg)
+![Build](./buildprocess/mainswitch.jpg)
+![Build](./buildprocess/motor1.jpg)
+![Build](./buildprocess/motor2.jpg)
+![Build](./buildprocess/motorplate.jpg)
+![Build](./buildprocess/prop.jpg)
+![Build](./buildprocess/batt.jpg)
+![Build](./buildprocess/batt2.jpg)
+![Build](./buildprocess/battlock.jpg)
+![Build](./buildprocess/board.jpg)
+![Build](./buildprocess/dpvback.jpg)
+![Build](./buildprocess/dpvfront.jpg)
+![Build](./buildprocess/dpvtop.jpg)
+![Build](./buildprocess/dpvtop2.jpg)
+![Build](./buildprocess/stator.jpg)
+![Build](./buildprocess/me.jpg)
+![Build](./buildprocess/me2.jpg)
+

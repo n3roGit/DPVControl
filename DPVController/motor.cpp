@@ -35,7 +35,7 @@ const unsigned long MAX_DELTA_US = 30/*microseconds*/ * 1000; //Maximum time fro
 const double MIN_SPEED_PERCENT = 0.38; //Speed on lowest setting in percent of max.
 const double MIN_SPEED_SOFT = 0.1; //Minumum % we sent to the motor during soft acceleration. 
 const double MAX_SPEED_RPM = 14500; //Maximum speed in rpm. Speed of 100% 
-const int SPEED_UP_TIME_US = 5/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
+const int SPEED_UP_TIME_US = 3/*s*/ * 1000 * 1000;    //time we want to take to  speed the motor from 0 to  full power.
 const int SPEED_DOWN_TIME_US = 500/*ms*/ * 1000;  //time we want to take to  speed the motor from full power to 0.
 const long MAX_TIME_OVERLOADED = 5/*s*/ * 1000; //Maximum time in ms that we overload the battery before lowering motor power.
 
