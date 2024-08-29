@@ -155,6 +155,7 @@ them in the /libraries -Folder and install them into Arduino.
 ![Build](./buildprocess/mainswitch.jpg)
 ![Build](./buildprocess/motor1.jpg)
 ![Build](./buildprocess/motor2.jpg)
+![Build](./buildprocess/motor3.jpg)
 ![Build](./buildprocess/motorplate.jpg)
 ![Build](./buildprocess/prop.jpg)
 ![Build](./buildprocess/batt.jpg)
