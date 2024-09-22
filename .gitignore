@@ -1,24 +1,24 @@
-# Bibliotheken-Verzeichnis
+# Libraries directory
 libraries
 
-# Temporäre Dateien von Draw.io
+# Temporary files from Draw.io
 *.drawio.dtmp
 *.drawio.bkp
 *.drawio~*
 
-# Temporäre Dateien von MS Office
+# Temporary files from MS Office
 ~$*
 *.tmp
 *.lock
 
-# Build-Output-Verzeichnis
+# Build output directory
 build-output
 
-# VSCode-Konfigurationsordner
+# VSCode configuration folder
 .vscode
 
-# Cppcheck Build-Dir
+# Cppcheck build directory
 check-cppcheck-build-dir
 
-# Lokale Konfigurationsdatei für DPVController
+# Local configuration file for DPVController
 DPVController/localConfig.h
