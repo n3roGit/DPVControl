@@ -108,9 +108,5 @@ void setBarLED(int num) {
 void setBarFlasher(bool status) {
   if (status){
     setBar(1,10,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
-  } 
-  else {
-    //setBarSpeed(SPEED_STEPS);
-  }
-    
+  }  
 }

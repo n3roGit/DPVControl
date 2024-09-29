@@ -60,7 +60,7 @@ void ledLampLoop(){
 }
 
 void flash(){
-  lampBlinker.blink(500);
+  lampBlinker.blink(1000);
 }
 
 void toggleLED(){
