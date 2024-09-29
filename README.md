@@ -90,13 +90,13 @@ them in the /libraries -Folder and install them into Arduino.
 |:--------:|:--------:|
 | 12121212 | Leak warning |
 |1|still in standby|
-|2|going to standby or wake up from standby|
+|11|going to standby or wake up from standby|
 |2|10% battery left|
 |22|20% battery left|
 |222|30% battery left|
 |n*2| Get n beep for every 10% left in battery (beep Battery level)|
 |1| once after boot|
-|11|No speedup because overloaded|
+|111|No speedup because overloaded|
 |1|speed steps exeeded|
 |12|Overloaded for too long. Lowering speed.|
 |21|No longer overloaded|

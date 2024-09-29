@@ -117,7 +117,7 @@ void standBy(){
   log("going to standby");
   motorState = standby;
   lastStandbyBeepTime = micros();//Avoid the regular beep to be triggered just hwen going to standby
-  beep("2");
+  beep("111");
   setBarStandby();
 }
 

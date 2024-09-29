@@ -117,10 +117,10 @@ void performActions(){
   }else if (motorState == jammed) {
     //No special action when jammed.
   }else{
-    if (rightButton.clicks == 2 && leftButtonState == PRESSED) {
+    if (rightButton.clicks == 2) {
       speedUp();
     }
-    if (leftButton.clicks == 2  && rightButtonState == PRESSED) {
+    if (leftButton.clicks == 2) {
       speedDown();
     }  
     if(isDoubleClickHold(lastLeftClick, leftButtonHeldSince) 
