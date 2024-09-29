@@ -41,7 +41,7 @@ const float JAM_DETECTION_THRESHOLD = 0.5; //Percentage of target speed
 * VARIABLES 
 */
 double currentMotorSpeed = 0;           //Speed the motor is currently running at(0.0-1.0)
-int currentMotorStep = 1;//The current speed setting. stays the same, even if motor is turned off. 
+int currentMotorStep = 3;//The current speed setting. stays the same, even if motor is turned off. 
 //Goes from 1(very slow) to SPEED_STEPS(max)
 int overloadSpeedThrottle = NEVER; //Either NEVER or the maximum speed setting before we would overload the battery.
 unsigned long currentMotorTime = micros();  //Time in microseconds when we last changed the currentMotorSpeed
@@ -72,7 +72,7 @@ void speedUp(){
   }else if(overloadSpeedThrottle != NEVER 
     &&currentMotorStep+1>=overloadSpeedThrottle){
     log("No speedup because overloaded.");
-    beep("11");
+    beep("111");
   }else{
     log("speed up", currentMotorStep);
     currentMotorStep++;
@@ -117,7 +117,7 @@ void standBy(){
   log("going to standby");
   motorState = standby;
   lastStandbyBeepTime = micros();//Avoid the regular beep to be triggered just hwen going to standby
-  beep("111");
+  beep("11");
   setBarStandby();
 }
 
