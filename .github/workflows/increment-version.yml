@@ -3,7 +3,7 @@ name: Increment Version
 on:
   push:
     branches:
-      - main
+      - production_repo
 
 jobs:
   increment-version:
