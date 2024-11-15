@@ -3,33 +3,33 @@ name: Increment Version
 on:
   push:
     branches:
+      - main
       - production_repo
 
 jobs:
-  increment-version:
+  versioning:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Increment version
-        id: increment_version
-        uses: mathieudutour/github-tag-action@v5.6
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          release_branches: main
-          default_bump: patch  # Inkrementiere die PATCH-Version
-          tag_prefix: ''       # Kein Präfix vor der Version (z.B., kein "v")
+          node-version: '20'
 
-      - name: Update version file
+      - name: Increment version
         run: |
-          # Schreibe die neue Version in version.txt
-          echo "${{ steps.increment_version.outputs.new_tag }}" > DPVController/version.txt
+          CURRENT_VERSION=$(cat version.txt || echo "0.0.0")
+          NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
+          echo $NEW_VERSION > version.txt
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
-      - name: Commit updated version
+      - name: Push new version
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add DPVController/version.txt
-          git commit -m "Update version to ${{ steps.increment_version.outputs.new_tag }}"
-          git push origin main
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.txt
+          git commit -m "Bump version to $NEW_VERSION"
+          git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+          git push origin HEAD --tags
