@@ -2,6 +2,10 @@
 
 ![Version](https://img.shields.io/github/v/tag/n3roGit/DPVControl?label=Version&cache_seconds=0)
 ![Branch](https://img.shields.io/badge/dynamic/json?color=blue&label=Branch&query=$.default_branch&url=https://api.github.com/repos/n3roGit/DPVControl)
+![License](https://img.shields.io/github/license/n3roGit/DPVControl)
+![Last Commit](https://img.shields.io/github/last-commit/n3roGit/DPVControl)
+![Issues](https://img.shields.io/github/issues/n3roGit/DPVControl)
+![Pull Requests](https://img.shields.io/github/issues-pr/n3roGit/DPVControl)
 
 # THE PROJECT
 In this GitHub project, the aim is to build and operate a DPV (Dive Propulsion Vehicle) using standard components. In my case, I will breathe new life into an old Aquazepp. The motor I'm using is a common 2000-watt scooter motor, controlled by a VESC (Vedder Electronic Speed Controller). The entire system is controlled through Reed switches activated by magnets with a Bowden cable.
