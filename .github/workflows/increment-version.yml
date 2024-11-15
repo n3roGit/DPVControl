@@ -9,6 +9,9 @@ on:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -20,16 +23,22 @@ jobs:
 
       - name: Increment version
         run: |
-          CURRENT_VERSION=$(cat version.txt || echo "0.0.0")
+          CURRENT_VERSION=$(cat DPVController/version.txt || echo "0.0.0")
           NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
-          echo $NEW_VERSION > DPVController\version.txt
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          echo $NEW_VERSION > DPVController/version.txt
           echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=v$NEW_VERSION-$TIMESTAMP" >> $GITHUB_ENV
 
       - name: Push new version
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add DPVController\version.txt
+          git add DPVController/version.txt
           git commit -m "Bump version to $NEW_VERSION"
-          git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
-          git push origin HEAD --tags
+          if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
+            echo "Tag v$NEW_VERSION already exists. Skipping tagging."
+          else
+            git tag -a "$TAG_NAME" -m "Version $NEW_VERSION"
+            git push origin HEAD --tags
+          fi
