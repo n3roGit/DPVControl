@@ -22,14 +22,14 @@ jobs:
         run: |
           CURRENT_VERSION=$(cat version.txt || echo "0.0.0")
           NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
-          echo $NEW_VERSION > version.txt
+          echo $NEW_VERSION > DPVController\version.txt
           echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Push new version
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add version.txt
+          git add DPVController\version.txt
           git commit -m "Bump version to $NEW_VERSION"
           git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
           git push origin HEAD --tags
