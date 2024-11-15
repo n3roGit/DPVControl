@@ -5,7 +5,7 @@
 #include "string"
 
 /*
-* Manages the battery
+* Manages the battery 
 */
 
 struct VoltToSoc{
