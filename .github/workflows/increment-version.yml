@@ -28,10 +28,9 @@ jobs:
         run: |
           CURRENT_VERSION=$(cat DPVController/version.txt || echo "0.0.0")
           NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
           echo $NEW_VERSION > DPVController/version.txt
           echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=v$NEW_VERSION-$TIMESTAMP" >> $GITHUB_ENV
+          echo "TAG_NAME=v$NEW_VERSION" >> $GITHUB_ENV
 
       - name: Push new version
         run: |
@@ -39,8 +38,8 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add DPVController/version.txt
           git commit -m "Bump version to ${VERSION}"
-          if git rev-parse "v$NEW_VERSION" >/dev/null 2>&1; then
-            echo "Tag v$NEW_VERSION already exists. Skipping tagging."
+          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+            echo "Tag v$VERSION already exists. Skipping tagging."
           else
             git tag -a "$TAG_NAME" -m "Version $VERSION"
             git push origin HEAD --tags
