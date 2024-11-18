@@ -1,27 +1,40 @@
 ---
 name: Bug report
-about: Create a report to help us improve
-title: '[BUG]  "YOUR TITLE" - PRIO 1-10'
+about: Report an issue with the DPV Controller
+title: '[BUG] "YOUR TITLE" - PRIO 1-10'
 labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Bug Description**
+A clear description of what the bug is.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Hardware Setup**
+- Controller Version:
+- Connected Components:
+- Firmware Version:
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Steps to Reproduce**
+1. Describe exact steps
+2. That lead to the issue
+3. Be as specific as possible
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Expected Behavior**
+What should have happened?
 
-**Additional context**
-Add any other context about the problem here.
+**Actual Behavior**
+What happened instead?
+
+**Debug Information**
+- Serial Monitor Output:
+- Sensor Values:
+- LED/Display Status:
+
+**Additional Context**
+- Battery Level:
+- Temperature/Humidity:
+- Any other relevant conditions
+
+**Screenshots/Photos**
+If applicable, add photos of the setup or screenshots of debug output.
