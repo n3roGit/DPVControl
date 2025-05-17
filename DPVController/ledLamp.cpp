@@ -36,7 +36,8 @@ void setLEDState(int state);
 
 void turnLampOn(){setLEDState(LAMP_MAX);}
 void turnLampOff(){
-  setLEDState(LED_State);//Use previous
+  // Always turn lamp fully off when stopping a blink (e.g., SOS sequence)
+  setLEDState(LAMP_OFF);
 }
 
 Blinker lampBlinker = Blinker(turnLampOn, turnLampOff);
