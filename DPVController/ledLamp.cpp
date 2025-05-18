@@ -60,6 +60,7 @@ void ledLampLoop(){
 }
 
 void flash(){
+    setBarFlasher();
   lampBlinker.blink(1000);
 }
 

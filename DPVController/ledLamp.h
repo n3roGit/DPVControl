@@ -8,6 +8,9 @@ float getLedLampPower();
 void blinkLED(const String& sequence);
 void toggleLED();
 void flash();
+void setBarFlasher();
+void restorePreviousDisplay();
+void restoreCurrentGearLevel();
 void ledLampSetup();
 void ledLampLoop();
 #endif

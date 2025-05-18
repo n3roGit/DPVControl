@@ -150,6 +150,9 @@ void performActions(){
   }
   if (leftButton.clicks == 3) {
     flash();
+    // Logic to handle restoration of previous display after 30 seconds
+    setTimer(30000, restoreCurrentGearLevel);
+    flash();
   }
   if (leftButton.clicks == 4) {
     outputBatteryInfo();
