@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - production_repo
+  pull_request:
+
+jobs:
+  arduino-compile:
+    name: Compile Arduino Sketches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Arduino sketches
+        uses: arduino/compile-sketches@v1
+        with:
+          board: esp32:esp32:esp32dev
+          sketches: |
+            DPVController/DPVController.ino
+            DPVController/button.ino
+
+  esp-idf-build:
+    name: ESP-IDF Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build with ESP-IDF
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v4.4
+          target: esp32
+          path: DPVController
