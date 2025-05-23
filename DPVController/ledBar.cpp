@@ -1,6 +1,7 @@
 #include "ledBar.h"
 #include <Adafruit_NeoPixel.h>
 #include "constants.h"
+#include "motor.h"
 
 /**
 * Code that controls the two led strips
@@ -70,7 +71,27 @@ void setBarStandby() {
 }
 
 void setBarSpeed(int num) {
-    setBar(1,num,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+    if (motorState == cruise) {
+        setBarSpeedCruise(num);
+    } else {
+        setBar(1,num,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+    }
+}
+
+void setBarSpeedCruise(int num) {
+    if (num <= 0) {
+        setBar(1,0,"#000000", 0, "#000000", 0);
+        return;
+    }
+    
+    // Set all LEDs except the last one to pink
+    setBar(1,num-1,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+    
+    // Set the last LED to red
+    int startIndex = 0;
+    int lastLEDIndex = startIndex + num - 1;
+    strip.setPixelColor(lastLEDIndex, strip.Color(LEDBar_Brightness, 0, 0));
+    strip.show();
 }
 
 void setBarBattery(int num) {
@@ -106,7 +127,9 @@ void setBarLED(int num) {
 }
 
 void setBarFlasher(bool status) {
-  if (status){
-    setBar(1,10,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
+  if (status) {
+    setBar(1, 10, "#FFFFFF", LEDBar_Brightness, "#000000", 0); // All 10 LEDs white
+  } else {
+    // Don't do anything here - the status restoration is handled by the caller
   }  
 }

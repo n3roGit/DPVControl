@@ -36,6 +36,10 @@ static int flashStep = 0;
 static unsigned long flashStepTime = 0;
 int LED_State = LAMP_OFF;
 int lastStandbyBlinkTime = 0; //The timestamp(ms) when we last blinked for standby-warning.
+static unsigned long lastStatusChangeTime = 0;
+static bool isInStandby = false;
+static bool isStatusRestorationPending = false; // New flag to track if restoration is pending
+extern int currentMotorStep; // Declare external variable
 
 
 void setLEDState(int state);
@@ -89,7 +93,17 @@ void ledLampLoop(){
       case 4: // Step 4: Restore original state
         LED_State = preBlinkLEDState;
         setLEDState(LED_State);
-        setBarLED(LED_State);
+        setBarFlasher(false); // Deactivate flasher
+        isInStandby = (motorState == standby);
+        if (!isStatusRestorationPending) { // Only start timer if not already pending
+          lastStatusChangeTime = millis();
+          isStatusRestorationPending = true;
+        }
+        if (isInStandby) {
+          setBarStandby(); // Restore standby display
+        } else {
+          setBarSpeed(currentMotorStep); // Restore speed display
+        }
         isFlashing = false;
         flashStep = 0;
         break;
@@ -104,14 +118,27 @@ void ledLampLoop(){
     setBarLED(LED_State);
     shouldRestoreLED = false;
   }
+
+  // Check if 10 seconds have passed since last status change
+  if (isStatusRestorationPending && millis() - lastStatusChangeTime >= 10000) {
+    isInStandby = (motorState == standby); // Update standby state
+    if (isInStandby) {
+      setBarStandby(); // Keep standby display
+    } else {
+      setBarSpeed(currentMotorStep); // Restore speed display
+    }
+    isStatusRestorationPending = false; // Reset pending flag
+  }
 }
 
 void flash(){
   if (!isFlashing) { // Only start flash if not already flashing
+    log("flash called at", millis(), true); // Add timestamp to debug log
     preBlinkLEDState = LED_State;  // Save current state
     isFlashing = true;
     flashStep = 1;
     flashStepTime = millis(); // Start immediately
+    setBarFlasher(true); // Activate flasher on LED bar
   }
 }
 
@@ -173,10 +200,10 @@ void blinkLED(const String& sequence) {
 
 void BlinkForLongStandby() {
   if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
-    blinkLED("111222111");  // Hier die gewünschte Sequenz für den Ton
-    beep("111222111");
+    blinkLED("111222111");  // SOS sequence
+    beep("111222111");      // Keep this beep for SOS
     log("sos iam alone", 111222111, true);
-    lastStandbyBlinkTime = micros();                             // Update the time of the last call
+    lastStandbyBlinkTime = micros();  // Update the time of the last call
   } 
 }
 
