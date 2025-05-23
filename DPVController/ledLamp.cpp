@@ -23,10 +23,17 @@ const int LAMP_OFF = 0;
 const int LAMP_MAX = 4;
 const int StandbyBlinkStart = 15 * 60/*s*/ * 1000 * 1000;         //in microseconds. 15 Minutes for blink start
 const int standbyBlinkInterval = 10*1000*1000;      // microseconds between blink
+const int LAMP_BLINK_PAUSE = 400;                        // ms pause between lamp sequence blinks
 
 /*
 * VARIABLES 
 */
+static int preBlinkLEDState = LAMP_OFF;
+static bool shouldRestoreLED = false;
+static unsigned long blinkRestoreTime = 0;
+static bool isFlashing = false;
+static int flashStep = 0;
+static unsigned long flashStepTime = 0;
 int LED_State = LAMP_OFF;
 int lastStandbyBlinkTime = 0; //The timestamp(ms) when we last blinked for standby-warning.
 
@@ -35,17 +42,20 @@ void setLEDState(int state);
 
 
 void turnLampOn(){setLEDState(LAMP_MAX);}
-void turnLampOff(){
-  setLEDState(LED_State);//Use previous
+void turnLampOff() {
+  // Turn lamp off for blinking without changing LED_State
+  setLEDState(LAMP_OFF);
 }
 
 Blinker lampBlinker = Blinker(turnLampOn, turnLampOff);
 
 long lampDuration(char c){
-  return (c == '1') ? 200 : 600;
+  if (c == '1') return 200;      // Short blink
+  if (c == 'F') return 1000;     // Flash
+  return 600;                    // Long blink or pause
 }
 
-BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, 400);
+BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, LAMP_BLINK_PAUSE);
 
 void ledLampSetup(){
     // Initialize LED PWM
@@ -57,10 +67,52 @@ void ledLampSetup(){
 void ledLampLoop(){
   lampSequence.loop();
   lampBlinker.loop();
+  
+  // Handle flash sequence
+  if (isFlashing && millis() >= flashStepTime) {
+    switch (flashStep) {
+      case 1: // Step 1: Turn off for 1 second
+        setLEDState(LAMP_OFF);
+        flashStepTime = millis() + 1000;
+        flashStep = 2;
+        break;
+      case 2: // Step 2: Flash on max for 1 second  
+        setLEDState(LAMP_MAX);
+        flashStepTime = millis() + 1000;
+        flashStep = 3;
+        break;
+      case 3: // Step 3: Turn off for 1 second
+        setLEDState(LAMP_OFF);
+        flashStepTime = millis() + 1000;
+        flashStep = 4;
+        break;
+      case 4: // Step 4: Restore original state
+        LED_State = preBlinkLEDState;
+        setLEDState(LED_State);
+        setBarLED(LED_State);
+        isFlashing = false;
+        flashStep = 0;
+        break;
+    }
+  }
+  
+  // Restore LED state after blink sequence (for SOS etc.)
+  if (shouldRestoreLED && millis() >= blinkRestoreTime) {
+    // Restore previous state and update LED and bar
+    LED_State = preBlinkLEDState;
+    setLEDState(LED_State);
+    setBarLED(LED_State);
+    shouldRestoreLED = false;
+  }
 }
 
 void flash(){
-  lampBlinker.blink(1000);
+  if (!isFlashing) { // Only start flash if not already flashing
+    preBlinkLEDState = LED_State;  // Save current state
+    isFlashing = true;
+    flashStep = 1;
+    flashStepTime = millis(); // Start immediately
+  }
 }
 
 void toggleLED(){
@@ -103,6 +155,18 @@ void setLEDState(int state) {
 }
 
 void blinkLED(const String& sequence) {
+  // If LED was on before blinking, save state and turn off
+  if (LED_State != LAMP_OFF) {
+    preBlinkLEDState = LED_State;
+    shouldRestoreLED = true;
+    // calculate total time for the blink sequence
+    unsigned long totalTime = 0;
+    for (unsigned int i = 0; i < sequence.length(); ++i) {
+      totalTime += lampDuration(sequence.charAt(i)) + LAMP_BLINK_PAUSE;
+    }
+    blinkRestoreTime = millis() + totalTime;
+    turnLampOff();
+  }
   lampSequence.blink(sequence);
 }
 
