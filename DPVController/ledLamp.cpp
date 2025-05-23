@@ -73,6 +73,13 @@ void ledLampLoop(){
 }
 
 void flash(){
+  // If LED was on before flashing, save state and turn off
+  if (LED_State != LAMP_OFF) {
+    preBlinkLEDState = LED_State;
+    shouldRestoreLED = true;
+    blinkRestoreTime = millis() + 1000; // 1000ms flash duration
+    turnLampOff();
+  }
   lampBlinker.blink(1000);
 }
 
