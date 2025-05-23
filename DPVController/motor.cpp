@@ -220,12 +220,14 @@ void preventOverload(){
 void enterCruiseMode(){
   log("Entering cruise mode", 0);
   motorState = cruise;
+  setBarSpeed(currentMotorStep); // Update LED display for cruise mode
 }
 
 void leaveCruiseMode(){
   log("leaving cruise mode", 0);
   motorState = off;
   lastActionTime = micros();//Prevent standby right after leaving cruise control
+  setBarSpeed(currentMotorStep); // Restore normal LED display
 }
 
 void enterTurboMode(){
