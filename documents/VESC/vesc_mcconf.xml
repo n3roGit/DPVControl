@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MCConfiguration>
-    <ConfigVersion>2</ConfigVersion>
+    <ConfigVersion>4</ConfigVersion>
     <pwm_mode>1</pwm_mode>
     <comm_mode>0</comm_mode>
     <motor_type>2</motor_type>
     <sensor_mode>0</sensor_mode>
-    <l_current_max>100</l_current_max>
+    <l_current_max>110</l_current_max>
     <l_current_min>-1</l_current_min>
     <l_in_current_max>50</l_in_current_max>
     <l_in_current_min>-1</l_in_current_min>
+    <l_in_current_map_start>1</l_in_current_map_start>
+    <l_in_current_map_filter>0.005</l_in_current_map_filter>
     <l_abs_current_max>160</l_abs_current_max>
     <l_min_erpm>-4000</l_min_erpm>
     <l_max_erpm>140000</l_max_erpm>
@@ -19,7 +21,9 @@
     <l_max_vin>57</l_max_vin>
     <l_battery_cut_start>44.2</l_battery_cut_start>
     <l_battery_cut_end>39</l_battery_cut_end>
-    <l_slow_abs_current>1</l_slow_abs_current>
+    <l_battery_regen_cut_start>1000</l_battery_regen_cut_start>
+    <l_battery_regen_cut_end>1100</l_battery_regen_cut_end>
+    <l_slow_abs_current>0</l_slow_abs_current>
     <l_temp_fet_start>85</l_temp_fet_start>
     <l_temp_fet_end>100</l_temp_fet_end>
     <l_temp_motor_start>80</l_temp_motor_start>
@@ -88,9 +92,10 @@
     <foc_hall_table__6>134</foc_hall_table__6>
     <foc_hall_table__7>255</foc_hall_table__7>
     <foc_hall_interp_erpm>500</foc_hall_interp_erpm>
+    <foc_sl_erpm_start>2500</foc_sl_erpm_start>
     <foc_sl_erpm>4000</foc_sl_erpm>
-    <foc_sample_v0_v7>0</foc_sample_v0_v7>
-    <foc_sample_high_current>0</foc_sample_high_current>
+    <foc_control_sample_mode>0</foc_control_sample_mode>
+    <foc_current_sample_mode>0</foc_current_sample_mode>
     <foc_sat_comp_mode>2</foc_sat_comp_mode>
     <foc_sat_comp>0</foc_sat_comp>
     <foc_temp_comp>0</foc_temp_comp>
@@ -98,22 +103,26 @@
     <foc_current_filter_const>0.1</foc_current_filter_const>
     <foc_cc_decoupling>0</foc_cc_decoupling>
     <foc_observer_type>0</foc_observer_type>
+    <foc_hfi_amb_mode>0</foc_hfi_amb_mode>
+    <foc_hfi_amb_current>60</foc_hfi_amb_current>
+    <foc_hfi_amb_tres>15</foc_hfi_amb_tres>
     <foc_hfi_voltage_start>20</foc_hfi_voltage_start>
     <foc_hfi_voltage_run>4</foc_hfi_voltage_run>
     <foc_hfi_voltage_max>6</foc_hfi_voltage_max>
     <foc_hfi_gain>0.3</foc_hfi_gain>
+    <foc_hfi_max_err>0.3</foc_hfi_max_err>
     <foc_hfi_hyst>0</foc_hfi_hyst>
     <foc_sl_erpm_hfi>3000</foc_sl_erpm_hfi>
     <foc_hfi_start_samples>5</foc_hfi_start_samples>
     <foc_hfi_obs_ovr_sec>0.001</foc_hfi_obs_ovr_sec>
     <foc_hfi_samples>1</foc_hfi_samples>
-    <foc_offsets_cal_on_boot>1</foc_offsets_cal_on_boot>
-    <foc_offsets_current__0>2039.98</foc_offsets_current__0>
-    <foc_offsets_current__1>2042.64</foc_offsets_current__1>
-    <foc_offsets_current__2>2042.07</foc_offsets_current__2>
-    <foc_offsets_voltage__0>0.0037</foc_offsets_voltage__0>
-    <foc_offsets_voltage__1>-0.0041</foc_offsets_voltage__1>
-    <foc_offsets_voltage__2>0.0003</foc_offsets_voltage__2>
+    <foc_offsets_cal_mode>1</foc_offsets_cal_mode>
+    <foc_offsets_current__0>2048</foc_offsets_current__0>
+    <foc_offsets_current__1>2048</foc_offsets_current__1>
+    <foc_offsets_current__2>2048</foc_offsets_current__2>
+    <foc_offsets_voltage__0>0</foc_offsets_voltage__0>
+    <foc_offsets_voltage__1>0</foc_offsets_voltage__1>
+    <foc_offsets_voltage__2>0</foc_offsets_voltage__2>
     <foc_offsets_voltage_undriven__0>0</foc_offsets_voltage_undriven__0>
     <foc_offsets_voltage_undriven__1>0</foc_offsets_voltage_undriven__1>
     <foc_offsets_voltage_undriven__2>0</foc_offsets_voltage_undriven__2>
@@ -121,16 +130,13 @@
     <foc_phase_filter_disable_fault>1</foc_phase_filter_disable_fault>
     <foc_phase_filter_max_erpm>4000</foc_phase_filter_max_erpm>
     <foc_mtpa_mode>0</foc_mtpa_mode>
-    <foc_fw_current_max>0</foc_fw_current_max>
+    <foc_fw_current_max>30</foc_fw_current_max>
     <foc_fw_duty_start>0.9</foc_fw_duty_start>
     <foc_fw_q_current_factor>0.02</foc_fw_q_current_factor>
     <foc_fw_ramp_time>0.2</foc_fw_ramp_time>
     <foc_speed_soure>1</foc_speed_soure>
-    <gpd_buffer_notify_left>200</gpd_buffer_notify_left>
-    <gpd_buffer_interpol>0</gpd_buffer_interpol>
-    <gpd_current_filter_const>0.1</gpd_current_filter_const>
-    <gpd_current_kp>0.03</gpd_current_kp>
-    <gpd_current_ki>50</gpd_current_ki>
+    <foc_short_ls_on_zero_duty>0</foc_short_ls_on_zero_duty>
+    <foc_overmod_factor>1</foc_overmod_factor>
     <sp_pid_loop_rate>6</sp_pid_loop_rate>
     <s_pid_kp>0.004</s_pid_kp>
     <s_pid_ki>0.004</s_pid_ki>
@@ -139,6 +145,7 @@
     <s_pid_min_erpm>1100</s_pid_min_erpm>
     <s_pid_allow_braking>0</s_pid_allow_braking>
     <s_pid_ramp_erpms_s>25000</s_pid_ramp_erpms_s>
+    <s_pid_speed_source>0</s_pid_speed_source>
     <p_pid_kp>0.025</p_pid_kp>
     <p_pid_ki>0</p_pid_ki>
     <p_pid_kd>0</p_pid_kd>
@@ -183,28 +190,24 @@
     <si_battery_cells>13</si_battery_cells>
     <si_battery_ah>24</si_battery_ah>
     <si_motor_nl_current>2.4</si_motor_nl_current>
-    <motor_brand>China Scooter Motor </motor_brand>
-    <motor_model>1800W</motor_model>
-    <motor_weight>4700</motor_weight>
-    <motor_sensor_type>1</motor_sensor_type>
-    <motor_description>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Roboto'; font-size:12pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;A motor description can be edited here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</motor_description>
+    <motor_brand></motor_brand>
+    <motor_model></motor_model>
+    <motor_weight>0</motor_weight>
+    <motor_sensor_type>0</motor_sensor_type>
+    <motor_description></motor_description>
     <motor_quality_bearings>0</motor_quality_bearings>
     <motor_quality_magnets>0</motor_quality_magnets>
     <motor_quality_construction>0</motor_quality_construction>
-    <motor_quality_description>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'Roboto'; font-size:12pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;Some comments about the motor quality. Images can be added as well.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</motor_quality_description>
+    <motor_quality_description></motor_quality_description>
     <bms.type>0</bms.type>
     <bms.limit_mode>3</bms.limit_mode>
     <bms.t_limit_start>45</bms.t_limit_start>
     <bms.t_limit_end>65</bms.t_limit_end>
     <bms.soc_limit_start>0.05</bms.soc_limit_start>
     <bms.soc_limit_end>0</bms.soc_limit_end>
+    <bms.vmin_limit_start>2.9</bms.vmin_limit_start>
+    <bms.vmin_limit_end>2.5</bms.vmin_limit_end>
+    <bms.vmax_limit_start>4.2</bms.vmax_limit_start>
+    <bms.vmax_limit_end>4.3</bms.vmax_limit_end>
     <bms.fwd_can_mode>0</bms.fwd_can_mode>
 </MCConfiguration>
