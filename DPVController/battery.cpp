@@ -145,6 +145,19 @@ float getAvergageVoltage(){
   return sum/i;
 }
 
+/**
+ * Returns the current battery voltage
+ * Uses the average voltage if available, or returns a default value
+ */
+float getBatteryVoltage() {
+  float voltage = getAvergageVoltage();
+  // If we don't have any measurements yet, return a default value
+  if (voltage <= 0.1) {
+    return 48.0; // Default battery voltage for 13S Li-ion battery
+  }
+  return voltage;
+}
+
 void updateBatteryLevel(float voltage) {
   recordVoltage(voltage);
   batteryLevel = calculateStateOfCharge(getAvergageVoltage());

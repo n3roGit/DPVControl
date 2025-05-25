@@ -12,4 +12,11 @@ void outputBatteryInfo();
 void BatteryLevelAlert();
 
 void updateBatteryLevel(float voltage);
+
+// Function to get the battery voltage
+float getBatteryVoltage();
+
+// Get average voltage from measurements
+float getAvergageVoltage();
+
 #endif

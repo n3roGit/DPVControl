@@ -1,6 +1,7 @@
 #include "webserver.h"
 #include "log.h"
 #include "data_upload.h"
+#include "datalog.h"  // Einbinden des Datalogger-Headers
 
 // Task handle for the webserver task
 TaskHandle_t webserverTaskHandle = NULL;
@@ -130,6 +131,31 @@ bool loadFromSPIFFS(WiFiClient client, String path) {
     return true;
 }
 
+// Helper function to generate JSON data from datalogger data
+String generateDataLoggerJson(int count) {
+    LogdataRow* dataPoints = getLatestDataPoints(count);
+    if (!dataPoints) {
+        return "[]";
+    }
+    
+    String json = "[";
+    for (int i = 0; i < count && i < totalDataPoints; i++) {
+        if (i > 0) json += ",";
+        json += "{";
+        json += "\"timestamp\":" + String(dataPoints[i].timestamp) + ",";
+        json += "\"tempMotor\":" + String(dataPoints[i].tempMotor) + ",";
+        json += "\"batteryVoltage\":" + String(dataPoints[i].batteryVoltage) + ",";
+        json += "\"current\":" + String(dataPoints[i].current) + ",";
+        json += "\"rpm\":" + String(dataPoints[i].rpm) + ",";
+        json += "\"dutyCycle\":" + String(dataPoints[i].dutyCycle) + ",";
+        json += "\"temperature\":" + String(dataPoints[i].temperature) + ",";
+        json += "\"humidity\":" + String(dataPoints[i].humidity);
+        json += "}";
+    }
+    json += "]";
+    return json;
+}
+
 // Setup the webserver task on Core 0
 void setupWebserver() {
     log("Setting up webserver on Core 0");
@@ -214,6 +240,34 @@ void handleClient(WiFiClient client) {
         } else {
             sendHttpResponse(client, 200, "text/html", helloWorldHTML);
         }
+    } else if (path == "/api/data" || path.startsWith("/api/data?")) {
+        // API endpoint for datalogger data
+        int count = 60; // Default: return 60 data points
+        
+        // Extract count parameter if present
+        if (path.indexOf("count=") != -1) {
+            String countStr = path.substring(path.indexOf("count=") + 6);
+            if (countStr.indexOf("&") != -1) {
+                countStr = countStr.substring(0, countStr.indexOf("&"));
+            }
+            count = countStr.toInt();
+            if (count <= 0 || count > MAX_DATA_POINTS) {
+                count = 60; // Fallback to default
+            }
+        }
+        
+        // Generate and send JSON data
+        String jsonData = generateDataLoggerJson(count);
+        sendHttpResponse(client, 200, "application/json", jsonData.c_str());
+        
+    } else if (path == "/api/status") {
+        // API endpoint for system status
+        String jsonStatus = "{";
+        jsonStatus += "\"uptime\":" + String(millis()) + ",";
+        jsonStatus += "\"dataPoints\":" + String(totalDataPoints);
+        jsonStatus += "}";
+        sendHttpResponse(client, 200, "application/json", jsonStatus.c_str());
+        
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
                path == "/connecttest.txt" || path == "/redirect" || 
                path == "/hotspot-detect.html" || path.indexOf("success.txt") != -1 || 
