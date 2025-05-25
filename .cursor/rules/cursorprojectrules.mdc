@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Bei diesem Projekt handelt es sich um ein Wasserfahrzeug – ein sogenanntes Diver-Purpose Vehicle (DPV). Die Steuerung erfolgt über einen ESP32, einen VESC sowie weitere Komponenten.
+
+
+Infos zu dem projekt findest du in meinem blog: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/

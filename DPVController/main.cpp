@@ -10,6 +10,7 @@
 #include "datalog.h"
 #include "webserver.h"  // Include webserver header
 #include "data_upload.h" // Include data upload header
+#include <LittleFS.h> // For settings storage
 
 int leakSensorState = 0;
 
@@ -57,11 +58,20 @@ void setup() {
   motorSetup();
   ledLampSetup();
   ledBarSetup();
-  datalogSetup();
   batterySetup();
   
-  // Load beeper settings
+  // Initialize LittleFS first for settings
+  if (!LittleFS.begin(true)) {
+    Serial.println("LittleFS initialization failed!");
+  } else {
+    Serial.println("LittleFS initialized for settings");
+  }
+  
+  // Load beeper settings after LittleFS is ready
   loadBeeperSettings();
+  
+  // Initialize datalogger (will re-initialize LittleFS if needed)
+  datalogSetup();
 
   // Initialize webserver on Core 0
   setupWebserver();

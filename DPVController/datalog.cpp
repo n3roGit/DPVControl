@@ -371,12 +371,13 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
 void initializeTripLog() {
   log("Initializing trip log file...");
   
-  // Open trip log file in append mode
-  tripLogFile = LittleFS.open("/trip_log.bin", "a");
-  if (tripLogFile) {
-    log("Trip log file opened successfully");
+  // Test if we can create/access the trip log file
+  File testFile = LittleFS.open("/trip_log.bin", "a");
+  if (testFile) {
+    testFile.close();
+    log("Trip log file ready for append-only logging");
   } else {
-    log("Failed to open trip log file");
+    log("Failed to access trip log file");
   }
 }
 
@@ -384,15 +385,26 @@ void initializeTripLog() {
  * Append datapoint directly to trip log file (bombproof persistence)
  */
 void appendToTripLog(LogdataRow datapoint) {
-  if (tripLogFile) {
-    size_t written = tripLogFile.write((uint8_t*)&datapoint, sizeof(LogdataRow));
-    tripLogFile.flush(); // Immediate write to flash
+  // Open file for each write to ensure data is saved immediately
+  File tripFile = LittleFS.open("/trip_log.bin", "a");
+  if (tripFile) {
+    size_t written = tripFile.write((uint8_t*)&datapoint, sizeof(LogdataRow));
+    tripFile.flush(); // Immediate write to flash
+    tripFile.close(); // Close immediately to ensure data is saved
     
     if (written == sizeof(LogdataRow)) {
       // Success - minimal logging to avoid stack issues
+      static int writeCount = 0;
+      writeCount++;
+      if (writeCount % 10 == 0) {
+        String writeMsg = "Trip log writes: " + String(writeCount);
+        log(writeMsg.c_str());
+      }
     } else {
       log("Failed to write to trip log");
     }
+  } else {
+    log("Failed to open trip log for writing");
   }
 }
 
@@ -683,12 +695,10 @@ void dataloggerTask(void *pvParameters) {
   
   log("Test datapoint struct filled");
   
-  // Add to buffer
-  recentData[0] = testData;
-  recentIndex = 1;
-  totalRecentPoints = 1;
+  // Add to buffer AND save to trip log
+  addToRecentData(testData);
   
-  log("Test datapoint added to buffer");
+  log("Test datapoint added to buffer and saved to trip log");
   
   String statusMsg = "Buffer status - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
   log(statusMsg.c_str());
@@ -755,12 +765,8 @@ void dataloggerTask(void *pvParameters) {
       newData.ledState = 0; // TODO: Get real LED state
       newData.totalUptime = getTotalUptime();
       
-      // Add to buffer
-      recentData[recentIndex] = newData;
-      recentIndex = (recentIndex + 1) % MAX_RECENT_POINTS;
-      if (totalRecentPoints < MAX_RECENT_POINTS) {
-        totalRecentPoints++;
-      }
+      // Add to buffer AND save to trip log
+      addToRecentData(newData);
       
       lastDataLogTime = currentTime;
       
