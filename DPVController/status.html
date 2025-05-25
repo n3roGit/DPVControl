@@ -322,13 +322,14 @@
             <div style="margin-bottom: 15px;">
                 <label for="data-range">Data Range:</label>
                 <select id="data-range" onchange="updateCharts()">
-                    <option value="recent">Recent (1s resolution)</option>
-                    <option value="hourly">Hourly (1min resolution)</option>
-                    <option value="historical">Historical (5min resolution)</option>
+                    <option value="recent">Recent (1s resolution - last 100 points)</option>
+                    <option value="hourly">Hourly (1min resolution - compressed view)</option>
+                    <option value="historical">Historical (5min resolution - long term)</option>
                 </select>
                 <label for="data-count" style="margin-left: 20px;">Data Points:</label>
                 <input type="number" id="data-count" value="60" min="1" max="500" onchange="updateCharts()" style="width: 80px;">
-                <button class="button" onclick="exportDataAsCSV()" style="margin-left: 20px; background-color: #27ae60;">Export CSV</button>
+                <button class="button" onclick="exportDataAsCSV()" style="margin-left: 20px; background-color: #27ae60;">Export Current View</button>
+                <button class="button" onclick="exportFullTripLog()" style="margin-left: 10px; background-color: #e67e22;">Download Full Trip Log</button>
             </div>
             <div id="graph-container">
                 <!-- Real-time charts with actual sensor data -->
@@ -493,6 +494,44 @@ title:'PayPal - The safer, easier way to pay online!',
                 return;
             }
             
+            exportDataToCSV(currentDataPoints, 'current_view');
+        }
+
+        async function exportFullTripLog() {
+            try {
+                // Show loading indicator
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Downloading...';
+                button.disabled = true;
+                
+                // Fetch all trip data
+                const response = await fetch('/api/trip-log');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const fullTripData = await response.json();
+                
+                if (!fullTripData || fullTripData.length === 0) {
+                    alert('No trip data available for download');
+                    return;
+                }
+                
+                exportDataToCSV(fullTripData, 'full_trip_log');
+                
+            } catch (error) {
+                console.error('Error downloading full trip log:', error);
+                alert('Failed to download trip log: ' + error.message);
+            } finally {
+                // Restore button
+                const button = event.target;
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+
+        function exportDataToCSV(dataPoints, filePrefix) {
             // Create CSV header
             const headers = [
                 'Timestamp',
@@ -514,7 +553,7 @@ title:'PayPal - The safer, easier way to pay online!',
             // Create CSV content
             let csvContent = headers.join(',') + '\n';
             
-            currentDataPoints.forEach(point => {
+            dataPoints.forEach(point => {
                 const row = [
                     new Date(point.timestamp).toISOString(),
                     point.tempMotor,
@@ -540,14 +579,18 @@ title:'PayPal - The safer, easier way to pay online!',
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
             
-            const range = document.getElementById('data-range').value;
             const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            link.setAttribute('download', `dpv_data_${range}_${timestamp}.csv`);
+            const filename = `dpv_${filePrefix}_${timestamp}.csv`;
+            link.setAttribute('download', filename);
             
             link.style.visibility = 'hidden';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            
+            // Show success message
+            const pointCount = dataPoints.length;
+            alert(`Successfully exported ${pointCount} data points to ${filename}`);
         }
 
         function createChart(canvasId, label, data, yAxisLabel) {

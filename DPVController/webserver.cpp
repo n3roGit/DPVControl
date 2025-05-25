@@ -897,6 +897,85 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
     return json;
 }
 
+/**
+ * Generate JSON for complete trip log from LittleFS file
+ */
+String generateFullTripLogJson() {
+    log("generateFullTripLogJson called");
+    
+    if (!LittleFS.exists("/trip_log.bin")) {
+        log("No trip log file found");
+        return "[]";
+    }
+    
+    File tripFile = LittleFS.open("/trip_log.bin", "r");
+    if (!tripFile) {
+        log("Failed to open trip log file");
+        return "[]";
+    }
+    
+    size_t fileSize = tripFile.size();
+    size_t dataPointCount = fileSize / sizeof(LogdataRow);
+    
+    String countMsg = "Trip log contains " + String(dataPointCount) + " data points (" + String(fileSize) + " bytes)";
+    log(countMsg.c_str());
+    
+    if (dataPointCount == 0) {
+        tripFile.close();
+        return "[]";
+    }
+    
+    String json = "[";
+    LogdataRow dataPoint;
+    bool firstPoint = true;
+    
+    // Read and convert each data point
+    for (size_t i = 0; i < dataPointCount; i++) {
+        size_t bytesRead = tripFile.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
+        
+        if (bytesRead != sizeof(LogdataRow)) {
+            String errorMsg = "Error reading data point " + String(i) + ", bytes read: " + String(bytesRead);
+            log(errorMsg.c_str());
+            break;
+        }
+        
+        if (!firstPoint) json += ",";
+        firstPoint = false;
+        
+        json += "{";
+        json += "\"timestamp\":" + String(dataPoint.timestamp) + ",";
+        json += "\"tempMotor\":" + String(dataPoint.tempMotor) + ",";
+        json += "\"tempMosfet\":" + String(dataPoint.tempMosfet) + ",";
+        json += "\"batteryVoltage\":" + String(dataPoint.batteryVoltage) + ",";
+        json += "\"current\":" + String(dataPoint.current) + ",";
+        json += "\"avgMotorCurrent\":" + String(dataPoint.avgMotorCurrent) + ",";
+        json += "\"rpm\":" + String(dataPoint.rpm) + ",";
+        json += "\"dutyCycle\":" + String(dataPoint.dutyCycle) + ",";
+        json += "\"temperature\":" + String(dataPoint.temperature) + ",";
+        json += "\"humidity\":" + String(dataPoint.humidity) + ",";
+        json += "\"batteryLevel\":" + String(dataPoint.batteryLevel) + ",";
+        json += "\"leakSensorState\":" + String(dataPoint.leakSensorState) + ",";
+        json += "\"ledState\":" + String(dataPoint.ledState) + ",";
+        json += "\"totalUptime\":" + String(dataPoint.totalUptime);
+        json += "}";
+        
+        // Prevent memory overflow for very large files
+        if (json.length() > 50000) { // Limit to ~50KB JSON
+            String limitMsg = "JSON size limit reached at " + String(i+1) + " points, truncating";
+            log(limitMsg.c_str());
+            break;
+        }
+    }
+    
+    json += "]";
+    tripFile.close();
+    
+    String resultMsg = "Generated full trip log JSON, length: " + String(json.length()) + " for " + String(dataPointCount) + " points";
+    log(resultMsg.c_str());
+    
+    return json;
+}
+
 // Setup the webserver task on Core 0
 void setupWebserver() {
     log("Setting up webserver on Core 0");
@@ -1041,6 +1120,17 @@ void handleClient(WiFiClient client) {
         log(statusMsg.c_str());
         
         sendHttpResponse(client, 200, "application/json", jsonStatus.c_str());
+        
+    } else if (path == "/api/trip-log") {
+        // API endpoint for full trip log download
+        log("API /api/trip-log called");
+        
+        String jsonData = generateFullTripLogJson();
+        
+        String responseMsg = "Sending full trip log, length: " + String(jsonData.length());
+        log(responseMsg.c_str());
+        
+        sendHttpResponse(client, 200, "application/json", jsonData.c_str());
         
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings
