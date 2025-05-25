@@ -36,15 +36,23 @@ bool isDataloggerRunning = false;
  * Öffnet eine neue CSV-Datei zum Schreiben
  */
 void openCSVFile() {
+  // Kurze Pause vor Dateizugriff
+  vTaskDelay(10 / portTICK_PERIOD_MS);
+  
   String filename;
   for(int i = 0; true; i++) {
     filename = DATALOG_DIR + "/data_" + String(i) + ".csv";
     if (!SPIFFS.exists(filename)) break;
+    // Kurze Pause während der Dateisuche
+    vTaskDelay(5 / portTICK_PERIOD_MS);
   }
   csvFile = SPIFFS.open(filename, FILE_WRITE);
   if (EnableDebugLog) Serial.println(String("Schreibe in " + filename));
   csvFile.println(HEADER);
   csvFile.flush();
+  
+  // Kurze Pause nach Dateischreiben
+  vTaskDelay(10 / portTICK_PERIOD_MS);
 }
 
 /**
@@ -226,6 +234,9 @@ LogdataRow createDatapoint() {
  * Speichert einen Datenpunkt in die CSV-Datei
  */
 void saveDatapoint(LogdataRow datapoint, File &file) {
+  // Kurze Pause vor Dateischreiben
+  vTaskDelay(5 / portTICK_PERIOD_MS);
+  
   file.print(datapoint.timestamp);
   file.print(",");
   file.print(datapoint.tempMotor);
@@ -243,6 +254,9 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(datapoint.humidity);
   file.println();
   file.flush();
+  
+  // Kurze Pause nach Dateischreiben
+  vTaskDelay(5 / portTICK_PERIOD_MS);
 }
 
 /**
@@ -280,7 +294,7 @@ void dataloggerTask(void *pvParameters) {
   log("Datalogger-Task gestartet auf Core 0");
   
   // Kurze Verzögerung nach dem Start
-  vTaskDelay(10 / portTICK_PERIOD_MS);
+  vTaskDelay(20 / portTICK_PERIOD_MS);
   
   // Initialisiere SPIFFS, falls noch nicht geschehen
   if (!SPIFFS.begin(true)) {
@@ -290,7 +304,7 @@ void dataloggerTask(void *pvParameters) {
   }
   
   // Verzögerung nach SPIFFS-Initialisierung
-  vTaskDelay(10 / portTICK_PERIOD_MS);
+  vTaskDelay(20 / portTICK_PERIOD_MS);
   
   // Erstelle Verzeichnis, falls es nicht existiert
   if (!SPIFFS.exists(DATALOG_DIR)) {
@@ -302,14 +316,14 @@ void dataloggerTask(void *pvParameters) {
       log(errorMessage.c_str());
     }
     // Verzögerung nach Verzeichniserstellung
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
   
   // Entferne alte Log-Dateien, wenn zu viele existieren
   while (countLogFiles() >= MAX_LOG_FILES) {
     deleteOldestLogFile();
     // Verzögerung nach Dateilöschung
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
   }
   
   // Öffne eine neue CSV-Datei
@@ -317,32 +331,37 @@ void dataloggerTask(void *pvParameters) {
   lastDataLogTime = millis();
   
   // Verzögerung nach Dateiöffnung
-  vTaskDelay(10 / portTICK_PERIOD_MS);
+  vTaskDelay(20 / portTICK_PERIOD_MS);
   
   isDataloggerRunning = true;
 
   // Hauptschleife des Datalogger-Tasks
   while (true) {
-    // Den Watchdog zurücksetzen
+    // Yield für den Watchdog
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    
     if (millis() - lastDataLogTime >= DATALOG_INTERVAL) {
       // Erstelle und speichere einen neuen Datenpunkt
       LogdataRow data = createDatapoint();
       
       // Kurze Verzögerung für Watchdog
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+      vTaskDelay(10 / portTICK_PERIOD_MS);
       
       saveDatapoint(data, csvFile);
       
       // Kurze Verzögerung für Watchdog
-      vTaskDelay(1 / portTICK_PERIOD_MS);
+      vTaskDelay(10 / portTICK_PERIOD_MS);
       
       addDataPointToBuffer(data);
       lastDataLogTime = millis();
+      
+      // Noch eine Verzögerung nach dem gesamten Prozess
+      vTaskDelay(10 / portTICK_PERIOD_MS);
     }
     
     // Längere Verzögerung zwischen den Intervallen, um Watchdog-Timer zu vermeiden
     // und anderen Tasks mehr Zeit zu geben
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    vTaskDelay(100 / portTICK_PERIOD_MS);
   }
 }
 

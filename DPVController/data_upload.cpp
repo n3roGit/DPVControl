@@ -14,14 +14,23 @@ bool initializeFileSystem() {
     // Prüfe verfügbaren Platz
     size_t totalBytes = SPIFFS.totalBytes();
     size_t usedBytes = SPIFFS.usedBytes();
-    log("SPIFFS Total: ", totalBytes);
-    log("SPIFFS Used: ", usedBytes);
+    String totalMsg = "SPIFFS Total: " + String(totalBytes);
+    log(totalMsg.c_str());
+    String usedMsg = "SPIFFS Used: " + String(usedBytes);
+    log(usedMsg.c_str());
     
-    // Kleines Delay für Hardware-Operationen
-    delay(100);
+    // Längeres Delay für Hardware-Operationen
+    delay(200);
     
     // Store index.html in SPIFFS if it doesn't exist
     if (!SPIFFS.exists("/index.html")) {
+        log("index.html nicht gefunden, erstelle neu");
+        
+        // Überprüfen, ob genug Platz für die Datei vorhanden ist
+        size_t freeBytes = totalBytes - usedBytes;
+        String freeMsg = "SPIFFS Free: " + String(freeBytes);
+        log(freeMsg.c_str());
+        
         // Content of index.html - this should be updated with the actual content
         const char* indexHTML = R"rawliteral(
 <!DOCTYPE html>
@@ -167,7 +176,7 @@ bool initializeFileSystem() {
                     </tr>
                     <tr>
                         <td>Data Points to Show:</td>
-                        <td><input type="number" id="dataPoints" min="10" max="3600" value="60"></td>
+                        <td><input type="number" id="dataPoints" min="10" max="600" value="60"></td>
                     </tr>
                 </table>
                 <button class="button" onclick="saveSettings()">Save Settings</button>
@@ -414,11 +423,25 @@ bool initializeFileSystem() {
 )rawliteral";
 
         // Überprüfen, ob genug Platz für die Datei vorhanden ist
-        if (totalBytes - usedBytes < strlen(indexHTML) + 1024) { // 1KB Puffer für sichere Schätzung
+        size_t htmlSize = strlen(indexHTML);
+        if (freeBytes < htmlSize + 1024) { // 1KB Puffer für sichere Schätzung
             log("Nicht genug Platz im Dateisystem für index.html");
+            String neededMsg = "Benötigt: " + String(htmlSize + 1024);
+            log(neededMsg.c_str());
+            String availableMsg = "Verfügbar: " + String(freeBytes);
+            log(availableMsg.c_str());
             return false;
         }
 
+        String startMsg = "Starte Schreiben von index.html (Größe: " + String(htmlSize) + " Bytes)";
+        log(startMsg.c_str());
+        
+        // Versuche zuerst, mögliche alte Datei zu löschen
+        if (SPIFFS.exists("/index.html")) {
+            SPIFFS.remove("/index.html");
+            delay(100);
+        }
+        
         // Datei in kleineren Blöcken schreiben
         File file = SPIFFS.open("/index.html", "w");
         if (!file) {
@@ -426,16 +449,17 @@ bool initializeFileSystem() {
             return false;
         }
         
-        // Schreibe die Datei in Blöcken zu 1024 Bytes
-        const size_t chunkSize = 1024;
-        size_t remaining = strlen(indexHTML);
+        // Schreibe die Datei in Blöcken zu 512 Bytes (kleinere Blöcke)
+        const size_t chunkSize = 512;
+        size_t remaining = htmlSize;
         size_t position = 0;
         
         while (remaining > 0) {
             size_t toWrite = remaining > chunkSize ? chunkSize : remaining;
             
             if (!file.write((const uint8_t*)(indexHTML + position), toWrite)) {
-                log("Failed to write to file");
+                String failMsg = "Failed to write to file at position " + String(position);
+                log(failMsg.c_str());
                 file.close();
                 return false;
             }
@@ -443,14 +467,33 @@ bool initializeFileSystem() {
             position += toWrite;
             remaining -= toWrite;
             
-            // Kurze Pause nach jedem Block
-            delay(5);
+            // Längere Pause nach jedem Block
+            delay(20);
         }
         
         file.flush();
+        delay(20);
         file.close();
+        delay(20);
         
-        log("index.html stored in SPIFFS");
+        // Überprüfen ob die Datei erfolgreich geschrieben wurde
+        if (SPIFFS.exists("/index.html")) {
+            File checkFile = SPIFFS.open("/index.html", "r");
+            if (checkFile && checkFile.size() > 0) {
+                String successMsg = "index.html erfolgreich gespeichert (" + String(checkFile.size()) + " Bytes)";
+                log(successMsg.c_str());
+                checkFile.close();
+            } else {
+                log("index.html existiert, aber ist möglicherweise leer");
+                if (checkFile) checkFile.close();
+                return false;
+            }
+        } else {
+            log("index.html konnte nicht gespeichert werden");
+            return false;
+        }
+    } else {
+        log("index.html bereits vorhanden, überspringe");
     }
     
     return true;
@@ -458,22 +501,40 @@ bool initializeFileSystem() {
 
 // Store a file in SPIFFS
 bool storeFile(const char* path, const char* content) {
+    String logMsg = "Speichere Datei: " + String(path);
+    log(logMsg.c_str());
+    
+    // Längeres Delay für Hardware-Operationen
+    delay(100);
+    
+    // Versuche zuerst, mögliche alte Datei zu löschen
+    if (SPIFFS.exists(path)) {
+        SPIFFS.remove(path);
+        delay(100);
+    }
+    
     File file = SPIFFS.open(path, "w");
     if (!file) {
-        log("Failed to open file for writing");
+        String errorMsg = "Failed to open file for writing: " + String(path);
+        log(errorMsg.c_str());
         return false;
     }
     
     // Datei in Blöcken schreiben
-    const size_t chunkSize = 1024;
-    size_t remaining = strlen(content);
+    const size_t chunkSize = 512; // Reduziert die Blockgröße
+    size_t contentSize = strlen(content);
+    size_t remaining = contentSize;
     size_t position = 0;
+    
+    String sizeMsg = "Schreibe " + String(contentSize) + " Bytes in Blöcken zu " + String(chunkSize) + " Bytes";
+    log(sizeMsg.c_str());
     
     while (remaining > 0) {
         size_t toWrite = remaining > chunkSize ? chunkSize : remaining;
         
         if (!file.write((const uint8_t*)(content + position), toWrite)) {
-            log("Failed to write to file");
+            String failMsg = "Failed to write to file at position " + String(position);
+            log(failMsg.c_str());
             file.close();
             return false;
         }
@@ -481,11 +542,32 @@ bool storeFile(const char* path, const char* content) {
         position += toWrite;
         remaining -= toWrite;
         
-        // Kurze Pause nach jedem Block
-        delay(5);
+        // Längere Pause nach jedem Block
+        delay(20);
     }
     
     file.flush();
+    delay(20);
     file.close();
-    return true;
+    delay(20);
+    
+    // Überprüfen ob die Datei erfolgreich geschrieben wurde
+    if (SPIFFS.exists(path)) {
+        File checkFile = SPIFFS.open(path, "r");
+        if (checkFile && checkFile.size() > 0) {
+            String successMsg = "Datei erfolgreich gespeichert: " + String(path) + " (" + String(checkFile.size()) + " Bytes)";
+            log(successMsg.c_str());
+            checkFile.close();
+            return true;
+        } else {
+            String emptyMsg = "Datei existiert, aber ist möglicherweise leer: " + String(path);
+            log(emptyMsg.c_str());
+            if (checkFile) checkFile.close();
+            return false;
+        }
+    } else {
+        String failMsg = "Datei konnte nicht gespeichert werden: " + String(path);
+        log(failMsg.c_str());
+        return false;
+    }
 } 
