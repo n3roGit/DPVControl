@@ -888,7 +888,17 @@ const char* helloWorldHTML = R"rawliteral(
             }
             
             const filteredData = filterDataByTimeRange(allDataPoints);
-            exportDataToCSV(filteredData, 'current_view');
+            let filename = 'current_view';
+            
+            // Add session info to filename if specific session is selected
+            if (selectedSession !== 'all') {
+                const session = availableSessions.find(s => s.id == selectedSession);
+                if (session) {
+                    filename = `session_${selectedSession}`;
+                }
+            }
+            
+            exportDataToCSV(filteredData, filename);
         }
         
         // Export full trip log as CSV
