@@ -487,6 +487,24 @@ void compressToHistoricalData() {
 void saveCompressedData() {
   log("Saving compressed data to SPIFFS...");
   
+  // Save recent data (last 100 points to survive reboot)
+  File recentFile = SPIFFS.open("/recent_data.bin", "w");
+  if (recentFile) {
+    int pointsToSave = totalRecentPoints > 100 ? 100 : totalRecentPoints;
+    recentFile.write((uint8_t*)&pointsToSave, sizeof(int));
+    recentFile.write((uint8_t*)&recentIndex, sizeof(int));
+    
+    // Save last 100 points in correct order
+    for (int i = 0; i < pointsToSave; i++) {
+      int idx = (recentIndex - pointsToSave + i + MAX_RECENT_POINTS) % MAX_RECENT_POINTS;
+      recentFile.write((uint8_t*)&recentData[idx], sizeof(LogdataRow));
+    }
+    recentFile.close();
+    log("Recent data saved to SPIFFS");
+  } else {
+    log("Failed to save recent data");
+  }
+  
   // Save hourly data
   File hourlyFile = SPIFFS.open("/hourly_data.bin", "w");
   if (hourlyFile) {
@@ -519,10 +537,44 @@ void loadCompressedData() {
   log("Loading compressed data from SPIFFS...");
   
   // Initialize all values to safe defaults first
+  totalRecentPoints = 0;
+  recentIndex = 0;
   totalHourlyPoints = 0;
   hourlyIndex = 0;
   totalHistoricalPoints = 0;
   historicalIndex = 0;
+  
+  // Load recent data
+  if (SPIFFS.exists("/recent_data.bin")) {
+    File recentFile = SPIFFS.open("/recent_data.bin", "r");
+    if (recentFile) {
+      int savedPoints = 0;
+      int savedIndex = 0;
+      
+      size_t bytesRead = recentFile.read((uint8_t*)&savedPoints, sizeof(int));
+      if (bytesRead == sizeof(int) && savedPoints > 0 && savedPoints <= 100) {
+        recentFile.read((uint8_t*)&savedIndex, sizeof(int));
+        
+        // Load points in correct order
+        for (int i = 0; i < savedPoints; i++) {
+          recentFile.read((uint8_t*)&recentData[i], sizeof(LogdataRow));
+        }
+        
+        totalRecentPoints = savedPoints;
+        recentIndex = savedPoints % MAX_RECENT_POINTS;
+        
+        String recentMsg = "Loaded recent data - Total: " + String(totalRecentPoints) + ", Index: " + String(recentIndex);
+        log(recentMsg.c_str());
+      } else {
+        log("Invalid recent data, resetting");
+      }
+      recentFile.close();
+    } else {
+      log("Failed to open recent data file");
+    }
+  } else {
+    log("No recent data file found");
+  }
   
   // Load hourly data
   if (SPIFFS.exists("/hourly_data.bin")) {
@@ -701,6 +753,12 @@ void dataloggerTask(void *pvParameters) {
   vTaskDelay(100 / portTICK_PERIOD_MS);
   log("Initial delay completed");
   
+  // Load persisted data from SPIFFS
+  log("Loading persisted data...");
+  loadTotalUptime();
+  loadCompressedData();
+  log("Persisted data loaded");
+  
   // Create simple test datapoint immediately
   log("Creating simple test datapoint...");
   
@@ -731,11 +789,20 @@ void dataloggerTask(void *pvParameters) {
   
   String statusMsg = "Buffer status - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
   log(statusMsg.c_str());
+  
+  // Save initial data immediately
+  log("Saving initial data to SPIFFS...");
+  saveTotalUptime();
+  saveCompressedData();
+  log("Initial data saved");
 
-    // Main loop - create new datapoints every second
+  // Main loop - create new datapoints every second
   log("Entering main loop...");
   
   unsigned long lastDataLogTime = millis();
+  unsigned long lastPersistenceTime = millis();
+  unsigned long lastHourlySave = millis();
+  unsigned long lastHistoricalSave = millis();
   
   while (true) {
     unsigned long currentTime = millis();
@@ -752,22 +819,41 @@ void dataloggerTask(void *pvParameters) {
     if (currentTime - lastDataLogTime >= DATALOG_INTERVAL) {
       log("Creating new datapoint...");
       
-      // Create simple datapoint with current values
+      // Create datapoint with real sensor values
       LogdataRow newData;
       newData.timestamp = currentTime;
-      newData.tempMotor = 25.0 + (totalRecentPoints % 10); // Varying test values
-      newData.tempMosfet = 30.0 + (totalRecentPoints % 15);
-      newData.batteryVoltage = getBatteryVoltage(); // Real battery voltage
-      newData.current = 1.0 + (totalRecentPoints % 5);
-      newData.avgMotorCurrent = 0.8 + (totalRecentPoints % 3);
-      newData.rpm = 500.0 + (totalRecentPoints * 10);
-      newData.dutyCycle = 10.0 + (totalRecentPoints % 20);
-      newData.temperature = 22.0 + (totalRecentPoints % 8);
-      newData.humidity = 45.0 + (totalRecentPoints % 12);
-      newData.batteryLevel = batteryLevel; // Real battery level
-      newData.leakSensorState = leakSensorState; // Real leak sensor
-      newData.ledState = 0;
-      newData.totalUptime = currentTime / 1000;
+      
+      // Real motor data from VESC
+      if (HAS_MOTOR) {
+        newData.tempMotor = getVescUart().data.tempMotor;
+        newData.tempMosfet = getVescUart().data.tempMosfet;
+        newData.current = getVescUart().data.avgInputCurrent;
+        newData.avgMotorCurrent = getVescUart().data.avgMotorCurrent;
+        newData.rpm = getVescUart().data.rpm;
+        newData.dutyCycle = getVescUart().data.dutyCycleNow;
+      } else {
+        // Fallback values if no motor
+        newData.tempMotor = 25.0;
+        newData.tempMosfet = 30.0;
+        newData.current = 1.0;
+        newData.avgMotorCurrent = 0.8;
+        newData.rpm = 0.0;
+        newData.dutyCycle = 0.0;
+      }
+      
+      // Real sensor values
+      newData.batteryVoltage = getBatteryVoltage();
+      
+      // DHT sensor data with fallback
+      TempAndHumidity dhtData = dhtSensor.getTempAndHumidity();
+      newData.temperature = isnan(dhtData.temperature) ? 0.0 : dhtData.temperature;
+      newData.humidity = isnan(dhtData.humidity) ? 0.0 : dhtData.humidity;
+      
+      // Real system status
+      newData.batteryLevel = batteryLevel;
+      newData.leakSensorState = leakSensorState;
+      newData.ledState = 0; // TODO: Get real LED state
+      newData.totalUptime = getTotalUptime();
       
       // Add to buffer
       recentData[recentIndex] = newData;
@@ -780,6 +866,34 @@ void dataloggerTask(void *pvParameters) {
       
       String newPointMsg = "New datapoint added - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
       log(newPointMsg.c_str());
+      
+      // Save data every 5 datapoints for extra safety
+      if (totalRecentPoints % 5 == 0) {
+        log("Saving data after 5 datapoints...");
+        saveTotalUptime();
+        saveCompressedData();
+        log("Data saved after datapoint milestone");
+      }
+      
+      // Compress data periodically
+      if (currentTime - lastHourlySave >= HOURLY_COMPRESSION_INTERVAL) {
+        compressToHourlyData();
+        lastHourlySave = currentTime;
+      }
+      
+      if (currentTime - lastHistoricalSave >= HISTORICAL_COMPRESSION_INTERVAL) {
+        compressToHistoricalData();
+        lastHistoricalSave = currentTime;
+      }
+    }
+    
+    // Save data to SPIFFS every 10 seconds for persistence
+    if (currentTime - lastPersistenceTime >= 10000) { // 10 seconds
+      log("Saving data for persistence...");
+      saveTotalUptime();
+      saveCompressedData();
+      lastPersistenceTime = currentTime;
+      log("Data saved to SPIFFS");
     }
     
     // Keep task alive
@@ -809,7 +923,7 @@ void datalogSetup() {
   BaseType_t taskResult = xTaskCreatePinnedToCore(
     dataloggerTask,        // Task-Funktion
     "DataloggerTask",      // Task-Name
-    12000,                 // Stack-Größe (Bytes) - erhöht für mehrstufiges System
+    16000,                 // Stack-Größe (Bytes) - erhöht wegen Stack Overflow
     NULL,                  // Task-Parameter
     1,                     // Task-Priorität (1 ist niedrig)
     &dataloggerTaskHandle, // Task-Handle

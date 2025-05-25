@@ -512,9 +512,9 @@ const char* helloWorldHTML = R"rawliteral(
                     // Update additional sensor data
                     document.getElementById('waterSensorFront').textContent = data.waterSensorFront === 'true' ? 'LEAK DETECTED!' : 'OK';
                     document.getElementById('waterSensorBack').textContent = data.waterSensorBack === 'true' ? 'LEAK DETECTED!' : 'OK';
-                    document.getElementById('leftButton').textContent = data.leftButton === 'true' ? 'PRESSED' : 'RELEASED';
-                    document.getElementById('rightButton').textContent = data.rightButton === 'true' ? 'PRESSED' : 'RELEASED';
-                    document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel + ' (0-4)';
+                                    document.getElementById('leftButton').textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
+                document.getElementById('rightButton').textContent = data.rightButton === true ? 'PRESSED' : 'RELEASED';
+                    document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel;
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
