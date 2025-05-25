@@ -156,6 +156,10 @@
 }
 </style>
 
+<!-- Chart.js and Annotation Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+
 </head>
 <body>
     <div class="container">
@@ -297,6 +301,10 @@
                     <td>StandbyBlinkDuration:</td>
                     <td><input type="text" id="standbyBlinkDuration" value="10" /> seconds</td>
                 </tr>
+                <tr>
+                    <td>Beeper Enabled:</td>
+                    <td><input type="checkbox" id="beeperEnabled" checked /></td>
+                </tr>
             </table>
         </div>
 
@@ -311,8 +319,19 @@
 
         <div class="section">
             <h2>Graphs</h2>
+            <div style="margin-bottom: 15px;">
+                <label for="data-range">Data Range:</label>
+                <select id="data-range" onchange="updateCharts()">
+                    <option value="recent">Recent (1s resolution)</option>
+                    <option value="hourly">Hourly (1min resolution)</option>
+                    <option value="historical">Historical (5min resolution)</option>
+                </select>
+                <label for="data-count" style="margin-left: 20px;">Data Points:</label>
+                <input type="number" id="data-count" value="60" min="1" max="500" onchange="updateCharts()" style="width: 80px;">
+                <button class="button" onclick="exportDataAsCSV()" style="margin-left: 20px; background-color: #27ae60;">Export CSV</button>
+            </div>
             <div id="graph-container">
-                <!-- Hier sind Dummy-Daten für Temperatur, RPM, Batterylevel und Ampere -->
+                <!-- Real-time charts with actual sensor data -->
                 <canvas id="temperature-chart"></canvas>
                 <canvas id="rpm-chart"></canvas>
                 <canvas id="battery-level-chart"></canvas>
@@ -345,23 +364,195 @@ title:'PayPal - The safer, easier way to pay online!',
 </div>
 
     <script>
-        // JavaScript functions remain unchanged
+        // Global variables for charts and data
+        let temperatureChart, rpmChart, batteryChart, ampereChart;
+        let currentDataPoints = [];
 
-        // Dummy-Daten für die Grafiken
-        const temperatureData = [20, 25, 22, 28, 30, 26, 24];
-        const rpmData = [1000, 1200, 1100, 1300, 1400, 1250, 1180];
-        const batteryLevelData = [80, 85, 78, 90, 92, 88, 84];
-        const ampereData = [5, 4.8, 5.2, 5.5, 5.8, 5.0, 4.6];
+        // Register Chart.js plugins
+        Chart.register(ChartjsPluginAnnotation);
 
-        // Dummy-Daten in Diagramme einfügen
-        createChart("temperature-chart", "Temperature", temperatureData, "Temperature (°C)");
-        createChart("rpm-chart", "RPM", rpmData, "RPM");
-        createChart("battery-level-chart", "Battery Level", batteryLevelData, "Battery Level (%)");
-        createChart("ampere-chart", "Ampere", ampereData, "Ampere (A)");
+        // Initialize charts on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+            updateCharts();
+        });
+
+        function initializeCharts() {
+            // Initialize empty charts
+            temperatureChart = createChart("temperature-chart", "Temperature", [], "Temperature (°C)");
+            rpmChart = createChart("rpm-chart", "RPM", [], "RPM");
+            batteryChart = createChart("battery-level-chart", "Battery Level", [], "Battery Level (%)");
+            ampereChart = createChart("ampere-chart", "Current", [], "Current (A)");
+        }
+
+        async function updateCharts() {
+            const range = document.getElementById('data-range').value;
+            const count = document.getElementById('data-count').value;
+            
+            try {
+                const response = await fetch(`/api/data?count=${count}&range=${range}`);
+                const data = await response.json();
+                currentDataPoints = data; // Store for CSV export
+                
+                if (data && data.length > 0) {
+                    // Detect reboots by looking for timestamp jumps backwards
+                    const rebootPoints = detectReboots(data);
+                    
+                    const timestamps = data.map(d => formatTimestamp(d.timestamp));
+                    const temperatures = data.map(d => d.temperature);
+                    const rpms = data.map(d => d.rpm);
+                    const batteryLevels = data.map(d => d.batteryLevel);
+                    const currents = data.map(d => d.current);
+                    
+                    updateChartDataWithReboots(temperatureChart, timestamps, temperatures, rebootPoints);
+                    updateChartDataWithReboots(rpmChart, timestamps, rpms, rebootPoints);
+                    updateChartDataWithReboots(batteryChart, timestamps, batteryLevels, rebootPoints);
+                    updateChartDataWithReboots(ampereChart, timestamps, currents, rebootPoints);
+                }
+            } catch (error) {
+                console.error('Error fetching chart data:', error);
+            }
+        }
+
+        function detectReboots(data) {
+            const rebootPoints = [];
+            
+            for (let i = 1; i < data.length; i++) {
+                const prevTimestamp = data[i-1].timestamp;
+                const currentTimestamp = data[i].timestamp;
+                
+                // Detect reboot: current timestamp is significantly smaller than previous
+                // Allow for small variations but detect major jumps backwards
+                if (currentTimestamp < prevTimestamp - 10000) { // 10 second threshold
+                    rebootPoints.push({
+                        index: i,
+                        timestamp: currentTimestamp,
+                        label: `Reboot (${formatTimestamp(currentTimestamp)})`
+                    });
+                }
+            }
+            
+            return rebootPoints;
+        }
+
+        function formatTimestamp(millis) {
+            // Convert millis to readable format (minutes:seconds)
+            const totalSeconds = Math.floor(millis / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateChartData(chart, labels, data) {
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            chart.update();
+        }
+
+        function updateChartDataWithReboots(chart, labels, data, rebootPoints) {
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = data;
+            
+            // Clear existing annotations
+            if (!chart.options.plugins.annotation) {
+                chart.options.plugins.annotation = { annotations: {} };
+            } else {
+                chart.options.plugins.annotation.annotations = {};
+            }
+            
+            // Add reboot markers as vertical lines
+            rebootPoints.forEach((reboot, index) => {
+                chart.options.plugins.annotation.annotations[`reboot${index}`] = {
+                    type: 'line',
+                    mode: 'vertical',
+                    scaleID: 'x',
+                    value: reboot.index,
+                    borderColor: '#e74c3c',
+                    borderWidth: 2,
+                    borderDash: [5, 5],
+                    label: {
+                        content: 'REBOOT',
+                        enabled: true,
+                        position: 'top',
+                        backgroundColor: '#e74c3c',
+                        color: 'white',
+                        font: {
+                            size: 10,
+                            weight: 'bold'
+                        }
+                    }
+                };
+            });
+            
+            chart.update();
+        }
+
+        function exportDataAsCSV() {
+            if (!currentDataPoints || currentDataPoints.length === 0) {
+                alert('No data available for export');
+                return;
+            }
+            
+            // Create CSV header
+            const headers = [
+                'Timestamp',
+                'Motor Temperature (°C)',
+                'MOSFET Temperature (°C)', 
+                'Battery Voltage (V)',
+                'Input Current (A)',
+                'Motor Current (A)',
+                'RPM',
+                'Duty Cycle (%)',
+                'Ambient Temperature (°C)',
+                'Humidity (%)',
+                'Battery Level (%)',
+                'Leak Sensor State',
+                'LED State',
+                'Total Uptime (s)'
+            ];
+            
+            // Create CSV content
+            let csvContent = headers.join(',') + '\n';
+            
+            currentDataPoints.forEach(point => {
+                const row = [
+                    new Date(point.timestamp).toISOString(),
+                    point.tempMotor,
+                    point.tempMosfet,
+                    point.batteryVoltage,
+                    point.current,
+                    point.avgMotorCurrent,
+                    point.rpm,
+                    point.dutyCycle,
+                    point.temperature,
+                    point.humidity,
+                    point.batteryLevel,
+                    point.leakSensorState,
+                    point.ledState,
+                    point.totalUptime
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            
+            const range = document.getElementById('data-range').value;
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            link.setAttribute('download', `dpv_data_${range}_${timestamp}.csv`);
+            
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
 
         function createChart(canvasId, label, data, yAxisLabel) {
             const ctx = document.getElementById(canvasId).getContext('2d');
-            new Chart(ctx, {
+            return new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: Array.from({ length: data.length }, (_, i) => i + 1),
@@ -369,20 +560,37 @@ title:'PayPal - The safer, easier way to pay online!',
                         label: label,
                         data: data,
                         borderColor: '#3498db',
-                        fill: false
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: true,
+                        tension: 0.1
                     }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         x: {
-                            type: 'linear',
-                            position: 'bottom'
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Time (mm:ss)'
+                            }
                         },
                         y: {
+                            display: true,
                             title: {
                                 display: true,
                                 text: yAxisLabel
                             }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        annotation: {
+                            annotations: {}
                         }
                     }
                 }

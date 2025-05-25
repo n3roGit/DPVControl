@@ -3,6 +3,8 @@
 #include "data_upload.h"
 #include "datalog.h"  // Einbinden des Datalogger-Headers
 #include "constants.h" // Für PIN-Definitionen
+#include "beep.h" // For beeper settings
+#include <LittleFS.h> // Add missing LittleFS include
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -155,7 +157,7 @@ const char* helloWorldHTML = R"rawliteral(
                         <td class="status-value" id="motorCurrent">Loading...</td>
                     </tr>
                     <tr>
-                        <td>RPM:</td>
+                        <td>eRPM:</td>
                         <td class="status-value" id="rpm">Loading...</td>
                     </tr>
                     <tr>
@@ -185,6 +187,10 @@ const char* helloWorldHTML = R"rawliteral(
                     <tr>
                         <td>Lamp Level:</td>
                         <td class="status-value" id="lampLevel">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Beeper:</td>
+                        <td class="status-value" id="beeperStatus">Loading...</td>
                     </tr>
                 </table>
             </div>
@@ -257,6 +263,14 @@ const char* helloWorldHTML = R"rawliteral(
         <div id="settings-tab" class="tab-content">
             <div class="section">
                 <h2>Settings</h2>
+                <table>
+                    <tr>
+                        <td>Beeper Enabled:</td>
+                        <td>
+                            <input type="checkbox" id="beeperEnabledSetting" onchange="saveBeeperSetting()">
+                        </td>
+                    </tr>
+                </table>
                 <p>Chart settings have been moved to the Charts tab for better usability.</p>
                 <p>You can still configure data display settings in the Data tab.</p>
             </div>
@@ -515,6 +529,10 @@ const char* helloWorldHTML = R"rawliteral(
                                     document.getElementById('leftButton').textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
                 document.getElementById('rightButton').textContent = data.rightButton === true ? 'PRESSED' : 'RELEASED';
                     document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel;
+                    document.getElementById('beeperStatus').textContent = data.beeperEnabled === true ? 'Enabled' : 'Disabled';
+                    
+                    // Update beeper setting checkbox
+                    document.getElementById('beeperEnabledSetting').checked = data.beeperEnabled === true;
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
@@ -722,6 +740,29 @@ const char* helloWorldHTML = R"rawliteral(
             
             return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
         }
+        
+        // Save beeper setting
+        function saveBeeperSetting() {
+            const enabled = document.getElementById('beeperEnabledSetting').checked;
+            
+            fetch('/api/beeper', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ enabled: enabled })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Beeper setting saved:', data);
+                // Update status display immediately
+                document.getElementById('beeperStatus').textContent = enabled ? 'Enabled' : 'Disabled';
+            })
+            .catch(error => {
+                console.error('Error saving beeper setting:', error);
+                alert('Failed to save beeper setting');
+            });
+        }
     </script>
 </body>
 </html>
@@ -772,7 +813,7 @@ bool loadFromSPIFFS(WiFiClient client, String path) {
     else if (path.endsWith(".ico")) dataType = "image/x-icon";
     
     // Open the file
-    File dataFile = SPIFFS.open(path.c_str(), "r");
+    File dataFile = LittleFS.open(path.c_str(), "r");
     
     if (!dataFile) {
         log("Failed to open file");
@@ -992,13 +1033,37 @@ void handleClient(WiFiClient client) {
         jsonStatus += "\"waterSensorBack\":" + String(digitalRead(PIN_LEAK_BACK) == LOW ? "true" : "false") + ",";
         jsonStatus += "\"leftButton\":" + String(digitalRead(PIN_LEFT_BUTTON) == LOW ? "true" : "false") + ",";
         jsonStatus += "\"rightButton\":" + String(digitalRead(PIN_RIGHT_BUTTON) == LOW ? "true" : "false") + ",";
-        jsonStatus += "\"lampLevel\":" + String(LED_State);
+        jsonStatus += "\"lampLevel\":" + String(LED_State) + ",";
+        jsonStatus += "\"beeperEnabled\":" + String(beeperEnabled ? "true" : "false");
         jsonStatus += "}";
         
         String statusMsg = "Status response: " + jsonStatus;
         log(statusMsg.c_str());
         
         sendHttpResponse(client, 200, "application/json", jsonStatus.c_str());
+        
+    } else if (path == "/api/beeper" && method == "POST") {
+        // API endpoint for beeper settings
+        log("API /api/beeper called");
+        
+        // Read POST body
+        String body = "";
+        while (client.available()) {
+            body += (char)client.read();
+        }
+        
+        // Simple JSON parsing for {"enabled": true/false}
+        bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
+        
+        // Update beeper setting
+        beeperEnabled = newBeeperState;
+        saveBeeperSettings();
+        
+        String response = "{\"success\":true,\"enabled\":" + String(beeperEnabled ? "true" : "false") + "}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+        String beeperMsg = "Beeper setting updated: " + String(beeperEnabled ? "enabled" : "disabled");
+        log(beeperMsg.c_str());
         
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
                path == "/connecttest.txt" || path == "/redirect" || 
@@ -1009,7 +1074,7 @@ void handleClient(WiFiClient client) {
         log("Captive portal check detected");
         sendHttpResponse(client, 302, "text/html", "<html><head><meta http-equiv='refresh' content='0; URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
     
-    } else if (spiffsInitialized && SPIFFS.exists(path)) {
+    } else if (spiffsInitialized && LittleFS.exists(path)) {
         // Serve files from SPIFFS
         loadFromSPIFFS(client, path);
     } else if (isCaptivePortalRequest) {

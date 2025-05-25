@@ -1,7 +1,7 @@
 #include "datalog.h"
 #include "log.h"
 #include <FS.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include "motor.h"
 #include "main.h"
 #include "battery.h"
@@ -28,17 +28,14 @@ TaskHandle_t dataloggerTaskHandle = NULL;
 File csvFile;
 unsigned long lastDataLogTime = 0;
 
-// Multi-level data storage
-LogdataRow recentData[MAX_RECENT_POINTS];        // 1s resolution - last 30 min
-LogdataRow hourlyData[MAX_HOURLY_POINTS];        // 1min resolution - last 2 hours
-LogdataRow historicalData[MAX_HISTORICAL_POINTS]; // 5min resolution - last 6 hours
+// Simple append-only data storage
+LogdataRow recentData[MAX_RECENT_POINTS];        // RAM buffer for live display
 
 int recentIndex = 0;
-int hourlyIndex = 0;
-int historicalIndex = 0;
 int totalRecentPoints = 0;
-int totalHourlyPoints = 0;
-int totalHistoricalPoints = 0;
+
+// Trip log file handle
+File tripLogFile;
 
 // Persistence and compression tracking
 unsigned long lastHourlySave = 0;
@@ -56,8 +53,8 @@ const unsigned long UPTIME_SAVE_INTERVAL = 60000; // Save every minute
  * Lädt die gespeicherte Total-Uptime aus SPIFFS
  */
 void loadTotalUptime() {
-  if (SPIFFS.exists("/total_uptime.txt")) {
-    File file = SPIFFS.open("/total_uptime.txt", "r");
+  if (LittleFS.exists("/total_uptime.txt")) {
+    File file = LittleFS.open("/total_uptime.txt", "r");
     if (file) {
       String uptimeStr = file.readString();
       totalUptimeSeconds = uptimeStr.toInt();
@@ -75,7 +72,7 @@ void loadTotalUptime() {
  * Speichert die aktuelle Total-Uptime in SPIFFS
  */
 void saveTotalUptime() {
-  File file = SPIFFS.open("/total_uptime.txt", "w");
+  File file = LittleFS.open("/total_uptime.txt", "w");
   if (file) {
     file.println(totalUptimeSeconds);
     file.close();
@@ -99,7 +96,7 @@ void openCSVFile() {
   String filename;
   for(int i = 0; i < 100; i++) { // Limit to prevent infinite loop
     filename = DATALOG_DIR + "/data_" + String(i) + ".csv";
-    if (!SPIFFS.exists(filename)) break;
+    if (!LittleFS.exists(filename)) break;
     // Kurze Pause während der Dateisuche
     vTaskDelay(5 / portTICK_PERIOD_MS);
   }
@@ -107,7 +104,7 @@ void openCSVFile() {
   String openMsg = "Attempting to open CSV file: " + filename;
   log(openMsg.c_str());
   
-  csvFile = SPIFFS.open(filename, FILE_WRITE);
+  csvFile = LittleFS.open(filename, FILE_WRITE);
   
   if (csvFile) {
     String successMsg = "CSV file opened successfully: " + filename;
@@ -131,10 +128,10 @@ void listLogFiles() {
   String logMessage = "Auflisten des Verzeichnisses: " + String(DATALOG_DIR);
   log(logMessage.c_str());
 
-  File root = SPIFFS.open(DATALOG_DIR);
+    File root = LittleFS.open(DATALOG_DIR);
   if(!root) {
     log("- Konnte Verzeichnis nicht öffnen");
-    return;
+      return;
   }
   if(!root.isDirectory()) {
     log("- Ist kein Verzeichnis");
@@ -159,7 +156,7 @@ void listLogFiles() {
  */
 int countLogFiles() {
   int count = 0;
-  File root = SPIFFS.open(DATALOG_DIR);
+  File root = LittleFS.open(DATALOG_DIR);
   if(!root || !root.isDirectory()) return 0;
 
   File file = root.openNextFile();
@@ -179,7 +176,7 @@ void deleteOldestLogFile() {
   String oldestFile = "";
   int oldestIndex = 99999;
   
-  File root = SPIFFS.open(DATALOG_DIR);
+  File root = LittleFS.open(DATALOG_DIR);
   if(!root || !root.isDirectory()) return;
   
   File file = root.openNextFile();
@@ -199,7 +196,7 @@ void deleteOldestLogFile() {
   }
   
   if(oldestFile != "") {
-    if(SPIFFS.remove(oldestFile)) {
+    if(LittleFS.remove(oldestFile)) {
       String deleteMessage = "Älteste Datei gelöscht: " + oldestFile;
       log(deleteMessage.c_str());
     } else {
@@ -213,11 +210,11 @@ void deleteOldestLogFile() {
  * Gibt den Inhalt einer Log-Datei zurück
  */
 String getLogFileContent(String filename) {
-  if(!SPIFFS.exists(filename)) {
+  if(!LittleFS.exists(filename)) {
     return "File not found";
   }
   
-  File file = SPIFFS.open(filename, FILE_READ);
+  File file = LittleFS.open(filename, FILE_READ);
   if(!file) {
     return "Failed to open file";
   }
@@ -237,7 +234,7 @@ String getNewestLogFile() {
   String newestFile = "";
   int newestIndex = -1;
   
-  File root = SPIFFS.open(DATALOG_DIR);
+  File root = LittleFS.open(DATALOG_DIR);
   if(!root || !root.isDirectory()) return "";
   
   File file = root.openNextFile();
@@ -369,191 +366,162 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
 }
 
 /**
- * Fügt einen Datenpunkt zum Recent-Buffer hinzu (1s Auflösung)
+ * Initialize trip log file for append-only logging
+ */
+void initializeTripLog() {
+  log("Initializing trip log file...");
+  
+  // Open trip log file in append mode
+  tripLogFile = LittleFS.open("/trip_log.bin", "a");
+  if (tripLogFile) {
+    log("Trip log file opened successfully");
+  } else {
+    log("Failed to open trip log file");
+  }
+}
+
+/**
+ * Append datapoint directly to trip log file (bombproof persistence)
+ */
+void appendToTripLog(LogdataRow datapoint) {
+  if (tripLogFile) {
+    size_t written = tripLogFile.write((uint8_t*)&datapoint, sizeof(LogdataRow));
+    tripLogFile.flush(); // Immediate write to flash
+    
+    if (written == sizeof(LogdataRow)) {
+      // Success - minimal logging to avoid stack issues
+    } else {
+      log("Failed to write to trip log");
+    }
+  }
+}
+
+/**
+ * Fügt einen Datenpunkt zum Recent-Buffer hinzu UND speichert ihn persistent
  */
 void addToRecentData(LogdataRow datapoint) {
-  String beforeMsg = "Adding datapoint to recent buffer - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
-  log(beforeMsg.c_str());
-  
+  // Add to RAM buffer for live display
   recentData[recentIndex] = datapoint;
   recentIndex = (recentIndex + 1) % MAX_RECENT_POINTS;
   if (totalRecentPoints < MAX_RECENT_POINTS) {
     totalRecentPoints++;
   }
   
-  String afterMsg = "Datapoint added to recent - New Index: " + String(recentIndex) + ", New Total: " + String(totalRecentPoints);
-  log(afterMsg.c_str());
+  // Immediately append to persistent trip log
+  appendToTripLog(datapoint);
 }
 
 /**
- * Komprimiert Recent-Daten zu Hourly-Daten (1 Minute Durchschnitt)
+ * Load recent data from trip log file to populate RAM buffer
  */
-void compressToHourlyData() {
-  if (totalRecentPoints < 60) return; // Need at least 1 minute of data
+void loadRecentDataFromTripLog() {
+  log("Loading recent data from trip log...");
   
-  // Calculate average of last 60 data points
-  LogdataRow avgPoint = {0};
-  int count = 0;
+  if (!LittleFS.exists("/trip_log.bin")) {
+    log("No trip log file found, starting fresh");
+    return;
+  }
   
-  for (int i = 0; i < 60 && i < totalRecentPoints; i++) {
-    int idx = (recentIndex - 1 - i + MAX_RECENT_POINTS) % MAX_RECENT_POINTS;
-    LogdataRow& point = recentData[idx];
-    
-    if (count == 0) {
-      avgPoint = point; // Initialize with first point
+  File readFile = LittleFS.open("/trip_log.bin", "r");
+  if (!readFile) {
+    log("Failed to open trip log for reading");
+    return;
+  }
+  
+  // Get file size and calculate number of datapoints
+  size_t fileSize = readFile.size();
+  int totalDatapoints = fileSize / sizeof(LogdataRow);
+  
+  if (totalDatapoints == 0) {
+    log("Trip log is empty");
+    readFile.close();
+    return;
+  }
+  
+  // Load last MAX_RECENT_POINTS into RAM buffer
+  int pointsToLoad = totalDatapoints > MAX_RECENT_POINTS ? MAX_RECENT_POINTS : totalDatapoints;
+  int startOffset = (totalDatapoints - pointsToLoad) * sizeof(LogdataRow);
+  
+  readFile.seek(startOffset);
+  
+  for (int i = 0; i < pointsToLoad; i++) {
+    if (readFile.read((uint8_t*)&recentData[i], sizeof(LogdataRow)) == sizeof(LogdataRow)) {
+      // Successfully loaded
     } else {
-      avgPoint.tempMotor = (avgPoint.tempMotor * count + point.tempMotor) / (count + 1);
-      avgPoint.tempMosfet = (avgPoint.tempMosfet * count + point.tempMosfet) / (count + 1);
-      avgPoint.batteryVoltage = (avgPoint.batteryVoltage * count + point.batteryVoltage) / (count + 1);
-      avgPoint.current = (avgPoint.current * count + point.current) / (count + 1);
-      avgPoint.avgMotorCurrent = (avgPoint.avgMotorCurrent * count + point.avgMotorCurrent) / (count + 1);
-      avgPoint.rpm = (avgPoint.rpm * count + point.rpm) / (count + 1);
-      avgPoint.dutyCycle = (avgPoint.dutyCycle * count + point.dutyCycle) / (count + 1);
-      avgPoint.temperature = (avgPoint.temperature * count + point.temperature) / (count + 1);
-      avgPoint.humidity = (avgPoint.humidity * count + point.humidity) / (count + 1);
-      avgPoint.batteryLevel = (avgPoint.batteryLevel * count + point.batteryLevel) / (count + 1);
-      // Keep latest values for discrete data
-      avgPoint.leakSensorState = point.leakSensorState;
-      avgPoint.ledState = point.ledState;
-      avgPoint.totalUptime = point.totalUptime;
+      log("Error reading trip log data");
+      break;
     }
-    count++;
   }
   
-  // Use timestamp of most recent point
-  avgPoint.timestamp = recentData[(recentIndex - 1 + MAX_RECENT_POINTS) % MAX_RECENT_POINTS].timestamp;
+  totalRecentPoints = pointsToLoad;
+  recentIndex = pointsToLoad % MAX_RECENT_POINTS;
   
-  // Add to hourly buffer
-  hourlyData[hourlyIndex] = avgPoint;
-  hourlyIndex = (hourlyIndex + 1) % MAX_HOURLY_POINTS;
-  if (totalHourlyPoints < MAX_HOURLY_POINTS) {
-    totalHourlyPoints++;
-  }
+  readFile.close();
   
-  String compressMsg = "Compressed to hourly data - Index: " + String(hourlyIndex) + ", Total: " + String(totalHourlyPoints);
-  log(compressMsg.c_str());
+  String loadMsg = "Loaded " + String(pointsToLoad) + " datapoints from trip log (total: " + String(totalDatapoints) + ")";
+  log(loadMsg.c_str());
 }
 
 /**
- * Komprimiert Hourly-Daten zu Historical-Daten (5 Minuten Durchschnitt)
+ * Legacy function - no longer used in append-only system
  */
 void compressToHistoricalData() {
-  if (totalHourlyPoints < 5) return; // Need at least 5 minutes of data
+  // This function is no longer used in the simplified append-only logging system
+  log("compressToHistoricalData called but not implemented in append-only system");
+}
+
+/**
+ * Lightweight data saving - only saves essential recent data to prevent stack overflow
+ */
+void saveLightweightData() {
+  log("Saving lightweight data to LittleFS...");
   
-  // Calculate average of last 5 hourly points
-  LogdataRow avgPoint = {0};
-  int count = 0;
+  // Only save last 30 recent points to minimize memory usage (ESP32 optimized)
+  int pointsToSave = totalRecentPoints > 30 ? 30 : totalRecentPoints;
   
-  for (int i = 0; i < 5 && i < totalHourlyPoints; i++) {
-    int idx = (hourlyIndex - 1 - i + MAX_HOURLY_POINTS) % MAX_HOURLY_POINTS;
-    LogdataRow& point = hourlyData[idx];
-    
-    if (count == 0) {
-      avgPoint = point;
+  if (pointsToSave > 0) {
+    File recentFile = LittleFS.open("/recent_light.bin", "w");
+    if (recentFile) {
+      // Write header info
+      recentFile.write((uint8_t*)&pointsToSave, sizeof(int));
+      
+      // Write only the last N points in correct chronological order
+      for (int i = 0; i < pointsToSave; i++) {
+        int idx = (recentIndex - pointsToSave + i + MAX_RECENT_POINTS) % MAX_RECENT_POINTS;
+        recentFile.write((uint8_t*)&recentData[idx], sizeof(LogdataRow));
+      }
+      recentFile.close();
+      
+      String saveMsg = "Lightweight data saved - " + String(pointsToSave) + " points";
+      log(saveMsg.c_str());
     } else {
-      avgPoint.tempMotor = (avgPoint.tempMotor * count + point.tempMotor) / (count + 1);
-      avgPoint.tempMosfet = (avgPoint.tempMosfet * count + point.tempMosfet) / (count + 1);
-      avgPoint.batteryVoltage = (avgPoint.batteryVoltage * count + point.batteryVoltage) / (count + 1);
-      avgPoint.current = (avgPoint.current * count + point.current) / (count + 1);
-      avgPoint.avgMotorCurrent = (avgPoint.avgMotorCurrent * count + point.avgMotorCurrent) / (count + 1);
-      avgPoint.rpm = (avgPoint.rpm * count + point.rpm) / (count + 1);
-      avgPoint.dutyCycle = (avgPoint.dutyCycle * count + point.dutyCycle) / (count + 1);
-      avgPoint.temperature = (avgPoint.temperature * count + point.temperature) / (count + 1);
-      avgPoint.humidity = (avgPoint.humidity * count + point.humidity) / (count + 1);
-      avgPoint.batteryLevel = (avgPoint.batteryLevel * count + point.batteryLevel) / (count + 1);
-      avgPoint.leakSensorState = point.leakSensorState;
-      avgPoint.ledState = point.ledState;
-      avgPoint.totalUptime = point.totalUptime;
+      log("Failed to save lightweight data");
     }
-    count++;
+  } else {
+    log("No data to save");
   }
   
-  avgPoint.timestamp = hourlyData[(hourlyIndex - 1 + MAX_HOURLY_POINTS) % MAX_HOURLY_POINTS].timestamp;
-  
-  // Add to historical buffer
-  historicalData[historicalIndex] = avgPoint;
-  historicalIndex = (historicalIndex + 1) % MAX_HISTORICAL_POINTS;
-  if (totalHistoricalPoints < MAX_HISTORICAL_POINTS) {
-    totalHistoricalPoints++;
-  }
-  
-  String compressMsg = "Compressed to historical data - Index: " + String(historicalIndex) + ", Total: " + String(totalHistoricalPoints);
-  log(compressMsg.c_str());
+  // Also save total uptime
+  saveTotalUptime();
 }
 
 /**
- * Speichert komprimierte Daten in SPIFFS für Persistenz
+ * Loads lightweight data from LittleFS after reboot
  */
-void saveCompressedData() {
-  log("Saving compressed data to SPIFFS...");
+void loadLightweightData() {
+  log("Loading lightweight data from LittleFS...");
   
-  // Save recent data (last 100 points to survive reboot)
-  File recentFile = SPIFFS.open("/recent_data.bin", "w");
-  if (recentFile) {
-    int pointsToSave = totalRecentPoints > 100 ? 100 : totalRecentPoints;
-    recentFile.write((uint8_t*)&pointsToSave, sizeof(int));
-    recentFile.write((uint8_t*)&recentIndex, sizeof(int));
-    
-    // Save last 100 points in correct order
-    for (int i = 0; i < pointsToSave; i++) {
-      int idx = (recentIndex - pointsToSave + i + MAX_RECENT_POINTS) % MAX_RECENT_POINTS;
-      recentFile.write((uint8_t*)&recentData[idx], sizeof(LogdataRow));
-    }
-    recentFile.close();
-    log("Recent data saved to SPIFFS");
-  } else {
-    log("Failed to save recent data");
-  }
-  
-  // Save hourly data
-  File hourlyFile = SPIFFS.open("/hourly_data.bin", "w");
-  if (hourlyFile) {
-    hourlyFile.write((uint8_t*)&totalHourlyPoints, sizeof(int));
-    hourlyFile.write((uint8_t*)&hourlyIndex, sizeof(int));
-    hourlyFile.write((uint8_t*)hourlyData, sizeof(LogdataRow) * MAX_HOURLY_POINTS);
-    hourlyFile.close();
-    log("Hourly data saved to SPIFFS");
-  } else {
-    log("Failed to save hourly data");
-  }
-  
-  // Save historical data
-  File historicalFile = SPIFFS.open("/historical_data.bin", "w");
-  if (historicalFile) {
-    historicalFile.write((uint8_t*)&totalHistoricalPoints, sizeof(int));
-    historicalFile.write((uint8_t*)&historicalIndex, sizeof(int));
-    historicalFile.write((uint8_t*)historicalData, sizeof(LogdataRow) * MAX_HISTORICAL_POINTS);
-    historicalFile.close();
-    log("Historical data saved to SPIFFS");
-  } else {
-    log("Failed to save historical data");
-  }
-}
-
-/**
- * Lädt komprimierte Daten aus SPIFFS nach einem Neustart
- */
-void loadCompressedData() {
-  log("Loading compressed data from SPIFFS...");
-  
-  // Initialize all values to safe defaults first
+  // Initialize to safe defaults
   totalRecentPoints = 0;
   recentIndex = 0;
-  totalHourlyPoints = 0;
-  hourlyIndex = 0;
-  totalHistoricalPoints = 0;
-  historicalIndex = 0;
   
-  // Load recent data
-  if (SPIFFS.exists("/recent_data.bin")) {
-    File recentFile = SPIFFS.open("/recent_data.bin", "r");
+  if (LittleFS.exists("/recent_light.bin")) {
+    File recentFile = LittleFS.open("/recent_light.bin", "r");
     if (recentFile) {
       int savedPoints = 0;
-      int savedIndex = 0;
       
       size_t bytesRead = recentFile.read((uint8_t*)&savedPoints, sizeof(int));
-      if (bytesRead == sizeof(int) && savedPoints > 0 && savedPoints <= 100) {
-        recentFile.read((uint8_t*)&savedIndex, sizeof(int));
+      if (bytesRead == sizeof(int) && savedPoints > 0 && savedPoints <= 30) {
         
         // Load points in correct order
         for (int i = 0; i < savedPoints; i++) {
@@ -563,89 +531,43 @@ void loadCompressedData() {
         totalRecentPoints = savedPoints;
         recentIndex = savedPoints % MAX_RECENT_POINTS;
         
-        String recentMsg = "Loaded recent data - Total: " + String(totalRecentPoints) + ", Index: " + String(recentIndex);
-        log(recentMsg.c_str());
+        String loadMsg = "Loaded lightweight data - Total: " + String(totalRecentPoints) + " points";
+        log(loadMsg.c_str());
       } else {
-        log("Invalid recent data, resetting");
+        log("Invalid lightweight data, starting fresh");
       }
       recentFile.close();
     } else {
-      log("Failed to open recent data file");
+      log("Failed to open lightweight data file");
     }
   } else {
-    log("No recent data file found");
+    log("No lightweight data file found, starting fresh");
   }
-  
-  // Load hourly data
-  if (SPIFFS.exists("/hourly_data.bin")) {
-    File hourlyFile = SPIFFS.open("/hourly_data.bin", "r");
-    if (hourlyFile) {
-      size_t bytesRead = hourlyFile.read((uint8_t*)&totalHourlyPoints, sizeof(int));
-      if (bytesRead == sizeof(int)) {
-        hourlyFile.read((uint8_t*)&hourlyIndex, sizeof(int));
-        hourlyFile.read((uint8_t*)hourlyData, sizeof(LogdataRow) * MAX_HOURLY_POINTS);
-        
-        // Validate loaded data
-        if (totalHourlyPoints < 0 || totalHourlyPoints > MAX_HOURLY_POINTS) {
-          log("Invalid hourly data, resetting");
-          totalHourlyPoints = 0;
-          hourlyIndex = 0;
-        } else {
-          String hourlyMsg = "Loaded hourly data - Total: " + String(totalHourlyPoints) + ", Index: " + String(hourlyIndex);
-          log(hourlyMsg.c_str());
-        }
-      }
-      hourlyFile.close();
-    } else {
-      log("Failed to open hourly data file");
-    }
-  } else {
-    log("No hourly data file found");
-  }
-  
-  // Load historical data
-  if (SPIFFS.exists("/historical_data.bin")) {
-    File historicalFile = SPIFFS.open("/historical_data.bin", "r");
-    if (historicalFile) {
-      size_t bytesRead = historicalFile.read((uint8_t*)&totalHistoricalPoints, sizeof(int));
-      if (bytesRead == sizeof(int)) {
-        historicalFile.read((uint8_t*)&historicalIndex, sizeof(int));
-        historicalFile.read((uint8_t*)historicalData, sizeof(LogdataRow) * MAX_HISTORICAL_POINTS);
-        
-        // Validate loaded data
-        if (totalHistoricalPoints < 0 || totalHistoricalPoints > MAX_HISTORICAL_POINTS) {
-          log("Invalid historical data, resetting");
-          totalHistoricalPoints = 0;
-          historicalIndex = 0;
-        } else {
-          String historicalMsg = "Loaded historical data - Total: " + String(totalHistoricalPoints) + ", Index: " + String(historicalIndex);
-          log(historicalMsg.c_str());
-        }
-      }
-      historicalFile.close();
-    } else {
-      log("Failed to open historical data file");
-    }
-  } else {
-    log("No historical data file found");
-  }
-  
-  log("Data loading completed successfully");
 }
 
 /**
- * Gibt die letzten n Datenpunkte zurück (mit automatischer Zeitbereich-Auswahl)
+ * Legacy function - no longer used in append-only system
+ */
+void saveCompressedData() {
+  // This function is no longer used in the simplified append-only logging system
+  log("saveCompressedData called but not implemented in append-only system");
+}
+
+/**
+ * Legacy function - no longer used in append-only system
+ */
+void loadCompressedData() {
+  // This function is no longer used in the simplified append-only logging system
+  log("loadCompressedData called but not implemented in append-only system");
+}
+
+/**
+ * Gibt die letzten n Datenpunkte zurück (vereinfacht - nur recent data)
  */
 LogdataRow* getLatestDataPoints(int count, String timeRange) {
-  if (timeRange == "recent") {
-    return getRecentData(count);
-  } else if (timeRange == "hourly") {
-    return getHourlyData(count);
-  } else if (timeRange == "historical") {
-    return getHistoricalData(count);
-  } else {
-    return getRecentData(count);
-  }
+  // For now, all requests return recent data
+  // TODO: Implement different time ranges by reading from trip log file
+  return getRecentData(count);
 }
 
 /**
@@ -685,58 +607,30 @@ LogdataRow* getRecentData(int count) {
 }
 
 /**
- * Gibt Hourly-Daten zurück (1min Auflösung)
+ * Legacy function - returns recent data instead
  */
 LogdataRow* getHourlyData(int count) {
-  if (count > totalHourlyPoints) count = totalHourlyPoints;
-  if (count <= 0) return NULL;
-  
-  static LogdataRow result[MAX_HOURLY_POINTS];
-  
-  int start = (hourlyIndex - count + MAX_HOURLY_POINTS) % MAX_HOURLY_POINTS;
-  for (int i = 0; i < count; i++) {
-    result[i] = hourlyData[(start + i) % MAX_HOURLY_POINTS];
-  }
-  
-  String hourlyMsg = "Returning " + String(count) + " hourly data points";
-  log(hourlyMsg.c_str());
-  
-  return result;
+  // In the simplified system, return recent data
+  log("getHourlyData called - returning recent data instead");
+  return getRecentData(count);
 }
 
 /**
- * Gibt Historical-Daten zurück (5min Auflösung)
+ * Legacy function - returns recent data instead
  */
 LogdataRow* getHistoricalData(int count) {
-  if (count > totalHistoricalPoints) count = totalHistoricalPoints;
-  if (count <= 0) return NULL;
-  
-  static LogdataRow result[MAX_HISTORICAL_POINTS];
-  
-  int start = (historicalIndex - count + MAX_HISTORICAL_POINTS) % MAX_HISTORICAL_POINTS;
-  for (int i = 0; i < count; i++) {
-    result[i] = historicalData[(start + i) % MAX_HISTORICAL_POINTS];
-  }
-  
-  String historicalMsg = "Returning " + String(count) + " historical data points";
-  log(historicalMsg.c_str());
-  
-  return result;
+  // In the simplified system, return recent data
+  log("getHistoricalData called - returning recent data instead");
+  return getRecentData(count);
 }
 
 /**
- * Gibt die Anzahl verfügbarer Datenpunkte für einen Zeitbereich zurück
+ * Gibt die Anzahl verfügbarer Datenpunkte zurück (vereinfacht)
  */
 int getTotalDataPoints(String timeRange) {
-  if (timeRange == "recent") {
-    return totalRecentPoints;
-  } else if (timeRange == "hourly") {
-    return totalHourlyPoints;
-  } else if (timeRange == "historical") {
-    return totalHistoricalPoints;
-  } else {
-    return totalRecentPoints;
-  }
+  // For now, always return recent points count
+  // TODO: Calculate total points from trip log file size
+  return totalRecentPoints;
 }
 
 /**
@@ -753,10 +647,19 @@ void dataloggerTask(void *pvParameters) {
   vTaskDelay(100 / portTICK_PERIOD_MS);
   log("Initial delay completed");
   
-  // Load persisted data from SPIFFS
+  // Initialize LittleFS and trip logging
+  log("Initializing LittleFS...");
+  if (!LittleFS.begin(true)) {
+    log("LittleFS initialization failed!");
+  } else {
+    log("LittleFS initialized successfully");
+  }
+  
+  // Load persisted data
   log("Loading persisted data...");
   loadTotalUptime();
-  loadCompressedData();
+  loadRecentDataFromTripLog();
+  initializeTripLog();
   log("Persisted data loaded");
   
   // Create simple test datapoint immediately
@@ -790,11 +693,8 @@ void dataloggerTask(void *pvParameters) {
   String statusMsg = "Buffer status - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
   log(statusMsg.c_str());
   
-  // Save initial data immediately
-  log("Saving initial data to SPIFFS...");
-  saveTotalUptime();
-  saveCompressedData();
-  log("Initial data saved");
+  // Skip initial save to prevent stack issues
+  log("Skipping initial save to prevent stack overflow");
 
   // Main loop - create new datapoints every second
   log("Entering main loop...");
@@ -867,34 +767,14 @@ void dataloggerTask(void *pvParameters) {
       String newPointMsg = "New datapoint added - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
       log(newPointMsg.c_str());
       
-      // Save data every 5 datapoints for extra safety
-      if (totalRecentPoints % 5 == 0) {
-        log("Saving data after 5 datapoints...");
-        saveTotalUptime();
-        saveCompressedData();
-        log("Data saved after datapoint milestone");
-      }
-      
-      // Compress data periodically
-      if (currentTime - lastHourlySave >= HOURLY_COMPRESSION_INTERVAL) {
-        compressToHourlyData();
-        lastHourlySave = currentTime;
-      }
-      
-      if (currentTime - lastHistoricalSave >= HISTORICAL_COMPRESSION_INTERVAL) {
-        compressToHistoricalData();
-        lastHistoricalSave = currentTime;
+              // Simple milestone logging (no saving needed - data is already persistent)
+      if (totalRecentPoints % 100 == 0) {
+        String milestoneMsg = "Milestone reached: " + String(totalRecentPoints) + " datapoints (auto-saved to trip log)";
+        log(milestoneMsg.c_str());
       }
     }
     
-    // Save data to SPIFFS every 10 seconds for persistence
-    if (currentTime - lastPersistenceTime >= 10000) { // 10 seconds
-      log("Saving data for persistence...");
-      saveTotalUptime();
-      saveCompressedData();
-      lastPersistenceTime = currentTime;
-      log("Data saved to SPIFFS");
-    }
+    // No periodic saving needed - data is automatically persistent!
     
     // Keep task alive
     vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -908,13 +788,9 @@ void dataloggerTask(void *pvParameters) {
 void datalogSetup() {
   log("=== DATALOG SETUP START ===");
   
-  // Initialize all buffer variables to safe defaults
+  // Initialize buffer variables to safe defaults
   recentIndex = 0;
-  hourlyIndex = 0;
-  historicalIndex = 0;
   totalRecentPoints = 0;
-  totalHourlyPoints = 0;
-  totalHistoricalPoints = 0;
   isDataloggerRunning = false;
   
   log("Buffer variables initialized");
@@ -923,7 +799,7 @@ void datalogSetup() {
   BaseType_t taskResult = xTaskCreatePinnedToCore(
     dataloggerTask,        // Task-Funktion
     "DataloggerTask",      // Task-Name
-    16000,                 // Stack-Größe (Bytes) - erhöht wegen Stack Overflow
+    32000,                 // Stack-Größe (Bytes) - Maximum für ESP32
     NULL,                  // Task-Parameter
     1,                     // Task-Priorität (1 ist niedrig)
     &dataloggerTaskHandle, // Task-Handle

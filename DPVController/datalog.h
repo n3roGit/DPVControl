@@ -28,22 +28,14 @@ struct LogdataRow {
   unsigned long totalUptime;
 };
 
-// Multi-level data storage for different time ranges (ESP32 DRAM optimized)
-#define MAX_RECENT_POINTS 500     // Last 8.3 minutes - 1 second resolution (28 KB)
-#define MAX_HOURLY_POINTS 48      // Last 48 minutes - 1 minute resolution (2.7 KB)
-#define MAX_HISTORICAL_POINTS 24  // Last 2 hours - 5 minute resolution (1.3 KB)
-// Total RAM usage: ~32 KB for data buffers
+// Simple append-only logging system for trip data
+#define MAX_RECENT_POINTS 100     // RAM buffer for live display (5.6 KB)
+// All data is immediately written to LittleFS for persistence
 
-extern LogdataRow recentData[MAX_RECENT_POINTS];        // 1s resolution
-extern LogdataRow hourlyData[MAX_HOURLY_POINTS];        // 1min resolution
-extern LogdataRow historicalData[MAX_HISTORICAL_POINTS]; // 5min resolution
+extern LogdataRow recentData[MAX_RECENT_POINTS];        // RAM buffer for live display
 
 extern int recentIndex;
-extern int hourlyIndex; 
-extern int historicalIndex;
 extern int totalRecentPoints;
-extern int totalHourlyPoints;
-extern int totalHistoricalPoints;
 
 // Persistence tracking
 extern unsigned long lastHourlySave;
@@ -68,12 +60,11 @@ LogdataRow* getHourlyData(int count);
 LogdataRow* getHistoricalData(int count);
 int getTotalDataPoints(String timeRange = "recent");
 
-// Data management functions
+// Simple append-only logging functions
 void addToRecentData(LogdataRow datapoint);
-void compressToHourlyData();
-void compressToHistoricalData();
-void saveCompressedData();
-void loadCompressedData();
+void appendToTripLog(LogdataRow datapoint);
+void initializeTripLog();
+void loadRecentDataFromTripLog();
 
 // Legacy functions
 void deleteOldestLogFile();

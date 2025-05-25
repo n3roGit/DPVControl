@@ -1,34 +1,35 @@
 #include "data_upload.h"
 #include "log.h"
+#include <LittleFS.h>
 
 // Initialize file system and store HTML files
 bool initializeFileSystem() {
-    // Initialize SPIFFS
-    if (!SPIFFS.begin(true)) {
-        log("An error occurred while mounting SPIFFS");
+    // Initialize LittleFS
+    if (!LittleFS.begin(true)) {
+        log("An error occurred while mounting LittleFS");
         return false;
     }
     
-    log("SPIFFS mounted successfully");
+    log("LittleFS mounted successfully");
     
     // Prüfe verfügbaren Platz
-    size_t totalBytes = SPIFFS.totalBytes();
-    size_t usedBytes = SPIFFS.usedBytes();
-    String totalMsg = "SPIFFS Total: " + String(totalBytes);
+    size_t totalBytes = LittleFS.totalBytes();
+    size_t usedBytes = LittleFS.usedBytes();
+    String totalMsg = "LittleFS Total: " + String(totalBytes);
     log(totalMsg.c_str());
-    String usedMsg = "SPIFFS Used: " + String(usedBytes);
+    String usedMsg = "LittleFS Used: " + String(usedBytes);
     log(usedMsg.c_str());
     
     // Längeres Delay für Hardware-Operationen
     delay(200);
     
-    // Store index.html in SPIFFS if it doesn't exist
-    if (!SPIFFS.exists("/index.html")) {
+    // Store index.html in LittleFS if it doesn't exist
+    if (!LittleFS.exists("/index.html")) {
         log("index.html nicht gefunden, erstelle neu");
         
         // Überprüfen, ob genug Platz für die Datei vorhanden ist
         size_t freeBytes = totalBytes - usedBytes;
-        String freeMsg = "SPIFFS Free: " + String(freeBytes);
+        String freeMsg = "LittleFS Free: " + String(freeBytes);
         log(freeMsg.c_str());
         
         // Content of index.html - this should be updated with the actual content
@@ -437,13 +438,13 @@ bool initializeFileSystem() {
         log(startMsg.c_str());
         
         // Versuche zuerst, mögliche alte Datei zu löschen
-        if (SPIFFS.exists("/index.html")) {
-            SPIFFS.remove("/index.html");
+        if (LittleFS.exists("/index.html")) {
+            LittleFS.remove("/index.html");
             delay(100);
         }
         
         // Datei in kleineren Blöcken schreiben
-        File file = SPIFFS.open("/index.html", "w");
+        File file = LittleFS.open("/index.html", "w");
         if (!file) {
             log("Failed to open file for writing");
             return false;
@@ -477,8 +478,8 @@ bool initializeFileSystem() {
         delay(20);
         
         // Überprüfen ob die Datei erfolgreich geschrieben wurde
-        if (SPIFFS.exists("/index.html")) {
-            File checkFile = SPIFFS.open("/index.html", "r");
+        if (LittleFS.exists("/index.html")) {
+            File checkFile = LittleFS.open("/index.html", "r");
             if (checkFile && checkFile.size() > 0) {
                 String successMsg = "index.html erfolgreich gespeichert (" + String(checkFile.size()) + " Bytes)";
                 log(successMsg.c_str());
@@ -499,7 +500,7 @@ bool initializeFileSystem() {
     return true;
 }
 
-// Store a file in SPIFFS
+// Store a file in LittleFS
 bool storeFile(const char* path, const char* content) {
     String logMsg = "Speichere Datei: " + String(path);
     log(logMsg.c_str());
@@ -508,12 +509,12 @@ bool storeFile(const char* path, const char* content) {
     delay(100);
     
     // Versuche zuerst, mögliche alte Datei zu löschen
-    if (SPIFFS.exists(path)) {
-        SPIFFS.remove(path);
+    if (LittleFS.exists(path)) {
+        LittleFS.remove(path);
         delay(100);
     }
     
-    File file = SPIFFS.open(path, "w");
+    File file = LittleFS.open(path, "w");
     if (!file) {
         String errorMsg = "Failed to open file for writing: " + String(path);
         log(errorMsg.c_str());
@@ -552,8 +553,8 @@ bool storeFile(const char* path, const char* content) {
     delay(20);
     
     // Überprüfen ob die Datei erfolgreich geschrieben wurde
-    if (SPIFFS.exists(path)) {
-        File checkFile = SPIFFS.open(path, "r");
+    if (LittleFS.exists(path)) {
+        File checkFile = LittleFS.open(path, "r");
         if (checkFile && checkFile.size() > 0) {
             String successMsg = "Datei erfolgreich gespeichert: " + String(path) + " (" + String(checkFile.size()) + " Bytes)";
             log(successMsg.c_str());

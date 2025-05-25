@@ -59,6 +59,9 @@ void setup() {
   ledBarSetup();
   datalogSetup();
   batterySetup();
+  
+  // Load beeper settings
+  loadBeeperSettings();
 
   // Initialize webserver on Core 0
   setupWebserver();
