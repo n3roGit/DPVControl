@@ -31,30 +31,282 @@ const char* helloWorldHTML = R"rawliteral(
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #e0e5e9;
             color: #1e272e;
-            text-align: center;
         }
-        h1 {
+        h1, h2 {
             color: #3498db;
         }
         .container {
             max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
+            margin: 20px auto;
             padding: 20px;
+            background-color: white;
             border-radius: 5px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #2c3e50;
+        }
+        .nav-tab {
+            padding: 10px 20px;
+            background-color: #f8f8f8;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 5px;
+        }
+        .nav-tab.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .status-value {
+            font-weight: bold;
+            color: #2c3e50;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>DPVControl Web Interface</h1>
-        <p>Welcome to the DPVControl web interface!</p>
-        <p>This is a simple Hello World page running on a separate core.</p>
+        
+        <div class="section">
+            <div class="tab-navigation">
+                <button class="nav-tab active" onclick="showTab('status')">Status</button>
+                <button class="nav-tab" onclick="showTab('data')">Data</button>
+                <button class="nav-tab" onclick="showTab('settings')">Settings</button>
+            </div>
+        </div>
+        
+        <div id="status-tab" class="tab-content active">
+            <div class="section">
+                <h2>System Status</h2>
+                <table>
+                    <tr>
+                        <td>Uptime:</td>
+                        <td class="status-value" id="uptime">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Battery Voltage:</td>
+                        <td class="status-value" id="battery">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Motor Temperature:</td>
+                        <td class="status-value" id="motorTemp">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Ambient Temperature:</td>
+                        <td class="status-value" id="temperature">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Humidity:</td>
+                        <td class="status-value" id="humidity">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Current:</td>
+                        <td class="status-value" id="current">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>RPM:</td>
+                        <td class="status-value" id="rpm">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Duty Cycle:</td>
+                        <td class="status-value" id="dutyCycle">Loading...</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div id="data-tab" class="tab-content">
+            <div class="section">
+                <h2>Recent Data Points</h2>
+                <p>Data Points Available: <span id="dataPointCount">Loading...</span></p>
+                <button class="button" onclick="loadRecentData()">Refresh Data</button>
+                <div id="dataDisplay" style="margin-top: 20px;">
+                    <p>Click "Refresh Data" to load recent measurements...</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="settings-tab" class="tab-content">
+            <div class="section">
+                <h2>Settings</h2>
+                <table>
+                    <tr>
+                        <td>Update Interval (s):</td>
+                        <td><input type="number" id="updateInterval" min="1" max="60" value="5"></td>
+                    </tr>
+                    <tr>
+                        <td>Data Points to Show:</td>
+                        <td><input type="number" id="dataPoints" min="10" max="100" value="20"></td>
+                    </tr>
+                </table>
+                <button class="button" onclick="saveSettings()">Save Settings</button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Variables
+        let updateInterval = 5000; // 5 seconds
+        let dataPointsToShow = 20;
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load settings from localStorage
+            if (localStorage.getItem('updateInterval')) {
+                updateInterval = parseInt(localStorage.getItem('updateInterval')) * 1000;
+                document.getElementById('updateInterval').value = updateInterval / 1000;
+            }
+            
+            if (localStorage.getItem('dataPoints')) {
+                dataPointsToShow = parseInt(localStorage.getItem('dataPoints'));
+                document.getElementById('dataPoints').value = dataPointsToShow;
+            }
+            
+            // First data load
+            loadData();
+            
+            // Set up periodic updates
+            setInterval(loadData, updateInterval);
+        });
+        
+        // Tab Navigation
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Update active state of buttons
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Find the button that was clicked and make it active
+            event.target.classList.add('active');
+        }
+        
+        // Save settings
+        function saveSettings() {
+            updateInterval = parseInt(document.getElementById('updateInterval').value) * 1000;
+            dataPointsToShow = parseInt(document.getElementById('dataPoints').value);
+            
+            localStorage.setItem('updateInterval', updateInterval / 1000);
+            localStorage.setItem('dataPoints', dataPointsToShow);
+            
+            alert('Settings saved! Page will reload to apply changes.');
+            location.reload();
+        }
+        
+        // Load data from the API
+        function loadData() {
+            // Fetch status data
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('uptime').textContent = formatTime(data.uptime);
+                    document.getElementById('dataPointCount').textContent = data.dataPoints || 0;
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                    document.getElementById('uptime').textContent = 'Error loading';
+                });
+            
+            // Fetch latest data point for status display
+            fetch('/api/data?count=1')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        const latest = data[0];
+                        document.getElementById('battery').textContent = latest.batteryVoltage.toFixed(2) + ' V';
+                        document.getElementById('motorTemp').textContent = latest.tempMotor.toFixed(1) + ' °C';
+                        document.getElementById('temperature').textContent = latest.temperature.toFixed(1) + ' °C';
+                        document.getElementById('humidity').textContent = latest.humidity.toFixed(1) + ' %';
+                        document.getElementById('current').textContent = latest.current.toFixed(2) + ' A';
+                        document.getElementById('rpm').textContent = latest.rpm.toFixed(0) + ' RPM';
+                        document.getElementById('dutyCycle').textContent = latest.dutyCycle.toFixed(1) + ' %';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('battery').textContent = 'Error loading';
+                });
+        }
+        
+        // Load recent data for the data tab
+        function loadRecentData() {
+            fetch('/api/data?count=' + dataPointsToShow)
+                .then(response => response.json())
+                .then(data => {
+                    let html = '<table><tr><th>Time</th><th>Battery (V)</th><th>Motor Temp (°C)</th><th>Current (A)</th><th>RPM</th><th>Duty (%)</th></tr>';
+                    
+                    data.forEach(item => {
+                        const date = new Date(item.timestamp);
+                        const timeStr = date.toLocaleTimeString();
+                        html += '<tr>';
+                        html += '<td>' + timeStr + '</td>';
+                        html += '<td>' + item.batteryVoltage.toFixed(2) + '</td>';
+                        html += '<td>' + item.tempMotor.toFixed(1) + '</td>';
+                        html += '<td>' + item.current.toFixed(2) + '</td>';
+                        html += '<td>' + item.rpm.toFixed(0) + '</td>';
+                        html += '<td>' + item.dutyCycle.toFixed(1) + '</td>';
+                        html += '</tr>';
+                    });
+                    
+                    html += '</table>';
+                    document.getElementById('dataDisplay').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    document.getElementById('dataDisplay').innerHTML = '<p>Error loading data</p>';
+                });
+        }
+        
+        // Format time in HH:MM:SS
+        function formatTime(milliseconds) {
+            const totalSeconds = Math.floor(milliseconds / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            
+            return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+    </script>
 </body>
 </html>
 )rawliteral";
@@ -234,12 +486,8 @@ void handleClient(WiFiClient client) {
     
     // Handle the request based on the path
     if (path == "/" || path == "/index.html") {
-        // Root path - serve index.html
-        if (spiffsInitialized && SPIFFS.exists("/index.html")) {
-            loadFromSPIFFS(client, "/index.html");
-        } else {
-            sendHttpResponse(client, 200, "text/html", helloWorldHTML);
-        }
+        // Root path - serve embedded HTML page
+        sendHttpResponse(client, 200, "text/html", helloWorldHTML);
     } else if (path == "/api/data" || path.startsWith("/api/data?")) {
         // API endpoint for datalogger data
         int count = 60; // Default: return 60 data points
