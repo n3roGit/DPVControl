@@ -11,6 +11,10 @@
 #include "FS.h" //Provided by framework (v3.2.0)
 #include "SPIFFS.h"//Provided by framework (v3.2.0)
 
+// Webserver libraries
+#include <WiFi.h>
+#include <DNSServer.h>
+#include <WebServer.h>
 
 #include "main.h"
 

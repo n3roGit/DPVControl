@@ -8,6 +8,8 @@
 #include "other.h"
 #include "button.h"
 #include "datalog.h"
+#include "webserver.h"  // Include webserver header
+#include "data_upload.h" // Include data upload header
 
 int leakSensorState = 0;
 
@@ -49,6 +51,8 @@ void setup() {
   datalogSetup();
   batterySetup();
 
+  // Initialize webserver on Core 0
+  setupWebserver();
 
   // Booting finished
   Serial.println("Booting finished!");

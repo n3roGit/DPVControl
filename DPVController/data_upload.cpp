@@ -1,0 +1,144 @@
+#include "data_upload.h"
+#include "log.h"
+
+// Initialize file system and store HTML files
+bool initializeFileSystem() {
+    // Initialize SPIFFS
+    if (!SPIFFS.begin(true)) {
+        log("An error occurred while mounting SPIFFS");
+        return false;
+    }
+    
+    log("SPIFFS mounted successfully");
+    
+    // Store index.html in SPIFFS if it doesn't exist
+    if (!SPIFFS.exists("/index.html")) {
+        // Content of index.html - this should be updated with the actual content
+        const char* indexHTML = R"rawliteral(
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPVControl</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e0e5e9;
+            color: #1e272e;
+        }
+        h1, h2 {
+            color: #3498db;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DPVControl Web Interface</h1>
+        
+        <div class="section">
+            <h2>System Status</h2>
+            <table>
+                <tr>
+                    <td>Uptime:</td>
+                    <td id="uptime">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Battery Voltage:</td>
+                    <td id="battery">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Temperature:</td>
+                    <td id="temperature">Loading...</td>
+                </tr>
+                <tr>
+                    <td>Humidity:</td>
+                    <td id="humidity">Loading...</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="section">
+            <h2>Controls</h2>
+            <button class="button" id="led-toggle">Toggle LED</button>
+        </div>
+    </div>
+
+    <script>
+        // This will be replaced with actual functionality in the future
+        document.getElementById('uptime').textContent = 'Running on Core 0';
+        document.getElementById('battery').textContent = '12.6V';
+        document.getElementById('temperature').textContent = '25°C';
+        document.getElementById('humidity').textContent = '45%';
+        
+        document.getElementById('led-toggle').addEventListener('click', function() {
+            alert('LED toggle functionality will be added in the future');
+        });
+    </script>
+</body>
+</html>
+)rawliteral";
+
+        if (!storeFile("/index.html", indexHTML)) {
+            log("Failed to store index.html");
+            return false;
+        }
+        
+        log("index.html stored in SPIFFS");
+    }
+    
+    return true;
+}
+
+// Store a file in SPIFFS
+bool storeFile(const char* path, const char* content) {
+    File file = SPIFFS.open(path, "w");
+    if (!file) {
+        log("Failed to open file for writing");
+        return false;
+    }
+    
+    if (!file.print(content)) {
+        log("Failed to write to file");
+        file.close();
+        return false;
+    }
+    
+    file.close();
+    return true;
+} 
