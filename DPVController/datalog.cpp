@@ -15,7 +15,7 @@
 * CONSTANTS
 */ 
 
-const String HEADER = "timestamp,motor_temp,battery_voltage,current,rpm,duty_cycle,temperature,humidity";
+const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,rpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,total_uptime";
 const String DATALOG_DIR = "/datalog";
 const unsigned long DATALOG_INTERVAL = 1000; // Wie oft ein Datenpunkt gespeichert wird (ms)
 const int MAX_LOG_FILES = 10; // Maximale Anzahl an Log-Dateien
@@ -27,9 +27,26 @@ const double MAX_SPEED_RPM = 15800; // Maximum speed in rpm. Speed of 100%, kopi
 TaskHandle_t dataloggerTaskHandle = NULL;
 File csvFile;
 unsigned long lastDataLogTime = 0;
-LogdataRow dataPoints[MAX_DATA_POINTS];
-int dataPointIndex = 0;
-int totalDataPoints = 0;
+
+// Multi-level data storage
+LogdataRow recentData[MAX_RECENT_POINTS];        // 1s resolution - last 30 min
+LogdataRow hourlyData[MAX_HOURLY_POINTS];        // 1min resolution - last 2 hours
+LogdataRow historicalData[MAX_HISTORICAL_POINTS]; // 5min resolution - last 6 hours
+
+int recentIndex = 0;
+int hourlyIndex = 0;
+int historicalIndex = 0;
+int totalRecentPoints = 0;
+int totalHourlyPoints = 0;
+int totalHistoricalPoints = 0;
+
+// Persistence and compression tracking
+unsigned long lastHourlySave = 0;
+unsigned long lastHistoricalSave = 0;
+const unsigned long HOURLY_COMPRESSION_INTERVAL = 60000;    // Compress every minute
+const unsigned long HISTORICAL_COMPRESSION_INTERVAL = 300000; // Compress every 5 minutes
+const unsigned long PERSISTENCE_SAVE_INTERVAL = 300000;     // Save to SPIFFS every 5 minutes
+
 bool isDataloggerRunning = false;
 unsigned long totalUptimeSeconds = 0;
 unsigned long lastUptimeSave = 0;
@@ -249,68 +266,64 @@ LogdataRow createDatapoint() {
   LogdataRow dp;
   dp.timestamp = millis();
   
-  // Debug: Zeige an, dass wir einen Datenpunkt erstellen
-  log("Creating datapoint...");
+  log("Creating datapoint - step 1: timestamp set");
   
-  // Motortemperatur
+  // Simplified data creation with step-by-step debugging
+  // Motortemperatur und MOSFET-Temperatur
   if (HAS_MOTOR) {
     dp.tempMotor = getVescUart().data.tempMotor;
-    String motorTempMsg = "Motor temp: " + String(dp.tempMotor);
-    log(motorTempMsg.c_str());
+    dp.tempMosfet = getVescUart().data.tempMosfet;
   } else {
     dp.tempMotor = 20.0 + (loopCount % 10);
-    String motorTempMsg = "Motor temp (simulated): " + String(dp.tempMotor);
-    log(motorTempMsg.c_str());
+    dp.tempMosfet = 25.0 + (loopCount % 15);
   }
+  log("Creating datapoint - step 2: motor temps set");
   
   // Batteriespannung
   dp.batteryVoltage = getBatteryVoltage();
-  String batteryMsg = "Battery voltage: " + String(dp.batteryVoltage);
-  log(batteryMsg.c_str());
+  log("Creating datapoint - step 3: battery voltage set");
   
   // Weitere VESC-Daten
   if (HAS_MOTOR) {
-    // Verwenden wir die Eigenschaften von VescUart, die wir in getMotorPower() in motor.cpp sehen können
     dp.current = getVescUart().data.avgInputCurrent;
+    dp.avgMotorCurrent = getVescUart().data.avgMotorCurrent;
     dp.rpm = getVescUart().data.rpm;
-    // Wir wissen nicht, ob duty_now oder dutyCycleNow der richtige Name ist,
-    // daher berechnen wir einen simulierten Wert auf Basis anderer Werte
-    dp.dutyCycle = (dp.rpm / MAX_SPEED_RPM) * 100.0;
-    
-    String vescMsg = "VESC data - Current: " + String(dp.current) + ", RPM: " + String(dp.rpm) + ", Duty: " + String(dp.dutyCycle);
-    log(vescMsg.c_str());
+    dp.dutyCycle = getVescUart().data.dutyCycleNow;
   } else {
     // Simulierte Werte, falls kein Motor verfügbar
     dp.current = 5.0 + (loopCount % 20);
+    dp.avgMotorCurrent = 3.0 + (loopCount % 15);
     dp.rpm = 1000 + (loopCount % 1000);
     dp.dutyCycle = 25.0 + (loopCount % 50);
-    
-    String simMsg = "Simulated data - Current: " + String(dp.current) + ", RPM: " + String(dp.rpm) + ", Duty: " + String(dp.dutyCycle);
-    log(simMsg.c_str());
   }
+  log("Creating datapoint - step 4: VESC data set");
   
   // Umgebungstemperatur und Luftfeuchtigkeit von DHT-Sensor
   TempAndHumidity data = dhtSensor.getTempAndHumidity();
   
   // Handle NaN values from DHT sensor
   if (isnan(data.temperature)) {
-    dp.temperature = 20.0; // Default fallback value
+    dp.temperature = 0.0; // Default fallback value
   } else {
     dp.temperature = data.temperature;
   }
   
   if (isnan(data.humidity)) {
-    dp.humidity = 50.0; // Default fallback value
+    dp.humidity = 0.0; // Default fallback value
   } else {
     dp.humidity = data.humidity;
   }
+  log("Creating datapoint - step 5: DHT data set");
   
-  String dhtMsg = "DHT data - Temp: " + String(dp.temperature) + ", Humidity: " + String(dp.humidity);
-  log(dhtMsg.c_str());
+  // Battery Level, Leak Sensor, LED State, Total Uptime
+  dp.batteryLevel = batteryLevel;
+  dp.leakSensorState = leakSensorState;
+  dp.ledState = 0; // TODO: Get actual LED state from LED bar
+  dp.totalUptime = getTotalUptime();
   
-  String completeMsg = "Datapoint created - Timestamp: " + String(dp.timestamp);
-  log(completeMsg.c_str());
+  log("Creating datapoint - step 6: additional data set");
   
+  log("Datapoint creation completed successfully");
   return dp;
 }
 
@@ -325,9 +338,13 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(",");
   file.print(datapoint.tempMotor);
   file.print(",");
+  file.print(datapoint.tempMosfet);
+  file.print(",");
   file.print(datapoint.batteryVoltage);
   file.print(",");
   file.print(datapoint.current);
+  file.print(",");
+  file.print(datapoint.avgMotorCurrent);
   file.print(",");
   file.print(datapoint.rpm);
   file.print(",");
@@ -336,6 +353,14 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(datapoint.temperature);
   file.print(",");
   file.print(datapoint.humidity);
+  file.print(",");
+  file.print(datapoint.batteryLevel);
+  file.print(",");
+  file.print(datapoint.leakSensorState);
+  file.print(",");
+  file.print(datapoint.ledState);
+  file.print(",");
+  file.print(datapoint.totalUptime);
   file.println();
   file.flush();
   
@@ -344,52 +369,262 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
 }
 
 /**
- * Fügt einen Datenpunkt zum Kreis-Buffer hinzu
+ * Fügt einen Datenpunkt zum Recent-Buffer hinzu (1s Auflösung)
  */
-void addDataPointToBuffer(LogdataRow datapoint) {
-  String beforeMsg = "Adding datapoint to buffer - Index: " + String(dataPointIndex) + ", Total: " + String(totalDataPoints);
+void addToRecentData(LogdataRow datapoint) {
+  String beforeMsg = "Adding datapoint to recent buffer - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
   log(beforeMsg.c_str());
   
-  dataPoints[dataPointIndex] = datapoint;
-  dataPointIndex = (dataPointIndex + 1) % MAX_DATA_POINTS;
-  if (totalDataPoints < MAX_DATA_POINTS) {
-    totalDataPoints++;
+  recentData[recentIndex] = datapoint;
+  recentIndex = (recentIndex + 1) % MAX_RECENT_POINTS;
+  if (totalRecentPoints < MAX_RECENT_POINTS) {
+    totalRecentPoints++;
   }
   
-  String afterMsg = "Datapoint added - New Index: " + String(dataPointIndex) + ", New Total: " + String(totalDataPoints);
+  String afterMsg = "Datapoint added to recent - New Index: " + String(recentIndex) + ", New Total: " + String(totalRecentPoints);
   log(afterMsg.c_str());
 }
 
 /**
- * Gibt die letzten n Datenpunkte zurück
+ * Komprimiert Recent-Daten zu Hourly-Daten (1 Minute Durchschnitt)
  */
-LogdataRow* getLatestDataPoints(int count) {
-  String requestMsg = "getLatestDataPoints called - Requested: " + String(count) + ", Available: " + String(totalDataPoints);
+void compressToHourlyData() {
+  if (totalRecentPoints < 60) return; // Need at least 1 minute of data
+  
+  // Calculate average of last 60 data points
+  LogdataRow avgPoint = {0};
+  int count = 0;
+  
+  for (int i = 0; i < 60 && i < totalRecentPoints; i++) {
+    int idx = (recentIndex - 1 - i + MAX_RECENT_POINTS) % MAX_RECENT_POINTS;
+    LogdataRow& point = recentData[idx];
+    
+    if (count == 0) {
+      avgPoint = point; // Initialize with first point
+    } else {
+      avgPoint.tempMotor = (avgPoint.tempMotor * count + point.tempMotor) / (count + 1);
+      avgPoint.tempMosfet = (avgPoint.tempMosfet * count + point.tempMosfet) / (count + 1);
+      avgPoint.batteryVoltage = (avgPoint.batteryVoltage * count + point.batteryVoltage) / (count + 1);
+      avgPoint.current = (avgPoint.current * count + point.current) / (count + 1);
+      avgPoint.avgMotorCurrent = (avgPoint.avgMotorCurrent * count + point.avgMotorCurrent) / (count + 1);
+      avgPoint.rpm = (avgPoint.rpm * count + point.rpm) / (count + 1);
+      avgPoint.dutyCycle = (avgPoint.dutyCycle * count + point.dutyCycle) / (count + 1);
+      avgPoint.temperature = (avgPoint.temperature * count + point.temperature) / (count + 1);
+      avgPoint.humidity = (avgPoint.humidity * count + point.humidity) / (count + 1);
+      avgPoint.batteryLevel = (avgPoint.batteryLevel * count + point.batteryLevel) / (count + 1);
+      // Keep latest values for discrete data
+      avgPoint.leakSensorState = point.leakSensorState;
+      avgPoint.ledState = point.ledState;
+      avgPoint.totalUptime = point.totalUptime;
+    }
+    count++;
+  }
+  
+  // Use timestamp of most recent point
+  avgPoint.timestamp = recentData[(recentIndex - 1 + MAX_RECENT_POINTS) % MAX_RECENT_POINTS].timestamp;
+  
+  // Add to hourly buffer
+  hourlyData[hourlyIndex] = avgPoint;
+  hourlyIndex = (hourlyIndex + 1) % MAX_HOURLY_POINTS;
+  if (totalHourlyPoints < MAX_HOURLY_POINTS) {
+    totalHourlyPoints++;
+  }
+  
+  String compressMsg = "Compressed to hourly data - Index: " + String(hourlyIndex) + ", Total: " + String(totalHourlyPoints);
+  log(compressMsg.c_str());
+}
+
+/**
+ * Komprimiert Hourly-Daten zu Historical-Daten (5 Minuten Durchschnitt)
+ */
+void compressToHistoricalData() {
+  if (totalHourlyPoints < 5) return; // Need at least 5 minutes of data
+  
+  // Calculate average of last 5 hourly points
+  LogdataRow avgPoint = {0};
+  int count = 0;
+  
+  for (int i = 0; i < 5 && i < totalHourlyPoints; i++) {
+    int idx = (hourlyIndex - 1 - i + MAX_HOURLY_POINTS) % MAX_HOURLY_POINTS;
+    LogdataRow& point = hourlyData[idx];
+    
+    if (count == 0) {
+      avgPoint = point;
+    } else {
+      avgPoint.tempMotor = (avgPoint.tempMotor * count + point.tempMotor) / (count + 1);
+      avgPoint.tempMosfet = (avgPoint.tempMosfet * count + point.tempMosfet) / (count + 1);
+      avgPoint.batteryVoltage = (avgPoint.batteryVoltage * count + point.batteryVoltage) / (count + 1);
+      avgPoint.current = (avgPoint.current * count + point.current) / (count + 1);
+      avgPoint.avgMotorCurrent = (avgPoint.avgMotorCurrent * count + point.avgMotorCurrent) / (count + 1);
+      avgPoint.rpm = (avgPoint.rpm * count + point.rpm) / (count + 1);
+      avgPoint.dutyCycle = (avgPoint.dutyCycle * count + point.dutyCycle) / (count + 1);
+      avgPoint.temperature = (avgPoint.temperature * count + point.temperature) / (count + 1);
+      avgPoint.humidity = (avgPoint.humidity * count + point.humidity) / (count + 1);
+      avgPoint.batteryLevel = (avgPoint.batteryLevel * count + point.batteryLevel) / (count + 1);
+      avgPoint.leakSensorState = point.leakSensorState;
+      avgPoint.ledState = point.ledState;
+      avgPoint.totalUptime = point.totalUptime;
+    }
+    count++;
+  }
+  
+  avgPoint.timestamp = hourlyData[(hourlyIndex - 1 + MAX_HOURLY_POINTS) % MAX_HOURLY_POINTS].timestamp;
+  
+  // Add to historical buffer
+  historicalData[historicalIndex] = avgPoint;
+  historicalIndex = (historicalIndex + 1) % MAX_HISTORICAL_POINTS;
+  if (totalHistoricalPoints < MAX_HISTORICAL_POINTS) {
+    totalHistoricalPoints++;
+  }
+  
+  String compressMsg = "Compressed to historical data - Index: " + String(historicalIndex) + ", Total: " + String(totalHistoricalPoints);
+  log(compressMsg.c_str());
+}
+
+/**
+ * Speichert komprimierte Daten in SPIFFS für Persistenz
+ */
+void saveCompressedData() {
+  log("Saving compressed data to SPIFFS...");
+  
+  // Save hourly data
+  File hourlyFile = SPIFFS.open("/hourly_data.bin", "w");
+  if (hourlyFile) {
+    hourlyFile.write((uint8_t*)&totalHourlyPoints, sizeof(int));
+    hourlyFile.write((uint8_t*)&hourlyIndex, sizeof(int));
+    hourlyFile.write((uint8_t*)hourlyData, sizeof(LogdataRow) * MAX_HOURLY_POINTS);
+    hourlyFile.close();
+    log("Hourly data saved to SPIFFS");
+  } else {
+    log("Failed to save hourly data");
+  }
+  
+  // Save historical data
+  File historicalFile = SPIFFS.open("/historical_data.bin", "w");
+  if (historicalFile) {
+    historicalFile.write((uint8_t*)&totalHistoricalPoints, sizeof(int));
+    historicalFile.write((uint8_t*)&historicalIndex, sizeof(int));
+    historicalFile.write((uint8_t*)historicalData, sizeof(LogdataRow) * MAX_HISTORICAL_POINTS);
+    historicalFile.close();
+    log("Historical data saved to SPIFFS");
+  } else {
+    log("Failed to save historical data");
+  }
+}
+
+/**
+ * Lädt komprimierte Daten aus SPIFFS nach einem Neustart
+ */
+void loadCompressedData() {
+  log("Loading compressed data from SPIFFS...");
+  
+  // Initialize all values to safe defaults first
+  totalHourlyPoints = 0;
+  hourlyIndex = 0;
+  totalHistoricalPoints = 0;
+  historicalIndex = 0;
+  
+  // Load hourly data
+  if (SPIFFS.exists("/hourly_data.bin")) {
+    File hourlyFile = SPIFFS.open("/hourly_data.bin", "r");
+    if (hourlyFile) {
+      size_t bytesRead = hourlyFile.read((uint8_t*)&totalHourlyPoints, sizeof(int));
+      if (bytesRead == sizeof(int)) {
+        hourlyFile.read((uint8_t*)&hourlyIndex, sizeof(int));
+        hourlyFile.read((uint8_t*)hourlyData, sizeof(LogdataRow) * MAX_HOURLY_POINTS);
+        
+        // Validate loaded data
+        if (totalHourlyPoints < 0 || totalHourlyPoints > MAX_HOURLY_POINTS) {
+          log("Invalid hourly data, resetting");
+          totalHourlyPoints = 0;
+          hourlyIndex = 0;
+        } else {
+          String hourlyMsg = "Loaded hourly data - Total: " + String(totalHourlyPoints) + ", Index: " + String(hourlyIndex);
+          log(hourlyMsg.c_str());
+        }
+      }
+      hourlyFile.close();
+    } else {
+      log("Failed to open hourly data file");
+    }
+  } else {
+    log("No hourly data file found");
+  }
+  
+  // Load historical data
+  if (SPIFFS.exists("/historical_data.bin")) {
+    File historicalFile = SPIFFS.open("/historical_data.bin", "r");
+    if (historicalFile) {
+      size_t bytesRead = historicalFile.read((uint8_t*)&totalHistoricalPoints, sizeof(int));
+      if (bytesRead == sizeof(int)) {
+        historicalFile.read((uint8_t*)&historicalIndex, sizeof(int));
+        historicalFile.read((uint8_t*)historicalData, sizeof(LogdataRow) * MAX_HISTORICAL_POINTS);
+        
+        // Validate loaded data
+        if (totalHistoricalPoints < 0 || totalHistoricalPoints > MAX_HISTORICAL_POINTS) {
+          log("Invalid historical data, resetting");
+          totalHistoricalPoints = 0;
+          historicalIndex = 0;
+        } else {
+          String historicalMsg = "Loaded historical data - Total: " + String(totalHistoricalPoints) + ", Index: " + String(historicalIndex);
+          log(historicalMsg.c_str());
+        }
+      }
+      historicalFile.close();
+    } else {
+      log("Failed to open historical data file");
+    }
+  } else {
+    log("No historical data file found");
+  }
+  
+  log("Data loading completed successfully");
+}
+
+/**
+ * Gibt die letzten n Datenpunkte zurück (mit automatischer Zeitbereich-Auswahl)
+ */
+LogdataRow* getLatestDataPoints(int count, String timeRange) {
+  if (timeRange == "recent") {
+    return getRecentData(count);
+  } else if (timeRange == "hourly") {
+    return getHourlyData(count);
+  } else if (timeRange == "historical") {
+    return getHistoricalData(count);
+  } else {
+    return getRecentData(count);
+  }
+}
+
+/**
+ * Gibt Recent-Daten zurück (1s Auflösung)
+ */
+LogdataRow* getRecentData(int count) {
+  String requestMsg = "getRecentData called - Requested: " + String(count) + ", Available: " + String(totalRecentPoints);
   log(requestMsg.c_str());
   
-  if (count > totalDataPoints) count = totalDataPoints;
+  if (count > totalRecentPoints) count = totalRecentPoints;
   if (count <= 0) {
-    log("No data points available, returning NULL");
+    log("No recent data points available, returning NULL");
     return NULL;
   }
   
-  static LogdataRow result[MAX_DATA_POINTS];
+  static LogdataRow result[MAX_RECENT_POINTS];
   
-  int start = (dataPointIndex - count + MAX_DATA_POINTS) % MAX_DATA_POINTS;
-  String startMsg = "Reading from buffer - Start index: " + String(start) + ", Count: " + String(count);
+  int start = (recentIndex - count + MAX_RECENT_POINTS) % MAX_RECENT_POINTS;
+  String startMsg = "Reading from recent buffer - Start index: " + String(start) + ", Count: " + String(count);
   log(startMsg.c_str());
   
   for (int i = 0; i < count; i++) {
-    result[i] = dataPoints[(start + i) % MAX_DATA_POINTS];
+    result[i] = recentData[(start + i) % MAX_RECENT_POINTS];
   }
   
-  // Debug: Zeige ersten und letzten Datenpunkt
   if (count > 0) {
-    String firstMsg = "First datapoint - Timestamp: " + String(result[0].timestamp) + ", Battery: " + String(result[0].batteryVoltage);
+    String firstMsg = "First recent datapoint - Timestamp: " + String(result[0].timestamp) + ", Battery: " + String(result[0].batteryVoltage);
     log(firstMsg.c_str());
     
     if (count > 1) {
-      String lastMsg = "Last datapoint - Timestamp: " + String(result[count-1].timestamp) + ", Battery: " + String(result[count-1].batteryVoltage);
+      String lastMsg = "Last recent datapoint - Timestamp: " + String(result[count-1].timestamp) + ", Battery: " + String(result[count-1].batteryVoltage);
       log(lastMsg.c_str());
     }
   }
@@ -398,66 +633,131 @@ LogdataRow* getLatestDataPoints(int count) {
 }
 
 /**
- * Der Haupttask für den Datalogger, läuft auf Core 0
+ * Gibt Hourly-Daten zurück (1min Auflösung)
+ */
+LogdataRow* getHourlyData(int count) {
+  if (count > totalHourlyPoints) count = totalHourlyPoints;
+  if (count <= 0) return NULL;
+  
+  static LogdataRow result[MAX_HOURLY_POINTS];
+  
+  int start = (hourlyIndex - count + MAX_HOURLY_POINTS) % MAX_HOURLY_POINTS;
+  for (int i = 0; i < count; i++) {
+    result[i] = hourlyData[(start + i) % MAX_HOURLY_POINTS];
+  }
+  
+  String hourlyMsg = "Returning " + String(count) + " hourly data points";
+  log(hourlyMsg.c_str());
+  
+  return result;
+}
+
+/**
+ * Gibt Historical-Daten zurück (5min Auflösung)
+ */
+LogdataRow* getHistoricalData(int count) {
+  if (count > totalHistoricalPoints) count = totalHistoricalPoints;
+  if (count <= 0) return NULL;
+  
+  static LogdataRow result[MAX_HISTORICAL_POINTS];
+  
+  int start = (historicalIndex - count + MAX_HISTORICAL_POINTS) % MAX_HISTORICAL_POINTS;
+  for (int i = 0; i < count; i++) {
+    result[i] = historicalData[(start + i) % MAX_HISTORICAL_POINTS];
+  }
+  
+  String historicalMsg = "Returning " + String(count) + " historical data points";
+  log(historicalMsg.c_str());
+  
+  return result;
+}
+
+/**
+ * Gibt die Anzahl verfügbarer Datenpunkte für einen Zeitbereich zurück
+ */
+int getTotalDataPoints(String timeRange) {
+  if (timeRange == "recent") {
+    return totalRecentPoints;
+  } else if (timeRange == "hourly") {
+    return totalHourlyPoints;
+  } else if (timeRange == "historical") {
+    return totalHistoricalPoints;
+  } else {
+    return totalRecentPoints;
+  }
+}
+
+/**
+ * Der Haupttask für den Datalogger, läuft auf Core 1
  */
 void dataloggerTask(void *pvParameters) {
-  log("Datalogger-Task gestartet auf Core 1");
+  log("=== DATALOGGER TASK STARTED ===");
   
-  // Kurze Verzögerung nach dem Start
-  vTaskDelay(20 / portTICK_PERIOD_MS);
-  
-  // SPIFFS ist bereits vom Webserver initialisiert
-  log("SPIFFS already initialized, continuing with datalogger setup");
-  
-  // Lade die gespeicherte Total-Uptime
-  loadTotalUptime();
-  
-  // Erstelle Verzeichnis, falls es nicht existiert
-  if (!SPIFFS.exists(DATALOG_DIR)) {
-    if (SPIFFS.mkdir(DATALOG_DIR)) {
-      String dirMessage = "Verzeichnis " + String(DATALOG_DIR) + " erstellt";
-      log(dirMessage.c_str());
-    } else {
-      String errorMessage = "Fehler beim Erstellen des Verzeichnisses " + String(DATALOG_DIR);
-      log(errorMessage.c_str());
-    }
-    // Verzögerung nach Verzeichniserstellung
-    vTaskDelay(20 / portTICK_PERIOD_MS);
-  }
-  
-  // Entferne alte Log-Dateien, wenn zu viele existieren
-  while (countLogFiles() >= MAX_LOG_FILES) {
-    deleteOldestLogFile();
-    // Verzögerung nach Dateilöschung
-    vTaskDelay(20 / portTICK_PERIOD_MS);
-  }
-  
-  // Versuche eine neue CSV-Datei zu öffnen (optional)
-  openCSVFile();
-  lastDataLogTime = millis();
-  lastUptimeSave = millis();
-  
-  // Verzögerung nach Dateiöffnung
-  vTaskDelay(20 / portTICK_PERIOD_MS);
-  
+  // Set running flag immediately
   isDataloggerRunning = true;
-  log("Datalogger is now running - CSV file optional");
+  log("isDataloggerRunning set to true");
+  
+  // Short delay
+  vTaskDelay(100 / portTICK_PERIOD_MS);
+  log("Initial delay completed");
+  
+  // Create simple test datapoint immediately
+  log("Creating simple test datapoint...");
+  
+  LogdataRow testData;
+  testData.timestamp = millis();
+  testData.tempMotor = 25.0;
+  testData.tempMosfet = 30.0;
+  testData.batteryVoltage = 12.5;
+  testData.current = 1.0;
+  testData.avgMotorCurrent = 0.8;
+  testData.rpm = 500.0;
+  testData.dutyCycle = 10.0;
+  testData.temperature = 22.0;
+  testData.humidity = 45.0;
+  testData.batteryLevel = 75;
+  testData.leakSensorState = 0;
+  testData.ledState = 0;
+  testData.totalUptime = 123; // Simple fixed value
+  
+  log("Test datapoint struct filled");
+  
+  // Add to buffer
+  recentData[0] = testData;
+  recentIndex = 1;
+  totalRecentPoints = 1;
+  
+  log("Test datapoint added to buffer");
+  
+  String statusMsg = "Buffer status - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
+  log(statusMsg.c_str());
 
   // Hauptschleife des Datalogger-Tasks
   while (true) {
     // Yield für den Watchdog
-    vTaskDelay(10 / portTICK_PERIOD_MS);
+    vTaskDelay(50 / portTICK_PERIOD_MS);
     
     unsigned long currentTime = millis();
-    if (currentTime - lastDataLogTime >= DATALOG_INTERVAL) {
-      String intervalMsg = "Datalogger interval reached - Time: " + String(currentTime) + ", Last: " + String(lastDataLogTime) + ", Diff: " + String(currentTime - lastDataLogTime);
-      log(intervalMsg.c_str());
+    unsigned long timeDiff = currentTime - lastDataLogTime;
+    
+    // Debug every 10 seconds to show we're alive
+    static unsigned long lastDebugTime = 0;
+    if (currentTime - lastDebugTime >= 10000) {
+      String debugMsg = "Datalogger alive - Time: " + String(currentTime) + ", Last: " + String(lastDataLogTime) + ", Diff: " + String(timeDiff) + ", Interval: " + String(DATALOG_INTERVAL);
+      log(debugMsg.c_str());
+      lastDebugTime = currentTime;
+    }
+    
+    if (timeDiff >= DATALOG_INTERVAL) {
+      log("Creating new datapoint...");
       
       // Erstelle und speichere einen neuen Datenpunkt
+      log("About to call createDatapoint()");
       LogdataRow data = createDatapoint();
+      log("createDatapoint() completed");
       
       // Kurze Verzögerung für Watchdog
-      vTaskDelay(10 / portTICK_PERIOD_MS);
+      vTaskDelay(20 / portTICK_PERIOD_MS);
       
       if (csvFile) {
         saveDatapoint(data, csvFile);
@@ -465,16 +765,35 @@ void dataloggerTask(void *pvParameters) {
       // CSV file is optional - continue even if not available
       
       // Kurze Verzögerung für Watchdog
-      vTaskDelay(10 / portTICK_PERIOD_MS);
+      vTaskDelay(20 / portTICK_PERIOD_MS);
       
-      addDataPointToBuffer(data);
+      addToRecentData(data);
       lastDataLogTime = currentTime;
       
-      String completedMsg = "Datapoint processing completed - Total points now: " + String(totalDataPoints);
+      String completedMsg = "Datapoint processing completed - Recent points now: " + String(totalRecentPoints);
       log(completedMsg.c_str());
       
-      // Noch eine Verzögerung nach dem gesamten Prozess
-      vTaskDelay(10 / portTICK_PERIOD_MS);
+      // Compress data periodically (simplified)
+      if (millis() - lastHourlySave >= HOURLY_COMPRESSION_INTERVAL) {
+        log("Compressing to hourly data...");
+        compressToHourlyData();
+        lastHourlySave = millis();
+        log("Hourly compression completed");
+      }
+      
+      if (millis() - lastHistoricalSave >= HISTORICAL_COMPRESSION_INTERVAL) {
+        log("Compressing to historical data...");
+        compressToHistoricalData();
+        lastHistoricalSave = millis();
+        
+        // Save compressed data to SPIFFS every 5 minutes
+        log("Saving compressed data...");
+        saveCompressedData();
+        log("Compressed data saved");
+      }
+      
+      // Verzögerung nach dem gesamten Prozess
+      vTaskDelay(50 / portTICK_PERIOD_MS);
     }
     
     // Speichere Total-Uptime regelmäßig
@@ -484,12 +803,11 @@ void dataloggerTask(void *pvParameters) {
       lastUptimeSave = millis();
       
       // Kurze Verzögerung nach dem Speichern
-      vTaskDelay(10 / portTICK_PERIOD_MS);
+      vTaskDelay(20 / portTICK_PERIOD_MS);
     }
     
-    // Längere Verzögerung zwischen den Intervallen, um Watchdog-Timer zu vermeiden
-    // und anderen Tasks mehr Zeit zu geben
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    // Längere Verzögerung zwischen den Intervallen
+    vTaskDelay(200 / portTICK_PERIOD_MS);
   }
 }
 
@@ -498,20 +816,37 @@ void dataloggerTask(void *pvParameters) {
  * Startet den Datalogger-Task auf Core 1
  */
 void datalogSetup() {
-  log("Starte Datalogger auf Core 1");
+  log("=== DATALOG SETUP START ===");
+  
+  // Initialize all buffer variables to safe defaults
+  recentIndex = 0;
+  hourlyIndex = 0;
+  historicalIndex = 0;
+  totalRecentPoints = 0;
+  totalHourlyPoints = 0;
+  totalHistoricalPoints = 0;
+  isDataloggerRunning = false;
+  
+  log("Buffer variables initialized");
   
   // Erstelle Task auf Core 1 (nicht Core 0, da dort der Webserver läuft)
-  xTaskCreatePinnedToCore(
+  BaseType_t taskResult = xTaskCreatePinnedToCore(
     dataloggerTask,        // Task-Funktion
     "DataloggerTask",      // Task-Name
-    8000,                  // Stack-Größe (Bytes)
+    12000,                 // Stack-Größe (Bytes) - erhöht für mehrstufiges System
     NULL,                  // Task-Parameter
     1,                     // Task-Priorität (1 ist niedrig)
     &dataloggerTaskHandle, // Task-Handle
     1                      // Core-ID (1)
   );
   
-  log("Datalogger-Task erstellt auf Core 1");
+  if (taskResult == pdPASS) {
+    log("Datalogger-Task SUCCESSFULLY created on Core 1");
+  } else {
+    log("ERROR: Failed to create Datalogger-Task!");
+  }
+  
+  log("=== DATALOG SETUP END ===");
 }
 
 /**
