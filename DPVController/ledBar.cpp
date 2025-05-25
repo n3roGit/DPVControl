@@ -19,6 +19,11 @@ const int LEDBar_BrightnessSecond = 3;
 */
 Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
 
+// Variables to track last displayed state to prevent unnecessary updates
+static int lastDisplayedSpeed = -1;
+static int lastDisplayedMotorState = -1;
+static int lastDisplayedBattery = -1;
+
 void ledBarSetup(){
   //Neopixel
   strip.begin();
@@ -67,14 +72,23 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
 }
 
 void setBarStandby() {
+    // Reset cache when entering special mode
+    lastDisplayedSpeed = -1;
+    lastDisplayedMotorState = -1;
     setBar(1,10,"#e38f09", LEDBar_BrightnessSecond, "#000000", 0);
 }
 
 void setBarSpeed(int num) {
-    if (motorState == cruise) {
-        setBarSpeedCruise(num);
-    } else {
-        setBar(1,num,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+    // Only update if speed or motor state has changed
+    if (num != lastDisplayedSpeed || motorState != lastDisplayedMotorState) {
+        lastDisplayedSpeed = num;
+        lastDisplayedMotorState = motorState;
+        
+        if (motorState == cruise) {
+            setBarSpeedCruise(num);
+        } else {
+            setBar(1,num,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+        }
     }
 }
 
@@ -95,11 +109,19 @@ void setBarSpeedCruise(int num) {
 }
 
 void setBarBattery(int num) {
-  int calc = LedBar_Num-num;
-  setBar(2,calc,"#e30b0b", LEDBar_BrightnessSecond, "#0a9e08", LEDBar_Brightness);
+  // Only update if battery level has changed
+  if (num != lastDisplayedBattery) {
+    lastDisplayedBattery = num;
+    int calc = LedBar_Num-num;
+    setBar(2,calc,"#e30b0b", LEDBar_BrightnessSecond, "#0a9e08", LEDBar_Brightness);
+  }
 }
 
 void setBarLeak() {
+    // Reset cache when entering special mode
+    lastDisplayedSpeed = -1;
+    lastDisplayedMotorState = -1;
+    
     int frontLeakState = digitalRead(PIN_LEAK_FRONT);
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
@@ -128,8 +150,21 @@ void setBarLED(int num) {
 
 void setBarFlasher(bool status) {
   if (status) {
+    // Reset cache when entering special mode
+    lastDisplayedSpeed = -1;
+    lastDisplayedMotorState = -1;
     setBar(1, 10, "#FFFFFF", LEDBar_Brightness, "#000000", 0); // All 10 LEDs white
   } else {
+    // Reset cache when leaving special mode to force refresh
+    lastDisplayedSpeed = -1;
+    lastDisplayedMotorState = -1;
     // Don't do anything here - the status restoration is handled by the caller
   }  
+}
+
+// Function to force refresh of LED bar (invalidate cache)
+void forceRefreshLedBar() {
+  lastDisplayedSpeed = -1;
+  lastDisplayedMotorState = -1;
+  lastDisplayedBattery = -1;
 }

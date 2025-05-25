@@ -86,10 +86,22 @@ void openCSVFile() {
     // Kurze Pause während der Dateisuche
     vTaskDelay(5 / portTICK_PERIOD_MS);
   }
+  
+  String openMsg = "Attempting to open CSV file: " + filename;
+  log(openMsg.c_str());
+  
   csvFile = SPIFFS.open(filename, FILE_WRITE);
-  if (EnableDebugLog) Serial.println(String("Schreibe in " + filename));
-  csvFile.println(HEADER);
-  csvFile.flush();
+  
+  if (csvFile) {
+    String successMsg = "CSV file opened successfully: " + filename;
+    log(successMsg.c_str());
+    csvFile.println(HEADER);
+    csvFile.flush();
+    log("CSV header written and flushed");
+  } else {
+    String errorMsg = "ERROR: Failed to open CSV file: " + filename;
+    log(errorMsg.c_str());
+  }
   
   // Kurze Pause nach Dateischreiben
   vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -237,15 +249,24 @@ LogdataRow createDatapoint() {
   LogdataRow dp;
   dp.timestamp = millis();
   
+  // Debug: Zeige an, dass wir einen Datenpunkt erstellen
+  log("Creating datapoint...");
+  
   // Motortemperatur
   if (HAS_MOTOR) {
     dp.tempMotor = getVescUart().data.tempMotor;
+    String motorTempMsg = "Motor temp: " + String(dp.tempMotor);
+    log(motorTempMsg.c_str());
   } else {
     dp.tempMotor = 20.0 + (loopCount % 10);
+    String motorTempMsg = "Motor temp (simulated): " + String(dp.tempMotor);
+    log(motorTempMsg.c_str());
   }
   
   // Batteriespannung
   dp.batteryVoltage = getBatteryVoltage();
+  String batteryMsg = "Battery voltage: " + String(dp.batteryVoltage);
+  log(batteryMsg.c_str());
   
   // Weitere VESC-Daten
   if (HAS_MOTOR) {
@@ -255,17 +276,29 @@ LogdataRow createDatapoint() {
     // Wir wissen nicht, ob duty_now oder dutyCycleNow der richtige Name ist,
     // daher berechnen wir einen simulierten Wert auf Basis anderer Werte
     dp.dutyCycle = (dp.rpm / MAX_SPEED_RPM) * 100.0;
+    
+    String vescMsg = "VESC data - Current: " + String(dp.current) + ", RPM: " + String(dp.rpm) + ", Duty: " + String(dp.dutyCycle);
+    log(vescMsg.c_str());
   } else {
     // Simulierte Werte, falls kein Motor verfügbar
     dp.current = 5.0 + (loopCount % 20);
     dp.rpm = 1000 + (loopCount % 1000);
     dp.dutyCycle = 25.0 + (loopCount % 50);
+    
+    String simMsg = "Simulated data - Current: " + String(dp.current) + ", RPM: " + String(dp.rpm) + ", Duty: " + String(dp.dutyCycle);
+    log(simMsg.c_str());
   }
   
   // Umgebungstemperatur und Luftfeuchtigkeit von DHT-Sensor
   TempAndHumidity data = dhtSensor.getTempAndHumidity();
   dp.temperature = data.temperature;
   dp.humidity = data.humidity;
+  
+  String dhtMsg = "DHT data - Temp: " + String(dp.temperature) + ", Humidity: " + String(dp.humidity);
+  log(dhtMsg.c_str());
+  
+  String completeMsg = "Datapoint created - Timestamp: " + String(dp.timestamp);
+  log(completeMsg.c_str());
   
   return dp;
 }
@@ -303,25 +336,51 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
  * Fügt einen Datenpunkt zum Kreis-Buffer hinzu
  */
 void addDataPointToBuffer(LogdataRow datapoint) {
+  String beforeMsg = "Adding datapoint to buffer - Index: " + String(dataPointIndex) + ", Total: " + String(totalDataPoints);
+  log(beforeMsg.c_str());
+  
   dataPoints[dataPointIndex] = datapoint;
   dataPointIndex = (dataPointIndex + 1) % MAX_DATA_POINTS;
   if (totalDataPoints < MAX_DATA_POINTS) {
     totalDataPoints++;
   }
+  
+  String afterMsg = "Datapoint added - New Index: " + String(dataPointIndex) + ", New Total: " + String(totalDataPoints);
+  log(afterMsg.c_str());
 }
 
 /**
  * Gibt die letzten n Datenpunkte zurück
  */
 LogdataRow* getLatestDataPoints(int count) {
+  String requestMsg = "getLatestDataPoints called - Requested: " + String(count) + ", Available: " + String(totalDataPoints);
+  log(requestMsg.c_str());
+  
   if (count > totalDataPoints) count = totalDataPoints;
-  if (count <= 0) return NULL;
+  if (count <= 0) {
+    log("No data points available, returning NULL");
+    return NULL;
+  }
   
   static LogdataRow result[MAX_DATA_POINTS];
   
   int start = (dataPointIndex - count + MAX_DATA_POINTS) % MAX_DATA_POINTS;
+  String startMsg = "Reading from buffer - Start index: " + String(start) + ", Count: " + String(count);
+  log(startMsg.c_str());
+  
   for (int i = 0; i < count; i++) {
     result[i] = dataPoints[(start + i) % MAX_DATA_POINTS];
+  }
+  
+  // Debug: Zeige ersten und letzten Datenpunkt
+  if (count > 0) {
+    String firstMsg = "First datapoint - Timestamp: " + String(result[0].timestamp) + ", Battery: " + String(result[0].batteryVoltage);
+    log(firstMsg.c_str());
+    
+    if (count > 1) {
+      String lastMsg = "Last datapoint - Timestamp: " + String(result[count-1].timestamp) + ", Battery: " + String(result[count-1].batteryVoltage);
+      log(lastMsg.c_str());
+    }
   }
   
   return result;
@@ -331,20 +390,13 @@ LogdataRow* getLatestDataPoints(int count) {
  * Der Haupttask für den Datalogger, läuft auf Core 0
  */
 void dataloggerTask(void *pvParameters) {
-  log("Datalogger-Task gestartet auf Core 0");
+  log("Datalogger-Task gestartet auf Core 1");
   
   // Kurze Verzögerung nach dem Start
   vTaskDelay(20 / portTICK_PERIOD_MS);
   
-  // Initialisiere SPIFFS, falls noch nicht geschehen
-  if (!SPIFFS.begin(true)) {
-    log("SPIFFS konnte nicht eingebunden werden");
-    vTaskDelete(NULL);
-    return;
-  }
-  
-  // Verzögerung nach SPIFFS-Initialisierung
-  vTaskDelay(20 / portTICK_PERIOD_MS);
+  // SPIFFS ist bereits vom Webserver initialisiert
+  log("SPIFFS already initialized, continuing with datalogger setup");
   
   // Lade die gespeicherte Total-Uptime
   loadTotalUptime();
@@ -384,20 +436,32 @@ void dataloggerTask(void *pvParameters) {
     // Yield für den Watchdog
     vTaskDelay(10 / portTICK_PERIOD_MS);
     
-    if (millis() - lastDataLogTime >= DATALOG_INTERVAL) {
+    unsigned long currentTime = millis();
+    if (currentTime - lastDataLogTime >= DATALOG_INTERVAL) {
+      String intervalMsg = "Datalogger interval reached - Time: " + String(currentTime) + ", Last: " + String(lastDataLogTime) + ", Diff: " + String(currentTime - lastDataLogTime);
+      log(intervalMsg.c_str());
+      
       // Erstelle und speichere einen neuen Datenpunkt
       LogdataRow data = createDatapoint();
       
       // Kurze Verzögerung für Watchdog
       vTaskDelay(10 / portTICK_PERIOD_MS);
       
-      saveDatapoint(data, csvFile);
+      if (csvFile) {
+        log("Saving datapoint to CSV file");
+        saveDatapoint(data, csvFile);
+      } else {
+        log("ERROR: CSV file not open, cannot save datapoint");
+      }
       
       // Kurze Verzögerung für Watchdog
       vTaskDelay(10 / portTICK_PERIOD_MS);
       
       addDataPointToBuffer(data);
-      lastDataLogTime = millis();
+      lastDataLogTime = currentTime;
+      
+      String completedMsg = "Datapoint processing completed - Total points now: " + String(totalDataPoints);
+      log(completedMsg.c_str());
       
       // Noch eine Verzögerung nach dem gesamten Prozess
       vTaskDelay(10 / portTICK_PERIOD_MS);
@@ -421,12 +485,12 @@ void dataloggerTask(void *pvParameters) {
 
 /**
  * Setup-Funktion für den Datalogger
- * Startet den Datalogger-Task auf Core 0
+ * Startet den Datalogger-Task auf Core 1
  */
 void datalogSetup() {
-  log("Starte Datalogger auf Core 0");
+  log("Starte Datalogger auf Core 1");
   
-  // Erstelle Task auf Core 0
+  // Erstelle Task auf Core 1 (nicht Core 0, da dort der Webserver läuft)
   xTaskCreatePinnedToCore(
     dataloggerTask,        // Task-Funktion
     "DataloggerTask",      // Task-Name
@@ -434,10 +498,10 @@ void datalogSetup() {
     NULL,                  // Task-Parameter
     1,                     // Task-Priorität (1 ist niedrig)
     &dataloggerTaskHandle, // Task-Handle
-    0                      // Core-ID (0)
+    1                      // Core-ID (1)
   );
   
-  log("Datalogger-Task erstellt auf Core 0");
+  log("Datalogger-Task erstellt auf Core 1");
 }
 
 /**

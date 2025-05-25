@@ -509,44 +509,24 @@ bool loadFromSPIFFS(WiFiClient client, String path) {
 
 // Helper function to generate JSON data from datalogger data
 String generateDataLoggerJson(int count) {
+    log("generateDataLoggerJson called");
+    String countMsg = "Requested count: " + String(count) + ", totalDataPoints: " + String(totalDataPoints);
+    log(countMsg.c_str());
+    
     LogdataRow* dataPoints = getLatestDataPoints(count);
     
-    // Wenn keine Daten verfügbar sind, erstelle dynamische Dummy-Datenpunkte
+    // Wenn keine Daten verfügbar sind, gib leeres Array zurück
     if (!dataPoints || totalDataPoints == 0) {
-        String json = "[";
-        unsigned long currentTime = millis();
-        
-        // Erstelle mehrere Dummy-Datenpunkte für bessere Graphen
-        int dummyCount = count > 10 ? 10 : count;
-        for (int i = 0; i < dummyCount; i++) {
-            if (i > 0) json += ",";
-            
-            // Simuliere realistische Werte mit leichten Variationen
-            float batteryVoltage = 12.0 + (sin(currentTime / 10000.0 + i) * 0.5);
-            float current = 2.0 + (sin(currentTime / 8000.0 + i) * 1.5);
-            float tempMotor = 25.0 + (sin(currentTime / 15000.0 + i) * 5.0);
-            float temperature = 22.0 + (sin(currentTime / 20000.0 + i) * 3.0);
-            float humidity = 50.0 + (sin(currentTime / 12000.0 + i) * 10.0);
-            float rpm = 1000.0 + (sin(currentTime / 6000.0 + i) * 500.0);
-            float dutyCycle = 30.0 + (sin(currentTime / 7000.0 + i) * 20.0);
-            
-            json += "{";
-            json += "\"timestamp\":" + String(currentTime - (dummyCount - i - 1) * 1000) + ",";
-            json += "\"tempMotor\":" + String(tempMotor) + ",";
-            json += "\"batteryVoltage\":" + String(batteryVoltage) + ",";
-            json += "\"current\":" + String(current) + ",";
-            json += "\"rpm\":" + String(rpm) + ",";
-            json += "\"dutyCycle\":" + String(dutyCycle) + ",";
-            json += "\"temperature\":" + String(temperature) + ",";
-            json += "\"humidity\":" + String(humidity);
-            json += "}";
-        }
-        json += "]";
-        return json;
+        log("No data available, returning empty array");
+        return "[]";
     }
     
+    log("Building JSON from real data");
     String json = "[";
     int actualCount = count < totalDataPoints ? count : totalDataPoints;
+    
+    String actualCountMsg = "Building JSON with " + String(actualCount) + " data points";
+    log(actualCountMsg.c_str());
     
     for (int i = 0; i < actualCount; i++) {
         if (i > 0) json += ",";
@@ -562,6 +542,19 @@ String generateDataLoggerJson(int count) {
         json += "}";
     }
     json += "]";
+    
+    String jsonLengthMsg = "Generated JSON length: " + String(json.length());
+    log(jsonLengthMsg.c_str());
+    
+    // Debug: Zeige ersten Teil des JSON
+    if (json.length() > 100) {
+        String jsonPreview = "JSON preview: " + json.substring(0, 100) + "...";
+        log(jsonPreview.c_str());
+    } else {
+        String jsonFull = "JSON full: " + json;
+        log(jsonFull.c_str());
+    }
+    
     return json;
 }
 
@@ -647,6 +640,8 @@ void handleClient(WiFiClient client) {
         sendHttpResponse(client, 200, "text/html", helloWorldHTML);
     } else if (path == "/api/data" || path.startsWith("/api/data?")) {
         // API endpoint for datalogger data
+        log("API /api/data called");
+        
         int count = 60; // Default: return 60 data points
         
         // Extract count parameter if present
@@ -661,18 +656,31 @@ void handleClient(WiFiClient client) {
             }
         }
         
+        String countParamMsg = "API data request - count parameter: " + String(count);
+        log(countParamMsg.c_str());
+        
         // Generate and send JSON data
         String jsonData = generateDataLoggerJson(count);
+        
+        String responseMsg = "Sending JSON response, length: " + String(jsonData.length());
+        log(responseMsg.c_str());
+        
         sendHttpResponse(client, 200, "application/json", jsonData.c_str());
         
     } else if (path == "/api/status") {
         // API endpoint for system status
+        log("API /api/status called");
+        
         String jsonStatus = "{";
         jsonStatus += "\"uptime\":" + String(millis()) + ",";
         jsonStatus += "\"totalUptime\":" + String(getTotalUptime()) + ",";
         jsonStatus += "\"dataPoints\":" + String(totalDataPoints) + ",";
         jsonStatus += "\"isDataloggerRunning\":" + String(isDataloggerRunning ? "true" : "false");
         jsonStatus += "}";
+        
+        String statusMsg = "Status response: " + jsonStatus;
+        log(statusMsg.c_str());
+        
         sendHttpResponse(client, 200, "application/json", jsonStatus.c_str());
         
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
