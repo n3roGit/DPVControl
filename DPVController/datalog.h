@@ -28,6 +28,10 @@ extern LogdataRow dataPoints[MAX_DATA_POINTS];
 extern int dataPointIndex;
 extern int totalDataPoints;
 
+// Total uptime tracking
+extern unsigned long totalUptimeSeconds;
+extern bool isDataloggerRunning;
+
 // Funktionsdeklarationen
 void datalogSetup();
 void datalogLoop();
@@ -38,5 +42,8 @@ String getLogFileContent(String filename);
 LogdataRow* getLatestDataPoints(int count);
 void deleteOldestLogFile();
 int countLogFiles();
+void saveTotalUptime();
+void loadTotalUptime();
+unsigned long getTotalUptime();
 
 #endif

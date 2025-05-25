@@ -31,6 +31,46 @@ LogdataRow dataPoints[MAX_DATA_POINTS];
 int dataPointIndex = 0;
 int totalDataPoints = 0;
 bool isDataloggerRunning = false;
+unsigned long totalUptimeSeconds = 0;
+unsigned long lastUptimeSave = 0;
+const unsigned long UPTIME_SAVE_INTERVAL = 60000; // Save every minute
+
+/**
+ * Lädt die gespeicherte Total-Uptime aus SPIFFS
+ */
+void loadTotalUptime() {
+  if (SPIFFS.exists("/total_uptime.txt")) {
+    File file = SPIFFS.open("/total_uptime.txt", "r");
+    if (file) {
+      String uptimeStr = file.readString();
+      totalUptimeSeconds = uptimeStr.toInt();
+      file.close();
+      String loadMsg = "Total uptime geladen: " + String(totalUptimeSeconds) + " Sekunden";
+      log(loadMsg.c_str());
+    }
+  } else {
+    totalUptimeSeconds = 0;
+    log("Keine gespeicherte Total-Uptime gefunden, starte bei 0");
+  }
+}
+
+/**
+ * Speichert die aktuelle Total-Uptime in SPIFFS
+ */
+void saveTotalUptime() {
+  File file = SPIFFS.open("/total_uptime.txt", "w");
+  if (file) {
+    file.println(totalUptimeSeconds);
+    file.close();
+  }
+}
+
+/**
+ * Gibt die Total-Uptime in Sekunden zurück
+ */
+unsigned long getTotalUptime() {
+  return totalUptimeSeconds + (millis() / 1000);
+}
 
 /**
  * Öffnet eine neue CSV-Datei zum Schreiben
@@ -306,6 +346,9 @@ void dataloggerTask(void *pvParameters) {
   // Verzögerung nach SPIFFS-Initialisierung
   vTaskDelay(20 / portTICK_PERIOD_MS);
   
+  // Lade die gespeicherte Total-Uptime
+  loadTotalUptime();
+  
   // Erstelle Verzeichnis, falls es nicht existiert
   if (!SPIFFS.exists(DATALOG_DIR)) {
     if (SPIFFS.mkdir(DATALOG_DIR)) {
@@ -329,6 +372,7 @@ void dataloggerTask(void *pvParameters) {
   // Öffne eine neue CSV-Datei
   openCSVFile();
   lastDataLogTime = millis();
+  lastUptimeSave = millis();
   
   // Verzögerung nach Dateiöffnung
   vTaskDelay(20 / portTICK_PERIOD_MS);
@@ -356,6 +400,16 @@ void dataloggerTask(void *pvParameters) {
       lastDataLogTime = millis();
       
       // Noch eine Verzögerung nach dem gesamten Prozess
+      vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+    
+    // Speichere Total-Uptime regelmäßig
+    if (millis() - lastUptimeSave >= UPTIME_SAVE_INTERVAL) {
+      totalUptimeSeconds += (millis() - lastUptimeSave) / 1000;
+      saveTotalUptime();
+      lastUptimeSave = millis();
+      
+      // Kurze Verzögerung nach dem Speichern
       vTaskDelay(10 / portTICK_PERIOD_MS);
     }
     
