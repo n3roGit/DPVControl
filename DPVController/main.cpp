@@ -38,11 +38,20 @@ void setup() {
 
   buttonSetup();
 
-  // Setup DHT22 sensor
+  // Setup DHT22 sensor with error handling
+  Serial.println("Initializing DHT22 sensor...");
   dhtSensor.setup(PIN_DHT, DHTesp::DHT22);
+  delay(2000); // Give DHT sensor time to stabilize
+  
   TempAndHumidity data = dhtSensor.getTempAndHumidity();
-  Serial.println("Temp: " + String(data.temperature, 2) + "°C");
-  Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+  if (isnan(data.temperature) || isnan(data.humidity)) {
+    Serial.println("DHT22 sensor not ready, using default values");
+    Serial.println("Temp: 20.0°C (default)");
+    Serial.println("Humidity: 50.0% (default)");
+  } else {
+    Serial.println("Temp: " + String(data.temperature, 2) + "°C");
+    Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+  }
   Serial.println("---");
 
   motorSetup();

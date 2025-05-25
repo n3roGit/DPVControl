@@ -168,7 +168,9 @@ const char* helloWorldHTML = R"rawliteral(
         <div id="charts-tab" class="tab-content">
             <div class="section">
                 <h2>All Data Combined</h2>
-                <canvas id="combinedChart" width="400" height="300"></canvas>
+                <div style="height: 400px; width: 100%; position: relative;">
+                    <canvas id="combinedChart"></canvas>
+                </div>
                 <p style="margin-top: 10px; font-size: 12px; color: #666;">
                     Note: Different parameters use different scales. This chart shows trends and patterns.
                 </p>

@@ -13,6 +13,7 @@ void setBarLeak();
 void setBarPowerBank(bool status);
 void setBarLED(int num);
 void setBarFlasher(bool status);
+void forceRefreshLedBar();
 
 
 #endif

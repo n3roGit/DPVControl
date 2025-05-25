@@ -80,7 +80,7 @@ void openCSVFile() {
   vTaskDelay(10 / portTICK_PERIOD_MS);
   
   String filename;
-  for(int i = 0; true; i++) {
+  for(int i = 0; i < 100; i++) { // Limit to prevent infinite loop
     filename = DATALOG_DIR + "/data_" + String(i) + ".csv";
     if (!SPIFFS.exists(filename)) break;
     // Kurze Pause während der Dateisuche
@@ -99,7 +99,7 @@ void openCSVFile() {
     csvFile.flush();
     log("CSV header written and flushed");
   } else {
-    String errorMsg = "ERROR: Failed to open CSV file: " + filename;
+    String errorMsg = "WARNING: Failed to open CSV file: " + filename + " - continuing without CSV logging";
     log(errorMsg.c_str());
   }
   
@@ -291,8 +291,19 @@ LogdataRow createDatapoint() {
   
   // Umgebungstemperatur und Luftfeuchtigkeit von DHT-Sensor
   TempAndHumidity data = dhtSensor.getTempAndHumidity();
-  dp.temperature = data.temperature;
-  dp.humidity = data.humidity;
+  
+  // Handle NaN values from DHT sensor
+  if (isnan(data.temperature)) {
+    dp.temperature = 20.0; // Default fallback value
+  } else {
+    dp.temperature = data.temperature;
+  }
+  
+  if (isnan(data.humidity)) {
+    dp.humidity = 50.0; // Default fallback value
+  } else {
+    dp.humidity = data.humidity;
+  }
   
   String dhtMsg = "DHT data - Temp: " + String(dp.temperature) + ", Humidity: " + String(dp.humidity);
   log(dhtMsg.c_str());
@@ -421,7 +432,7 @@ void dataloggerTask(void *pvParameters) {
     vTaskDelay(20 / portTICK_PERIOD_MS);
   }
   
-  // Öffne eine neue CSV-Datei
+  // Versuche eine neue CSV-Datei zu öffnen (optional)
   openCSVFile();
   lastDataLogTime = millis();
   lastUptimeSave = millis();
@@ -430,6 +441,7 @@ void dataloggerTask(void *pvParameters) {
   vTaskDelay(20 / portTICK_PERIOD_MS);
   
   isDataloggerRunning = true;
+  log("Datalogger is now running - CSV file optional");
 
   // Hauptschleife des Datalogger-Tasks
   while (true) {
@@ -448,11 +460,9 @@ void dataloggerTask(void *pvParameters) {
       vTaskDelay(10 / portTICK_PERIOD_MS);
       
       if (csvFile) {
-        log("Saving datapoint to CSV file");
         saveDatapoint(data, csvFile);
-      } else {
-        log("ERROR: CSV file not open, cannot save datapoint");
       }
+      // CSV file is optional - continue even if not available
       
       // Kurze Verzögerung für Watchdog
       vTaskDelay(10 / portTICK_PERIOD_MS);
