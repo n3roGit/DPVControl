@@ -229,6 +229,13 @@ const char* helloWorldHTML = R"rawliteral(
                             </select>
                         </div>
                         
+                        <div>
+                            <label for="sessionSelect">Session:</label>
+                            <select id="sessionSelect" onchange="updateSessionFilter()">
+                                <option value="all">All Sessions</option>
+                            </select>
+                        </div>
+                        
                         <div id="timeSliderContainer" style="display: none; flex: 1; min-width: 200px;">
                             <label for="timeSlider">Time Window Position:</label>
                             <input type="range" id="timeSlider" min="0" max="100" value="100" 
@@ -252,6 +259,16 @@ const char* helloWorldHTML = R"rawliteral(
                 <!-- Chart Container -->
                 <div style="height: 400px; width: 100%; position: relative;">
                     <canvas id="combinedChart"></canvas>
+                </div>
+                
+                <!-- Download Buttons -->
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="button" onclick="exportCurrentViewAsCSV()" style="background-color: #27ae60; margin-right: 10px;">
+                        Export Current View as CSV
+                    </button>
+                    <button class="button" onclick="exportFullTripLogAsCSV()" style="background-color: #e67e22;">
+                        Download Full Trip Log as CSV
+                    </button>
                 </div>
                 
                 <p style="margin-top: 10px; font-size: 12px; color: #666;">
@@ -286,6 +303,8 @@ const char* helloWorldHTML = R"rawliteral(
         let currentTimeRange = 'live';
         let timeSliderValue = 100;
         let systemStartTime = null;
+        let availableSessions = [];
+        let selectedSession = 'all';
         
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -401,9 +420,6 @@ const char* helloWorldHTML = R"rawliteral(
                         legend: {
                             display: true,
                             position: 'top'
-                        },
-                        annotation: {
-                            annotations: {}
                         }
                     }
                 }
@@ -474,51 +490,173 @@ const char* helloWorldHTML = R"rawliteral(
             }
         }
         
-        // Filter data based on time range and slider position
+        // Filter data based on time range, slider position, and selected session
         function filterDataByTimeRange(data) {
+            let filteredData = data;
+            
+            // First filter by session if one is selected
+            if (selectedSession !== 'all') {
+                const session = availableSessions.find(s => s.id == selectedSession);
+                if (session) {
+                    filteredData = data.slice(session.startIndex, session.endIndex + 1);
+                    console.log('Filtered to session', selectedSession, ':', filteredData.length, 'points');
+                }
+            }
+            
+            // Then apply time range filter
             if (currentTimeRange === 'live' || currentTimeRange === 'all') {
-                return data;
+                return filteredData;
             }
             
             const pointsNeeded = getDataPointsForTimeRange();
-            if (data.length <= pointsNeeded) {
-                return data;
+            if (filteredData.length <= pointsNeeded) {
+                return filteredData;
             }
             
             // Calculate window position based on slider
-            const maxStart = data.length - pointsNeeded;
+            const maxStart = filteredData.length - pointsNeeded;
             const startIndex = Math.floor((maxStart * (100 - timeSliderValue)) / 100);
             const endIndex = startIndex + pointsNeeded;
             
             // Update slider labels
-            if (data.length > 0) {
-                const startTime = new Date(data[startIndex].timestamp).toLocaleTimeString();
-                const endTime = new Date(data[Math.min(endIndex - 1, data.length - 1)].timestamp).toLocaleTimeString();
+            if (filteredData.length > 0) {
+                const startTime = new Date(filteredData[startIndex].timestamp).toLocaleTimeString();
+                const endTime = new Date(filteredData[Math.min(endIndex - 1, filteredData.length - 1)].timestamp).toLocaleTimeString();
                 document.getElementById('sliderStart').textContent = startTime;
                 document.getElementById('sliderEnd').textContent = endTime;
             }
             
-            return data.slice(startIndex, endIndex);
+            return filteredData.slice(startIndex, endIndex);
         }
         
-        // Detect system restart (gap in timestamps > 2 minutes)
+        // Detect system restart (gap in timestamps > 2 minutes or millis() reset)
         function detectRestarts(data) {
             const restarts = [];
             for (let i = 1; i < data.length; i++) {
-                const timeDiff = data[i].timestamp - data[i-1].timestamp;
-                if (timeDiff > 120000) { // 2 minutes gap
+                const prevTimestamp = data[i-1].timestamp;
+                const currentTimestamp = data[i].timestamp;
+                const timeDiff = currentTimestamp - prevTimestamp;
+                
+                // Detect restart: large time gap OR millis() reset (current much smaller than previous)
+                if (timeDiff > 120000 || // 2 minutes gap
+                    currentTimestamp < prevTimestamp - 10000 || // Jump backwards
+                    (currentTimestamp < 60000 && prevTimestamp > 300000)) { // Reset to <1min when prev was >5min
                     restarts.push(i);
                 }
             }
             return restarts;
         }
         
+        // Analyze data and create sessions based on restarts
+        function analyzeSessions(data) {
+            if (data.length === 0) return [];
+            
+            const restarts = detectRestarts(data);
+            const sessions = [];
+            
+            let sessionStart = 0;
+            let sessionNumber = 1;
+            
+            // Create sessions based on restart points
+            for (let i = 0; i < restarts.length; i++) {
+                const sessionEnd = restarts[i] - 1;
+                const sessionData = data.slice(sessionStart, restarts[i]);
+                
+                if (sessionData.length > 0) {
+                    const startTime = new Date(sessionData[0].timestamp);
+                    const endTime = new Date(sessionData[sessionData.length - 1].timestamp);
+                    const duration = Math.floor((sessionData[sessionData.length - 1].timestamp - sessionData[0].timestamp) / 1000);
+                    
+                    sessions.push({
+                        id: sessionNumber,
+                        label: `Session ${sessionNumber} (${formatDuration(duration)})`,
+                        startIndex: sessionStart,
+                        endIndex: sessionEnd,
+                        dataPoints: sessionData.length,
+                        startTime: startTime,
+                        endTime: endTime,
+                        duration: duration
+                    });
+                }
+                
+                sessionStart = restarts[i];
+                sessionNumber++;
+            }
+            
+            // Add the last session (current session)
+            const lastSessionData = data.slice(sessionStart);
+            if (lastSessionData.length > 0) {
+                const startTime = new Date(lastSessionData[0].timestamp);
+                const endTime = new Date(lastSessionData[lastSessionData.length - 1].timestamp);
+                const duration = Math.floor((lastSessionData[lastSessionData.length - 1].timestamp - lastSessionData[0].timestamp) / 1000);
+                
+                sessions.push({
+                    id: sessionNumber,
+                    label: `Session ${sessionNumber} (${formatDuration(duration)}) - Current`,
+                    startIndex: sessionStart,
+                    endIndex: data.length - 1,
+                    dataPoints: lastSessionData.length,
+                    startTime: startTime,
+                    endTime: endTime,
+                    duration: duration
+                });
+            }
+            
+            return sessions;
+        }
+        
+        // Format duration in human readable format
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+        
+        // Update session dropdown
+        function updateSessionDropdown(sessions) {
+            const sessionSelect = document.getElementById('sessionSelect');
+            
+            // Clear existing options except "All Sessions"
+            sessionSelect.innerHTML = '<option value="all">All Sessions</option>';
+            
+            // Add session options (newest first)
+            sessions.reverse().forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.id;
+                option.textContent = session.label;
+                sessionSelect.appendChild(option);
+            });
+            
+            availableSessions = sessions;
+            console.log('Updated session dropdown with', sessions.length, 'sessions');
+        }
+        
+        // Handle session filter change
+        function updateSessionFilter() {
+            selectedSession = document.getElementById('sessionSelect').value;
+            console.log('Selected session:', selectedSession);
+            refreshChart();
+        }
+        
         // Load data from the API
         function loadData() {
+            console.log('loadData called');
             // Fetch status data
             fetch('/api/status')
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Status response received:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Status data:', data);
                     document.getElementById('uptime').textContent = formatTime(data.uptime);
                     document.getElementById('totalUptime').textContent = formatTime(data.totalUptime * 1000);
                     document.getElementById('dataPointCount').textContent = data.dataPoints || 0;
@@ -526,13 +664,13 @@ const char* helloWorldHTML = R"rawliteral(
                     // Update additional sensor data
                     document.getElementById('waterSensorFront').textContent = data.waterSensorFront === 'true' ? 'LEAK DETECTED!' : 'OK';
                     document.getElementById('waterSensorBack').textContent = data.waterSensorBack === 'true' ? 'LEAK DETECTED!' : 'OK';
-                                    document.getElementById('leftButton').textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
-                document.getElementById('rightButton').textContent = data.rightButton === true ? 'PRESSED' : 'RELEASED';
+                                    document.getElementById('leftButton').textContent = data.leftButton === 'true' ? 'PRESSED' : 'RELEASED';
+                    document.getElementById('rightButton').textContent = data.rightButton === 'true' ? 'PRESSED' : 'RELEASED';
                     document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel;
-                    document.getElementById('beeperStatus').textContent = data.beeperEnabled === true ? 'Enabled' : 'Disabled';
+                    document.getElementById('beeperStatus').textContent = data.beeperEnabled === 'true' ? 'Enabled' : 'Disabled';
                     
                     // Update beeper setting checkbox
-                    document.getElementById('beeperEnabledSetting').checked = data.beeperEnabled === true;
+                    document.getElementById('beeperEnabledSetting').checked = data.beeperEnabled === 'true';
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
@@ -541,8 +679,12 @@ const char* helloWorldHTML = R"rawliteral(
             
             // Fetch latest data point for status display
             fetch('/api/data?count=1')
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Data response received:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Latest data point:', data);
                     if (data.length > 0) {
                         const latest = data[0];
                         document.getElementById('battery').textContent = latest.batteryVoltage.toFixed(2) + ' V';
@@ -582,10 +724,20 @@ const char* helloWorldHTML = R"rawliteral(
             }
             // live uses recent data by default
             
+            console.log('Fetching chart data from:', apiUrl);
             fetch(apiUrl)
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Chart data response:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Chart data received:', data.length, 'points');
                     allDataPoints = data;
+                    
+                    // Analyze sessions and update dropdown
+                    const sessions = analyzeSessions(data);
+                    updateSessionDropdown(sessions);
+                    
                     updateCharts(data);
                 })
                 .catch(error => {
@@ -595,19 +747,26 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Update charts with new data
         function updateCharts(data) {
-            if (data.length === 0) return;
+            console.log('updateCharts called with', data.length, 'data points');
+            if (data.length === 0) {
+                console.log('No data to display in charts');
+                return;
+            }
             
             // Filter data based on time range and slider
             const filteredData = filterDataByTimeRange(data);
+            console.log('Filtered data:', filteredData.length, 'points');
             
             // Detect restarts
             const restarts = detectRestarts(filteredData);
+            console.log('Detected restarts:', restarts.length);
             
             // Prepare labels (timestamps)
             const labels = filteredData.map(item => {
                 const date = new Date(item.timestamp);
                 return date.toLocaleTimeString();
             });
+            console.log('Generated', labels.length, 'labels');
             
             // Update Combined Chart
             charts.combinedChart.data.labels = labels;
@@ -622,25 +781,9 @@ const char* helloWorldHTML = R"rawliteral(
             charts.combinedChart.data.datasets[8].data = filteredData.map(item => item.avgMotorCurrent);
             charts.combinedChart.data.datasets[9].data = filteredData.map(item => item.batteryLevel);
             
-            // Add restart markers
-            charts.combinedChart.options.plugins.annotation.annotations = {};
-            restarts.forEach((restartIndex, i) => {
-                charts.combinedChart.options.plugins.annotation.annotations['restart' + i] = {
-                    type: 'line',
-                    xMin: restartIndex,
-                    xMax: restartIndex,
-                    borderColor: 'red',
-                    borderWidth: 2,
-                    borderDash: [5, 5],
-                    label: {
-                        content: 'System Restart',
-                        enabled: true,
-                        position: 'top'
-                    }
-                };
-            });
-            
-            charts.combinedChart.update('none');
+            // TODO: Add restart markers later when annotation plugin is working
+            console.log('Chart updated with', filteredData.length, 'data points');
+            charts.combinedChart.update();
         }
         
         // Load recent data for the data tab
@@ -703,33 +846,6 @@ const char* helloWorldHTML = R"rawliteral(
             html += '</table>';
             document.getElementById('dataDisplay').innerHTML = html;
         }
-        function loadRecentData() {
-            fetch('/api/data?count=' + dataPointsToShow)
-                .then(response => response.json())
-                .then(data => {
-                    let html = '<table><tr><th>Time</th><th>Battery (V)</th><th>Motor Temp (°C)</th><th>Current (A)</th><th>RPM</th><th>Duty (%)</th></tr>';
-                    
-                    data.forEach(item => {
-                        const date = new Date(item.timestamp);
-                        const timeStr = date.toLocaleTimeString();
-                        html += '<tr>';
-                        html += '<td>' + timeStr + '</td>';
-                        html += '<td>' + item.batteryVoltage.toFixed(2) + '</td>';
-                        html += '<td>' + item.tempMotor.toFixed(1) + '</td>';
-                        html += '<td>' + item.current.toFixed(2) + '</td>';
-                        html += '<td>' + item.rpm.toFixed(0) + '</td>';
-                        html += '<td>' + item.dutyCycle.toFixed(1) + '</td>';
-                        html += '</tr>';
-                    });
-                    
-                    html += '</table>';
-                    document.getElementById('dataDisplay').innerHTML = html;
-                })
-                .catch(error => {
-                    console.error('Error fetching data:', error);
-                    document.getElementById('dataDisplay').innerHTML = '<p>Error loading data</p>';
-                });
-        }
         
         // Format time in HH:MM:SS
         function formatTime(milliseconds) {
@@ -762,6 +878,115 @@ const char* helloWorldHTML = R"rawliteral(
                 console.error('Error saving beeper setting:', error);
                 alert('Failed to save beeper setting');
             });
+        }
+        
+        // Export current view as CSV
+        function exportCurrentViewAsCSV() {
+            if (!allDataPoints || allDataPoints.length === 0) {
+                alert('No data available for export');
+                return;
+            }
+            
+            const filteredData = filterDataByTimeRange(allDataPoints);
+            exportDataToCSV(filteredData, 'current_view');
+        }
+        
+        // Export full trip log as CSV
+        async function exportFullTripLogAsCSV() {
+            try {
+                // Show loading indicator
+                const button = event.target;
+                const originalText = button.textContent;
+                button.textContent = 'Downloading...';
+                button.disabled = true;
+                
+                // Fetch all trip data
+                const response = await fetch('/api/trip-log');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const fullTripData = await response.json();
+                
+                if (!fullTripData || fullTripData.length === 0) {
+                    alert('No trip data available for download');
+                    return;
+                }
+                
+                exportDataToCSV(fullTripData, 'full_trip_log');
+                
+            } catch (error) {
+                console.error('Error downloading full trip log:', error);
+                alert('Failed to download trip log: ' + error.message);
+            } finally {
+                // Restore button
+                const button = event.target;
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        // Export data to CSV file
+        function exportDataToCSV(dataPoints, filePrefix) {
+            // Create CSV header
+            const headers = [
+                'Timestamp',
+                'Motor Temperature (°C)',
+                'MOSFET Temperature (°C)', 
+                'Battery Voltage (V)',
+                'Input Current (A)',
+                'Motor Current (A)',
+                'RPM',
+                'Duty Cycle (%)',
+                'Ambient Temperature (°C)',
+                'Humidity (%)',
+                'Battery Level (%)',
+                'Leak Sensor State',
+                'LED State',
+                'Total Uptime (s)'
+            ];
+            
+            // Create CSV content
+            let csvContent = headers.join(',') + '\n';
+            
+            dataPoints.forEach(point => {
+                const row = [
+                    new Date(point.timestamp).toISOString(),
+                    point.tempMotor || 0,
+                    point.tempMosfet || 0,
+                    point.batteryVoltage || 0,
+                    point.current || 0,
+                    point.avgMotorCurrent || 0,
+                    point.rpm || 0,
+                    point.dutyCycle || 0,
+                    point.temperature || 0,
+                    point.humidity || 0,
+                    point.batteryLevel || 0,
+                    point.leakSensorState || 0,
+                    point.ledState || 0,
+                    point.totalUptime || 0
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `dpv_${filePrefix}_${timestamp}.csv`;
+            link.setAttribute('download', filename);
+            
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Show success message
+            const pointCount = dataPoints.length;
+            alert(`Successfully exported ${pointCount} data points to ${filename}`);
         }
     </script>
 </body>
