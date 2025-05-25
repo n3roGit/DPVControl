@@ -7,11 +7,11 @@ TaskHandle_t webserverTaskHandle = NULL;
 
 // WiFi Credentials
 const char* ssid = "DPVControl";
-const char* password = "password123";
+const char* password = "DPVControl";
 
 // DNS Server for captive portal
 const byte DNS_PORT = 53;
-IPAddress apIP(192, 168, 4, 1);
+IPAddress apIP(4, 3, 2, 1);
 DNSServer dnsServer;
 WiFiServer server(80);
 
@@ -78,8 +78,13 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
     if (statusCode == 302) {
         client.print("Location: http://");
         client.println(apIP.toString());
+        client.println("Cache-Control: no-cache, no-store, must-revalidate");
+        client.println("Pragma: no-cache");
+        client.println("Expires: -1");
     }
     
+    client.print("Content-Length: ");
+    client.println(strlen(content));
     client.println("Connection: close");
     client.println();
     client.println(content);
@@ -175,16 +180,31 @@ void handleClient(WiFiClient client) {
     
     String method = request.substring(0, firstSpace);
     String path = request.substring(firstSpace + 1, secondSpace);
+    String host = "";
     
     log(("Request: " + method + " " + path).c_str());
     
-    // Skip HTTP headers
-    while (client.connected()) {
+    // Get the host from headers - important for captive portal detection
+    while (client.connected() && client.available()) {
         String line = client.readStringUntil('\n');
-        if (line == "\r" || line.length() == 0) {
+        line.trim();
+        
+        if (line.startsWith("Host: ")) {
+            host = line.substring(6);
+            log(("Host: " + host).c_str());
+        }
+        
+        if (line.length() == 0) {
             break;
         }
     }
+    
+    // Check if this is a captive portal detection request
+    bool isCaptivePortalRequest = host.length() > 0 && 
+                                 !host.equals(apIP.toString()) &&
+                                 !host.startsWith("4.3.2.") &&
+                                 !host.equals("localhost") &&
+                                 !host.equals("captive.apple.com");
     
     // Handle the request based on the path
     if (path == "/" || path == "/index.html") {
@@ -194,11 +214,24 @@ void handleClient(WiFiClient client) {
         } else {
             sendHttpResponse(client, 200, "text/html", helloWorldHTML);
         }
+    } else if (path == "/generate_204" || path == "/ncsi.txt" || 
+               path == "/connecttest.txt" || path == "/redirect" || 
+               path == "/hotspot-detect.html" || path.indexOf("success.txt") != -1 || 
+               path.indexOf("success.html") != -1) {
+        
+        // Android/Windows/iOS captive portal detection
+        log("Captive portal check detected");
+        sendHttpResponse(client, 302, "text/html", "<html><head><meta http-equiv='refresh' content='0; URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
+    
     } else if (spiffsInitialized && SPIFFS.exists(path)) {
         // Serve files from SPIFFS
         loadFromSPIFFS(client, path);
+    } else if (isCaptivePortalRequest) {
+        // Captive portal detection - redirect to our server
+        log("Captive portal request detected");
+        sendHttpResponse(client, 302, "text/html", "<html><head><meta http-equiv='refresh' content='0; URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
     } else {
-        // Captive portal - redirect to root
+        // Default: redirect to root
         sendHttpResponse(client, 302, "text/plain", "Redirecting...");
     }
     
@@ -219,8 +252,10 @@ void webserverTask(void *pvParameters) {
     String ipString = "IP: " + WiFi.softAPIP().toString();
     log(ipString.c_str());
     
-    // Start DNS Server for captive portal
+    // Start DNS Server for captive portal - redirect all requests to our IP
+    dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
     dnsServer.start(DNS_PORT, "*", apIP);
+    log("DNS Server started - redirecting all domains to captive portal");
     
     // Start server
     server.begin();
