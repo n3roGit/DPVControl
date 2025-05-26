@@ -4,7 +4,9 @@
 #include "datalog.h"  // Einbinden des Datalogger-Headers
 #include "constants.h" // Für PIN-Definitionen
 #include "beep.h" // For beeper settings
+#include "settings.h" // For DPV settings system
 #include <LittleFS.h> // Add missing LittleFS include
+#include <ArduinoJson.h> // For JSON parsing
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -99,6 +101,32 @@ const char* helloWorldHTML = R"rawliteral(
         .status-value {
             font-weight: bold;
             color: #2c3e50;
+        }
+        .settings-group {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .settings-group h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .settings-table {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .settings-table td:first-child {
+            width: 40%;
+            font-weight: bold;
+        }
+        .settings-table input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -279,17 +307,155 @@ const char* helloWorldHTML = R"rawliteral(
         
         <div id="settings-tab" class="tab-content">
             <div class="section">
-                <h2>Settings</h2>
-                <table>
-                    <tr>
-                        <td>Beeper Enabled:</td>
-                        <td>
-                            <input type="checkbox" id="beeperEnabledSetting" onchange="saveBeeperSetting()">
-                        </td>
-                    </tr>
-                </table>
-                <p>Chart settings have been moved to the Charts tab for better usability.</p>
-                <p>You can still configure data display settings in the Data tab.</p>
+                <h2>DPV Settings</h2>
+                
+                <!-- Settings Controls -->
+                <div style="margin-bottom: 20px; text-align: center;">
+                    <button class="button" onclick="loadSettings()" style="background-color: #3498db;">Reload</button>
+                    <button class="button" onclick="saveSettings()" style="background-color: #27ae60;">Save Settings</button>
+                    <button class="button" onclick="restoreDefaultSettings()" style="background-color: #e74c3c;">Restore Defaults</button>
+                </div>
+                
+                <!-- Settings Form -->
+                <form id="settingsForm">
+                    <!-- Motor and Speed Settings -->
+                    <div class="settings-group">
+                        <h3>Motor & Speed Settings</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="speedSteps">Speed Steps:</label></td>
+                                <td><input type="number" id="speedSteps" min="1" max="20" value="10"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="standbyDelaySeconds">Standby Delay (seconds):</label></td>
+                                <td><input type="number" id="standbyDelaySeconds" min="10" max="600" value="60"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="batteryPowerMax">Battery Power Max (A):</label></td>
+                                <td><input type="number" id="batteryPowerMax" min="10" max="100" value="40"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="minSpeedPercent">Min Speed Percent:</label></td>
+                                <td><input type="number" id="minSpeedPercent" min="0.1" max="1.0" step="0.01" value="0.38"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="maxSpeedRpm">Max Speed RPM:</label></td>
+                                <td><input type="number" id="maxSpeedRpm" min="1000" max="50000" value="15800"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="speedUpTimeMs">Speed Up Time (ms):</label></td>
+                                <td><input type="number" id="speedUpTimeMs" min="100" max="10000" value="3000"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="speedDownTimeMs">Speed Down Time (ms):</label></td>
+                                <td><input type="number" id="speedDownTimeMs" min="50" max="5000" value="500"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="maxTimeOverloadedMs">Max Overload Time (ms):</label></td>
+                                <td><input type="number" id="maxTimeOverloadedMs" min="1000" max="30000" value="5000"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Jam Detection -->
+                    <div class="settings-group">
+                        <h3>Jam Detection</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="jamMin">Jam Min:</label></td>
+                                <td><input type="number" id="jamMin" min="0.05" max="0.5" step="0.01" value="0.2"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="jamDetectionThreshold">Jam Detection Threshold:</label></td>
+                                <td><input type="number" id="jamDetectionThreshold" min="0.1" max="1.0" step="0.01" value="0.5"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Battery Settings -->
+                    <div class="settings-group">
+                        <h3>Battery Settings</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="cellsInSeries">Cells in Series:</label></td>
+                                <td><input type="number" id="cellsInSeries" min="1" max="20" value="13"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- LED Bar Settings -->
+                    <div class="settings-group">
+                        <h3>LED Bar Settings</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="ledBarNum">LED Bar Number:</label></td>
+                                <td><input type="number" id="ledBarNum" min="1" max="50" value="10"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="ledBarBrightness">LED Bar Brightness:</label></td>
+                                <td><input type="number" id="ledBarBrightness" min="1" max="255" value="15"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="ledBarBrightnessSecond">LED Bar Brightness Second:</label></td>
+                                <td><input type="number" id="ledBarBrightnessSecond" min="1" max="255" value="3"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="ledFrequency">LED Frequency:</label></td>
+                                <td><input type="number" id="ledFrequency" min="100" max="10000" value="960"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- Lamp Settings -->
+                    <div class="settings-group">
+                        <h3>Front Lamp Settings</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="lampMaxLevels">Number of Lamp Levels:</label></td>
+                                <td><input type="number" id="lampMaxLevels" min="2" max="10" value="5" onchange="updateLampBrightnessInputs()"></td>
+                            </tr>
+                        </table>
+                        <div id="lampBrightnessContainer">
+                            <!-- Lamp brightness inputs will be generated dynamically -->
+                        </div>
+                    </div>
+                    
+                    <!-- WiFi Settings -->
+                    <div class="settings-group">
+                        <h3>WiFi Settings</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="wifiSSID">WiFi SSID:</label></td>
+                                <td><input type="text" id="wifiSSID" maxlength="31" value="DPVControl"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="wifiPassword">WiFi Password:</label></td>
+                                <td><input type="password" id="wifiPassword" maxlength="31" value="DPVControl"></td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <!-- System Settings -->
+                    <div class="settings-group">
+                        <h3>System Settings</h3>
+                        <table class="settings-table">
+                            <tr>
+                                <td><label for="beeperEnabled">Beeper Enabled:</label></td>
+                                <td><input type="checkbox" id="beeperEnabled" checked></td>
+                            </tr>
+                            <tr>
+                                <td><label for="standbyBlinkStartMinutes">Standby Blink Start (min):</label></td>
+                                <td><input type="number" id="standbyBlinkStartMinutes" min="1" max="60" value="15"></td>
+                            </tr>
+                            <tr>
+                                <td><label for="standbyBlinkDurationSeconds">Standby Blink Duration (s):</label></td>
+                                <td><input type="number" id="standbyBlinkDurationSeconds" min="1" max="60" value="10"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </form>
+                
+                <div id="settingsStatus" style="margin-top: 20px; text-align: center; color: #2c3e50;"></div>
             </div>
         </div>
     </div>
@@ -857,6 +1023,77 @@ const char* helloWorldHTML = R"rawliteral(
             return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
         }
         
+        // Update lamp brightness inputs based on number of levels
+        function updateLampBrightnessInputs() {
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels').value);
+            const container = document.getElementById('lampBrightnessContainer');
+            
+            container.innerHTML = '<table class="settings-table">';
+            for (let i = 0; i < maxLevels; i++) {
+                container.innerHTML += `
+                    <tr>
+                        <td><label for="lampBrightness${i}">Level ${i} Brightness:</label></td>
+                        <td><input type="number" id="lampBrightness${i}" min="0" max="255" value="0"></td>
+                    </tr>
+                `;
+            }
+            container.innerHTML += '</table>';
+        }
+        
+        // Load settings from API
+        function loadSettings() {
+            document.getElementById('settingsStatus').textContent = 'Loading settings...';
+            
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    // Motor and speed settings
+                    document.getElementById('speedSteps').value = data.speedSteps;
+                    document.getElementById('standbyDelaySeconds').value = data.standbyDelaySeconds;
+                    document.getElementById('batteryPowerMax').value = data.batteryPowerMax;
+                    document.getElementById('minSpeedPercent').value = data.minSpeedPercent;
+                    document.getElementById('maxSpeedRpm').value = data.maxSpeedRpm;
+                    document.getElementById('speedUpTimeMs').value = data.speedUpTimeMs;
+                    document.getElementById('speedDownTimeMs').value = data.speedDownTimeMs;
+                    document.getElementById('maxTimeOverloadedMs').value = data.maxTimeOverloadedMs;
+                    
+                    // Jam detection
+                    document.getElementById('jamMin').value = data.jamMin;
+                    document.getElementById('jamDetectionThreshold').value = data.jamDetectionThreshold;
+                    
+                    // Battery
+                    document.getElementById('cellsInSeries').value = data.cellsInSeries;
+                    
+                    // LED Bar
+                    document.getElementById('ledBarNum').value = data.ledBarNum;
+                    document.getElementById('ledBarBrightness').value = data.ledBarBrightness;
+                    document.getElementById('ledBarBrightnessSecond').value = data.ledBarBrightnessSecond;
+                    document.getElementById('ledFrequency').value = data.ledFrequency;
+                    
+                    // Lamp settings
+                    document.getElementById('lampMaxLevels').value = data.lampMaxLevels;
+                    updateLampBrightnessInputs();
+                    for (let i = 0; i < data.lampMaxLevels; i++) {
+                        document.getElementById('lampBrightness' + i).value = data.lampBrightness[i];
+                    }
+                    
+                    // WiFi
+                    document.getElementById('wifiSSID').value = data.wifiSSID;
+                    document.getElementById('wifiPassword').value = data.wifiPassword;
+                    
+                    // System
+                    document.getElementById('beeperEnabled').checked = data.beeperEnabled;
+                    document.getElementById('standbyBlinkStartMinutes').value = data.standbyBlinkStartMinutes;
+                    document.getElementById('standbyBlinkDurationSeconds').value = data.standbyBlinkDurationSeconds;
+                    
+                    document.getElementById('settingsStatus').textContent = 'Settings loaded successfully';
+                })
+                .catch(error => {
+                    console.error('Error loading settings:', error);
+                    document.getElementById('settingsStatus').textContent = 'Error loading settings';
+                });
+        }
+        
         // Save beeper setting
         function saveBeeperSetting() {
             const enabled = document.getElementById('beeperEnabledSetting').checked;
@@ -1211,6 +1448,135 @@ String generateFullTripLogJson() {
     return json;
 }
 
+/**
+ * Generate JSON for current DPV settings
+ */
+String generateSettingsJson() {
+    log("generateSettingsJson called");
+    
+    DynamicJsonDocument doc(2048);
+    
+    // Motor and speed settings
+    doc["speedSteps"] = currentSettings.speedSteps;
+    doc["standbyDelaySeconds"] = currentSettings.standbyDelaySeconds;
+    doc["batteryPowerMax"] = currentSettings.batteryPowerMax;
+    doc["minSpeedPercent"] = currentSettings.minSpeedPercent;
+    doc["maxSpeedRpm"] = currentSettings.maxSpeedRpm;
+    doc["speedUpTimeMs"] = currentSettings.speedUpTimeMs;
+    doc["speedDownTimeMs"] = currentSettings.speedDownTimeMs;
+    doc["maxTimeOverloadedMs"] = currentSettings.maxTimeOverloadedMs;
+    
+    // Jam detection
+    doc["jamMin"] = currentSettings.jamMin;
+    doc["jamDetectionThreshold"] = currentSettings.jamDetectionThreshold;
+    
+    // Battery settings
+    doc["cellsInSeries"] = currentSettings.cellsInSeries;
+    
+    // LED Bar settings
+    doc["ledBarNum"] = currentSettings.ledBarNum;
+    doc["ledBarBrightness"] = currentSettings.ledBarBrightness;
+    doc["ledBarBrightnessSecond"] = currentSettings.ledBarBrightnessSecond;
+    doc["ledFrequency"] = currentSettings.ledFrequency;
+    
+    // Lamp settings
+    doc["lampMaxLevels"] = currentSettings.lampMaxLevels;
+    JsonArray lampBrightness = doc.createNestedArray("lampBrightness");
+    for (int i = 0; i < 10; i++) {
+        lampBrightness.add(currentSettings.lampBrightness[i]);
+    }
+    
+    // WiFi settings
+    doc["wifiSSID"] = currentSettings.wifiSSID;
+    doc["wifiPassword"] = currentSettings.wifiPassword;
+    
+    // System settings
+    doc["beeperEnabled"] = currentSettings.beeperEnabled;
+    doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
+    doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
+    
+    String jsonString;
+    serializeJson(doc, jsonString);
+    
+    String jsonMsg = "Generated settings JSON, length: " + String(jsonString.length());
+    log(jsonMsg.c_str());
+    
+    return jsonString;
+}
+
+/**
+ * Update settings from JSON string
+ */
+bool updateSettingsFromJson(const String& jsonString) {
+    log("updateSettingsFromJson called");
+    
+    DynamicJsonDocument doc(2048);
+    DeserializationError error = deserializeJson(doc, jsonString);
+    
+    if (error) {
+        String errorMsg = "Failed to parse settings JSON: " + String(error.c_str());
+        log(errorMsg.c_str());
+        return false;
+    }
+    
+    // Create temporary settings structure
+    DPVSettings newSettings = currentSettings;
+    
+    // Update settings from JSON
+    if (doc.containsKey("speedSteps")) newSettings.speedSteps = doc["speedSteps"];
+    if (doc.containsKey("standbyDelaySeconds")) newSettings.standbyDelaySeconds = doc["standbyDelaySeconds"];
+    if (doc.containsKey("batteryPowerMax")) newSettings.batteryPowerMax = doc["batteryPowerMax"];
+    if (doc.containsKey("minSpeedPercent")) newSettings.minSpeedPercent = doc["minSpeedPercent"];
+    if (doc.containsKey("maxSpeedRpm")) newSettings.maxSpeedRpm = doc["maxSpeedRpm"];
+    if (doc.containsKey("speedUpTimeMs")) newSettings.speedUpTimeMs = doc["speedUpTimeMs"];
+    if (doc.containsKey("speedDownTimeMs")) newSettings.speedDownTimeMs = doc["speedDownTimeMs"];
+    if (doc.containsKey("maxTimeOverloadedMs")) newSettings.maxTimeOverloadedMs = doc["maxTimeOverloadedMs"];
+    
+    if (doc.containsKey("jamMin")) newSettings.jamMin = doc["jamMin"];
+    if (doc.containsKey("jamDetectionThreshold")) newSettings.jamDetectionThreshold = doc["jamDetectionThreshold"];
+    
+    if (doc.containsKey("cellsInSeries")) newSettings.cellsInSeries = doc["cellsInSeries"];
+    
+    if (doc.containsKey("ledBarNum")) newSettings.ledBarNum = doc["ledBarNum"];
+    if (doc.containsKey("ledBarBrightness")) newSettings.ledBarBrightness = doc["ledBarBrightness"];
+    if (doc.containsKey("ledBarBrightnessSecond")) newSettings.ledBarBrightnessSecond = doc["ledBarBrightnessSecond"];
+    if (doc.containsKey("ledFrequency")) newSettings.ledFrequency = doc["ledFrequency"];
+    
+    if (doc.containsKey("lampMaxLevels")) newSettings.lampMaxLevels = doc["lampMaxLevels"];
+    if (doc.containsKey("lampBrightness")) {
+        JsonArray lampArray = doc["lampBrightness"];
+        for (int i = 0; i < 10 && i < lampArray.size(); i++) {
+            newSettings.lampBrightness[i] = lampArray[i];
+        }
+    }
+    
+    if (doc.containsKey("wifiSSID")) {
+        strncpy(newSettings.wifiSSID, doc["wifiSSID"], sizeof(newSettings.wifiSSID) - 1);
+        newSettings.wifiSSID[sizeof(newSettings.wifiSSID) - 1] = '\0';
+    }
+    if (doc.containsKey("wifiPassword")) {
+        strncpy(newSettings.wifiPassword, doc["wifiPassword"], sizeof(newSettings.wifiPassword) - 1);
+        newSettings.wifiPassword[sizeof(newSettings.wifiPassword) - 1] = '\0';
+    }
+    
+    if (doc.containsKey("beeperEnabled")) newSettings.beeperEnabled = doc["beeperEnabled"];
+    if (doc.containsKey("standbyBlinkStartMinutes")) newSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"];
+    if (doc.containsKey("standbyBlinkDurationSeconds")) newSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"];
+    
+    // Validate new settings
+    if (!validateSettings(newSettings)) {
+        log("New settings failed validation");
+        return false;
+    }
+    
+    // Apply new settings
+    currentSettings = newSettings;
+    saveSettings();
+    
+    log("Settings updated successfully");
+    return true;
+}
+
 // Setup the webserver task on Core 0
 void setupWebserver() {
     log("Setting up webserver on Core 0");
@@ -1367,8 +1733,39 @@ void handleClient(WiFiClient client) {
         
         sendHttpResponse(client, 200, "application/json", jsonData.c_str());
         
+    } else if (path == "/api/settings" && method == "GET") {
+        // API endpoint to get current settings
+        log("API /api/settings GET called");
+        
+        String jsonSettings = generateSettingsJson();
+        sendHttpResponse(client, 200, "application/json", jsonSettings.c_str());
+        
+    } else if (path == "/api/settings" && method == "POST") {
+        // API endpoint to save settings
+        log("API /api/settings POST called");
+        
+        // Read POST body
+        String body = "";
+        while (client.available()) {
+            body += (char)client.read();
+        }
+        
+        bool success = updateSettingsFromJson(body);
+        
+        String response = "{\"success\":" + String(success ? "true" : "false") + "}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+    } else if (path == "/api/settings/restore" && method == "POST") {
+        // API endpoint to restore default settings
+        log("API /api/settings/restore called");
+        
+        restoreDefaultSettings();
+        
+        String response = "{\"success\":true}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
     } else if (path == "/api/beeper" && method == "POST") {
-        // API endpoint for beeper settings
+        // API endpoint for beeper settings (legacy compatibility)
         log("API /api/beeper called");
         
         // Read POST body

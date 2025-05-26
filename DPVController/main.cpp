@@ -10,6 +10,7 @@
 #include "datalog.h"
 #include "webserver.h"  // Include webserver header
 #include "data_upload.h" // Include data upload header
+#include "settings.h" // Include DPV settings system
 #include <LittleFS.h> // For settings storage
 
 int leakSensorState = 0;
@@ -67,7 +68,10 @@ void setup() {
     Serial.println("LittleFS initialized for settings");
   }
   
-  // Load beeper settings after LittleFS is ready
+  // Initialize settings system
+  initializeSettings();
+  
+  // Load beeper settings after LittleFS is ready (for backward compatibility)
   loadBeeperSettings();
   
   // Initialize datalogger (will re-initialize LittleFS if needed)

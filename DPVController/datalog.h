@@ -65,6 +65,8 @@ void addToRecentData(LogdataRow datapoint);
 void appendToTripLog(LogdataRow datapoint);
 void initializeTripLog();
 void loadRecentDataFromTripLog();
+void checkAndCleanupStorage();
+void logStorageStats();
 
 // Legacy functions
 void deleteOldestLogFile();

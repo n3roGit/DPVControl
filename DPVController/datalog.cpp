@@ -17,7 +17,7 @@
 
 const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,rpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,total_uptime";
 const String DATALOG_DIR = "/datalog";
-const unsigned long DATALOG_INTERVAL = 1000; // Wie oft ein Datenpunkt gespeichert wird (ms)
+const unsigned long DATALOG_INTERVAL = 5000; // Wie oft ein Datenpunkt gespeichert wird (ms) - alle 5 Sekunden
 const int MAX_LOG_FILES = 10; // Maximale Anzahl an Log-Dateien
 const double MAX_SPEED_RPM = 15800; // Maximum speed in rpm. Speed of 100%, kopiert aus motor.cpp
 
@@ -382,9 +382,139 @@ void initializeTripLog() {
 }
 
 /**
+ * Log current storage statistics
+ */
+void logStorageStats() {
+  size_t totalBytes = LittleFS.totalBytes();
+  size_t usedBytes = LittleFS.usedBytes();
+  size_t freeBytes = totalBytes - usedBytes;
+  
+  String storageMsg = "Storage: " + String(freeBytes/1024) + "KB free / " + String(totalBytes/1024) + "KB total (" + String((freeBytes*100)/totalBytes) + "% free)";
+  log(storageMsg.c_str());
+  
+  if (LittleFS.exists("/trip_log.bin")) {
+    File tripFile = LittleFS.open("/trip_log.bin", "r");
+    if (tripFile) {
+      size_t fileSize = tripFile.size();
+      int datapoints = fileSize / sizeof(LogdataRow);
+      tripFile.close();
+      
+      String tripMsg = "Trip log: " + String(fileSize/1024) + "KB, " + String(datapoints) + " datapoints (" + String((datapoints*5)/60) + " min)";
+      log(tripMsg.c_str());
+    }
+  }
+}
+
+/**
+ * Check available storage space and clean up if necessary
+ */
+void checkAndCleanupStorage() {
+  size_t totalBytes = LittleFS.totalBytes();
+  size_t usedBytes = LittleFS.usedBytes();
+  size_t freeBytes = totalBytes - usedBytes;
+  
+  // Keep at least 15% of total space free (minimum 100KB)
+  size_t minFreeSpace = max(totalBytes / 7, (size_t)102400); // Changed from 10% to ~15%
+  
+  if (freeBytes < minFreeSpace) {
+    log("Storage space running low, starting cleanup...");
+    logStorageStats();
+    
+    // Check trip log file size
+    if (LittleFS.exists("/trip_log.bin")) {
+      File tripFile = LittleFS.open("/trip_log.bin", "r");
+      if (tripFile) {
+        size_t fileSize = tripFile.size();
+        int totalDatapoints = fileSize / sizeof(LogdataRow);
+        tripFile.close();
+        
+        if (totalDatapoints > 10000) { // Keep last 10000 datapoints (about 14 hours at 5s interval)
+          log("Trimming trip log to preserve storage space...");
+          
+          // Read last 10000 datapoints in chunks to avoid memory issues
+          const int keepDatapoints = 8000; // Keep 8000 points for safety margin
+          const int chunkSize = 1000; // Process in 1000-point chunks
+          
+          File writeFile = LittleFS.open("/trip_log_temp.bin", "w");
+          if (writeFile) {
+            File readFile = LittleFS.open("/trip_log.bin", "r");
+            if (readFile) {
+              // Start from the position of the last keepDatapoints
+              size_t startPos = (totalDatapoints - keepDatapoints) * sizeof(LogdataRow);
+              readFile.seek(startPos);
+              
+              // Copy data in chunks
+              LogdataRow* chunkBuffer = (LogdataRow*)malloc(chunkSize * sizeof(LogdataRow));
+              if (chunkBuffer) {
+                for (int chunk = 0; chunk < keepDatapoints; chunk += chunkSize) {
+                  int pointsInChunk = min(chunkSize, keepDatapoints - chunk);
+                  size_t bytesRead = readFile.read((uint8_t*)chunkBuffer, pointsInChunk * sizeof(LogdataRow));
+                  
+                  if (bytesRead == pointsInChunk * sizeof(LogdataRow)) {
+                    writeFile.write((uint8_t*)chunkBuffer, bytesRead);
+                  } else {
+                    log("Error during chunked read in cleanup");
+                    break;
+                  }
+                }
+                free(chunkBuffer);
+                
+                readFile.close();
+                writeFile.close();
+                
+                // Replace original file with trimmed version
+                LittleFS.remove("/trip_log.bin");
+                LittleFS.rename("/trip_log_temp.bin", "/trip_log.bin");
+                
+                String cleanupMsg = "Trip log trimmed from " + String(totalDatapoints) + " to " + String(keepDatapoints) + " datapoints";
+                log(cleanupMsg.c_str());
+              } else {
+                log("Failed to allocate chunk buffer for cleanup");
+                readFile.close();
+                writeFile.close();
+                LittleFS.remove("/trip_log_temp.bin");
+              }
+            } else {
+              writeFile.close();
+              LittleFS.remove("/trip_log_temp.bin");
+              log("Failed to read original trip log during cleanup");
+            }
+          } else {
+            log("Failed to create temporary file for cleanup");
+          }
+        }
+      }
+    }
+    
+    // Clean up other old files if they exist
+    if (LittleFS.exists("/recent_light.bin")) {
+      LittleFS.remove("/recent_light.bin");
+      log("Removed old recent_light.bin file");
+    }
+    
+    // Check final free space
+    size_t finalFreeBytes = LittleFS.totalBytes() - LittleFS.usedBytes();
+    String finalMsg = "Cleanup completed. Free space: " + String(finalFreeBytes) + " bytes";
+    log(finalMsg.c_str());
+  }
+}
+
+/**
  * Append datapoint directly to trip log file (bombproof persistence)
  */
 void appendToTripLog(LogdataRow datapoint) {
+  // Check storage space every 100 writes
+  static int writeCounter = 0;
+  writeCounter++;
+  if (writeCounter % 100 == 0) {
+    checkAndCleanupStorage();
+  }
+  
+  // Log storage stats every 1000 writes (every ~83 minutes at 5s interval)
+  if (writeCounter % 1000 == 0) {
+    logStorageStats();
+  }
+  
   // Open file for each write to ensure data is saved immediately
   File tripFile = LittleFS.open("/trip_log.bin", "a");
   if (tripFile) {
@@ -574,12 +704,56 @@ void loadCompressedData() {
 }
 
 /**
- * Gibt die letzten n Datenpunkte zurück (vereinfacht - nur recent data)
+ * Gibt die letzten n Datenpunkte zurück - liest aus Trip-Log wenn mehr als RAM-Buffer
  */
 LogdataRow* getLatestDataPoints(int count, String timeRange) {
-  // For now, all requests return recent data
-  // TODO: Implement different time ranges by reading from trip log file
-  return getRecentData(count);
+  if (count <= totalRecentPoints) {
+    // If we have enough data in RAM buffer, use it
+    return getRecentData(count);
+  }
+  
+  // If we need more data than in RAM, read from trip log file
+  if (!LittleFS.exists("/trip_log.bin")) {
+    return getRecentData(count);
+  }
+  
+  File tripFile = LittleFS.open("/trip_log.bin", "r");
+  if (!tripFile) {
+    return getRecentData(count);
+  }
+  
+  size_t fileSize = tripFile.size();
+  int totalDatapoints = fileSize / sizeof(LogdataRow);
+  
+  if (totalDatapoints == 0) {
+    tripFile.close();
+    return getRecentData(count);
+  }
+  
+  // Limit to available data
+  int actualCount = count > totalDatapoints ? totalDatapoints : count;
+  
+  static LogdataRow extendedResult[500]; // Larger buffer for extended data
+  if (actualCount > 500) actualCount = 500; // Safety limit
+  
+  // Read last actualCount datapoints from file
+  size_t startPos = (totalDatapoints - actualCount) * sizeof(LogdataRow);
+  tripFile.seek(startPos);
+  
+  for (int i = 0; i < actualCount; i++) {
+    if (tripFile.read((uint8_t*)&extendedResult[i], sizeof(LogdataRow)) != sizeof(LogdataRow)) {
+      log("Error reading extended trip data");
+      tripFile.close();
+      return getRecentData(count);
+    }
+  }
+  
+  tripFile.close();
+  
+  String extendedMsg = "Returning " + String(actualCount) + " datapoints from trip log (total: " + String(totalDatapoints) + ")";
+  log(extendedMsg.c_str());
+  
+  return extendedResult;
 }
 
 /**
@@ -713,6 +887,7 @@ void dataloggerTask(void *pvParameters) {
   unsigned long lastPersistenceTime = millis();
   unsigned long lastHourlySave = millis();
   unsigned long lastHistoricalSave = millis();
+  unsigned long lastUptimeUpdate = millis();
   
   while (true) {
     unsigned long currentTime = millis();
@@ -725,7 +900,7 @@ void dataloggerTask(void *pvParameters) {
       lastDebugTime = currentTime;
     }
     
-    // Create new datapoint every second
+    // Create new datapoint every 5 seconds
     if (currentTime - lastDataLogTime >= DATALOG_INTERVAL) {
       log("Creating new datapoint...");
       
@@ -780,7 +955,16 @@ void dataloggerTask(void *pvParameters) {
       }
     }
     
-    // No periodic saving needed - data is automatically persistent!
+    // Update and save total uptime every 30 seconds
+    if (currentTime - lastUptimeUpdate >= 30000) {
+      // Update totalUptimeSeconds with actual running time
+      totalUptimeSeconds += (currentTime - lastUptimeUpdate) / 1000;
+      saveTotalUptime();
+      lastUptimeUpdate = currentTime;
+      
+      String uptimeMsg = "Total uptime updated and saved: " + String(totalUptimeSeconds) + "s";
+      log(uptimeMsg.c_str());
+    }
     
     // Keep task alive
     vTaskDelay(100 / portTICK_PERIOD_MS);
