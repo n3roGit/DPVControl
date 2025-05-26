@@ -294,7 +294,6 @@ const char* helloWorldHTML = R"rawliteral(
         <div class="section">
             <div class="tab-navigation">
                 <button class="nav-tab active" onclick="showTab('status')">Status</button>
-                <button class="nav-tab" onclick="showTab('data')">Data</button>
                 <button class="nav-tab" onclick="showTab('charts')">Charts</button>
                 <button class="nav-tab" onclick="showTab('remote')">Remote Control</button>
                 <button class="nav-tab" onclick="showTab('settings')">Settings</button>
@@ -382,53 +381,30 @@ const char* helloWorldHTML = R"rawliteral(
             </div>
         </div>
         
-        <div id="data-tab" class="tab-content">
-            <div class="section">
-                <h2>Recent Data Points</h2>
-                <div style="margin-bottom: 15px;">
-                    <label for="dataPoints">Number of data points to show:</label>
-                    <input type="number" id="dataPoints" min="10" max="100" value="20" style="width: 80px; margin-left: 10px;">
-                    <button class="button" onclick="loadRecentData()" style="margin-left: 10px;">Refresh Data</button>
-                </div>
-                <p>Data Points Available: <span id="dataPointCount">Loading...</span></p>
-                <div id="dataDisplay" style="margin-top: 20px;">
-                    <p>Click "Refresh Data" to load recent measurements...</p>
-                </div>
-            </div>
-        </div>
+
         
         <div id="charts-tab" class="tab-content">
             <div class="section">
                 <h2>Data Visualization</h2>
                 
                 <!-- Chart Controls -->
-                <div style="margin-bottom: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #3a3a3a; border-radius: 8px; border: 1px solid #505050;">
                     <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
                         <div>
-                            <label for="sessionSelect">Session:</label>
-                            <select id="sessionSelect" onchange="updateSessionFilter()">
+                            <label for="sessionSelect" style="color: #b0b0b0; font-weight: bold; margin-right: 8px;">Session:</label>
+                            <select id="sessionSelect" onchange="updateSessionFilter()" style="padding: 6px; border: 1px solid #555; border-radius: 4px; background-color: #4a4a4a; color: #e0e0e0;">
                                 <!-- Sessions will be populated dynamically -->
                             </select>
                         </div>
                         
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span>Time Range: <strong>5 Minutes</strong></span>
-                            <span style="color: #666; font-size: 12px;">(Fixed)</span>
-                        </div>
-                        
                         <div id="timeSliderContainer" style="flex: 1; min-width: 200px;">
-                            <label for="timeSlider">Time Window Position:</label>
+                            <label for="timeSlider" style="color: #b0b0b0; font-weight: bold; display: block; margin-bottom: 5px;">Time Window Position:</label>
                             <input type="range" id="timeSlider" min="0" max="100" value="100" 
                                    style="width: 100%;" onchange="updateTimeWindow()">
-                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 3px;">
                                 <span id="sliderStart">Oldest</span>
                                 <span id="sliderEnd">Newest</span>
                             </div>
-                        </div>
-                        
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span>Update: <strong>10s</strong></span>
-                            <span style="color: #666; font-size: 12px;">(Fixed)</span>
                         </div>
                         
                         <button class="button" onclick="refreshChart()">Refresh</button>
@@ -452,8 +428,8 @@ const char* helloWorldHTML = R"rawliteral(
                     </button>
                 </div>
                 
-                <p style="margin-top: 10px; font-size: 12px; color: #666;">
-                    Note: Different parameters use different scales. Red vertical lines indicate system restarts.
+                <p style="margin-top: 10px; font-size: 12px; color: #888;">
+                    Note: Different parameters use different scales. Time range: 5 minutes, Update interval: 10s. Red vertical lines indicate system restarts.
                 </p>
             </div>
         </div>
