@@ -16,7 +16,7 @@ String generateSessionFilename(int splitPart = 0);
 String getCurrentSessionFile();
 String* listSessionFiles(int* count);
 
-// Task handle für den Datalogger
+// Task handle for the datalogger
 extern TaskHandle_t dataloggerTaskHandle;
 
 struct LogdataRow {

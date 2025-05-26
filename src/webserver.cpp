@@ -1,8 +1,8 @@
 #include "webserver.h"
 #include "log.h"
 #include "data_upload.h"
-#include "datalog.h"  // Einbinden des Datalogger-Headers
-#include "constants.h" // Für PIN-Definitionen
+#include "datalog.h"  // Include datalogger headers
+#include "constants.h" // For PIN definitions
 #include "beep.h" // For beeper settings
 #include "settings.h" // For DPV settings system
 #include "motor.h" // For motor control functions
@@ -2628,7 +2628,7 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
     
     LogdataRow* dataPoints = getLatestDataPoints(count, timeRange);
     
-    // Wenn keine Daten verfügbar sind, gib leeres Array zurück
+    // If no data available, return empty array
     if (!dataPoints || getTotalDataPoints(timeRange) == 0) {
         log("No data available, returning empty array");
         return "[]";
@@ -2665,7 +2665,7 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
     String jsonLengthMsg = "Generated JSON length: " + String(json.length());
     log(jsonLengthMsg.c_str());
     
-    // Debug: Zeige ersten Teil des JSON
+    // Debug: Show first part of JSON
     if (json.length() > 100) {
         String jsonPreview = "JSON preview: " + json.substring(0, 100) + "...";
         log(jsonPreview.c_str());

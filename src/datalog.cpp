@@ -166,8 +166,8 @@ const unsigned long DATALOG_INTERVAL_FAST = 5000;   // Fast sensors: 5s (RPM, cu
 const unsigned long DATALOG_INTERVAL_SLOW = 30000;  // Slow sensors: 30s (battery level, environment)
 const unsigned long DATALOG_INTERVAL = DATALOG_INTERVAL_FAST; // Main interval
 
-const int MAX_LOG_FILES = 10; // Maximale Anzahl an Log-Dateien
-const double MAX_SPEED_RPM = 15800; // Maximum speed in rpm. Speed of 100%, kopiert aus motor.cpp
+const int MAX_LOG_FILES = 10; // Maximum number of log files
+const double MAX_SPEED_RPM = 15800; // Maximum speed in rpm. Speed of 100%, copied from motor.cpp
 
 /*
 * GLOBAL VARIABLES
@@ -247,14 +247,14 @@ unsigned long getTotalUptime() {
  * Öffnet eine neue CSV-Datei zum Schreiben
  */
 void openCSVFile() {
-  // Kurze Pause vor Dateizugriff
+  // Short pause before file access
   vTaskDelay(10 / portTICK_PERIOD_MS);
   
   String filename;
   for(int i = 0; i < 100; i++) { // Limit to prevent infinite loop
     filename = DATALOG_DIR + "/data_" + String(i) + ".csv";
     if (!LittleFS.exists(filename)) break;
-    // Kurze Pause während der Dateisuche
+    // Short pause during file search
     vTaskDelay(5 / portTICK_PERIOD_MS);
   }
   
@@ -274,24 +274,24 @@ void openCSVFile() {
     log(errorMsg.c_str());
   }
   
-  // Kurze Pause nach Dateischreiben
+  // Short pause after file writing
   vTaskDelay(10 / portTICK_PERIOD_MS);
 }
 
 /**
- * Listen alle Log-Dateien auf
+ * List all log files
  */
 void listLogFiles() {
-  String logMessage = "Auflisten des Verzeichnisses: " + String(DATALOG_DIR);
+  String logMessage = "Listing directory: " + String(DATALOG_DIR);
   log(logMessage.c_str());
 
     File root = LittleFS.open(DATALOG_DIR);
   if(!root) {
-    log("- Konnte Verzeichnis nicht öffnen");
+    log("- Could not open directory");
       return;
   }
   if(!root.isDirectory()) {
-    log("- Ist kein Verzeichnis");
+    log("- Is not a directory");
     return;
   }
 
@@ -309,7 +309,7 @@ void listLogFiles() {
 }
 
 /**
- * Zählt die Anzahl der Log-Dateien
+ * Count the number of log files
  */
 int countLogFiles() {
   int count = 0;
@@ -327,7 +327,7 @@ int countLogFiles() {
 }
 
 /**
- * Löscht die älteste Log-Datei
+ * Delete the oldest log file
  */
 void deleteOldestLogFile() {
   String oldestFile = "";
@@ -341,7 +341,7 @@ void deleteOldestLogFile() {
     if(!file.isDirectory()) {
       String name = String(file.name());
       if(name.startsWith(DATALOG_DIR + "/data_") && name.endsWith(".csv")) {
-        // Extrahiere Index aus Dateinamen
+        // Extract index from filename
         int idx = name.substring(DATALOG_DIR.length() + 6, name.length() - 4).toInt();
         if(idx < oldestIndex) {
           oldestIndex = idx;
@@ -354,17 +354,17 @@ void deleteOldestLogFile() {
   
   if(oldestFile != "") {
     if(LittleFS.remove(oldestFile)) {
-      String deleteMessage = "Älteste Datei gelöscht: " + oldestFile;
+      String deleteMessage = "Oldest file deleted: " + oldestFile;
       log(deleteMessage.c_str());
     } else {
-      String errorMessage = "Fehler beim Löschen der Datei: " + oldestFile;
+      String errorMessage = "Error deleting file: " + oldestFile;
       log(errorMessage.c_str());
     }
   }
 }
 
 /**
- * Gibt den Inhalt einer Log-Datei zurück
+ * Return the content of a log file
  */
 String getLogFileContent(String filename) {
   if(!LittleFS.exists(filename)) {
@@ -385,7 +385,7 @@ String getLogFileContent(String filename) {
 }
 
 /**
- * Gibt den Pfad zur neuesten Log-Datei zurück
+ * Return the path to the newest log file
  */
 String getNewestLogFile() {
   String newestFile = "";
@@ -399,7 +399,7 @@ String getNewestLogFile() {
     if(!file.isDirectory()) {
       String name = String(file.name());
       if(name.startsWith(DATALOG_DIR + "/data_") && name.endsWith(".csv")) {
-        // Extrahiere Index aus Dateinamen
+        // Extract index from filename
         int idx = name.substring(DATALOG_DIR.length() + 6, name.length() - 4).toInt();
         if(idx > newestIndex) {
           newestIndex = idx;
@@ -1003,7 +1003,7 @@ LogdataRow* getHistoricalData(int count) {
 }
 
 /**
- * Gibt die Anzahl verfügbarer Datenpunkte zurück (vereinfacht)
+ * Return the number of available data points (simplified)
  */
 int getTotalDataPoints(String timeRange) {
   // For now, always return recent points count
@@ -1012,7 +1012,7 @@ int getTotalDataPoints(String timeRange) {
 }
 
 /**
- * Der Haupttask für den Datalogger, läuft auf Core 1
+ * Main task for the datalogger, runs on Core 1
  */
 void dataloggerTask(void *pvParameters) {
   log("=== DATALOGGER TASK STARTED ===");
@@ -1127,8 +1127,8 @@ void dataloggerTask(void *pvParameters) {
 }
 
 /**
- * Setup-Funktion für den Datalogger
- * Startet den Datalogger-Task auf Core 1
+ * Setup function for the datalogger
+ * Starts the datalogger task on Core 1
  */
 void datalogSetup() {
   log("=== DATALOG SETUP START ===");
@@ -1143,15 +1143,15 @@ void datalogSetup() {
   
   log("Buffer variables initialized");
   
-  // Erstelle Task auf Core 1 (nicht Core 0, da dort der Webserver läuft)
+  // Create task on Core 1 (not Core 0, where the webserver runs)
   BaseType_t taskResult = xTaskCreatePinnedToCore(
-    dataloggerTask,        // Task-Funktion
-    "DataloggerTask",      // Task-Name
-    32000,                 // Stack-Größe (Bytes) - Maximum für ESP32
-    NULL,                  // Task-Parameter
-    1,                     // Task-Priorität (1 ist niedrig)
-    &dataloggerTaskHandle, // Task-Handle
-    1                      // Core-ID (1)
+    dataloggerTask,        // Task function
+    "DataloggerTask",      // Task name
+    32000,                 // Stack size (bytes) - Maximum for ESP32
+    NULL,                  // Task parameters
+    1,                     // Task priority (1 is low)
+    &dataloggerTaskHandle, // Task handle
+    1                      // Core ID (1)
   );
   
   if (taskResult == pdPASS) {
@@ -1164,11 +1164,11 @@ void datalogSetup() {
 }
 
 /**
- * Loop-Funktion für den Datalogger
- * Diese wird aus der Hauptschleife aufgerufen, tut aber nichts,
- * da der eigentliche Datalogger auf einem anderen Kern läuft
+ * Loop function for the datalogger
+ * This is called from the main loop but does nothing,
+ * since the actual datalogger runs on a different core
  */
 void datalogLoop() {
-  // Der eigentliche Datalogger läuft in einem separaten Task,
-  // hier ist nichts zu tun.
+  // The actual datalogger runs in a separate task,
+  // nothing to do here.
 }

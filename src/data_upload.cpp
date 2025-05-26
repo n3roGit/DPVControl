@@ -12,7 +12,7 @@ bool initializeFileSystem() {
     
     log("LittleFS mounted successfully");
     
-    // Prüfe verfügbaren Platz
+    // Check available space
     size_t totalBytes = LittleFS.totalBytes();
     size_t usedBytes = LittleFS.usedBytes();
     String totalMsg = "LittleFS Total: " + String(totalBytes);
@@ -20,14 +20,14 @@ bool initializeFileSystem() {
     String usedMsg = "LittleFS Used: " + String(usedBytes);
     log(usedMsg.c_str());
     
-    // Längeres Delay für Hardware-Operationen
+    // Longer delay for hardware operations
     delay(200);
     
     // Store index.html in LittleFS if it doesn't exist
     if (!LittleFS.exists("/index.html")) {
-        log("index.html nicht gefunden, erstelle neu");
+        log("index.html not found, creating new one");
         
-        // Überprüfen, ob genug Platz für die Datei vorhanden ist
+        // Check if enough space is available for the file
         size_t freeBytes = totalBytes - usedBytes;
         String freeMsg = "LittleFS Free: " + String(freeBytes);
         log(freeMsg.c_str());
@@ -436,34 +436,34 @@ bool initializeFileSystem() {
 </html>
 )rawliteral";
 
-        // Überprüfen, ob genug Platz für die Datei vorhanden ist
+        // Check if enough space is available for the file
         size_t htmlSize = strlen(indexHTML);
-        if (freeBytes < htmlSize + 1024) { // 1KB Puffer für sichere Schätzung
-            log("Nicht genug Platz im Dateisystem für index.html");
-            String neededMsg = "Benötigt: " + String(htmlSize + 1024);
+        if (freeBytes < htmlSize + 1024) { // 1KB buffer for safe estimation
+            log("Not enough space in filesystem for index.html");
+            String neededMsg = "Required: " + String(htmlSize + 1024);
             log(neededMsg.c_str());
-            String availableMsg = "Verfügbar: " + String(freeBytes);
+            String availableMsg = "Available: " + String(freeBytes);
             log(availableMsg.c_str());
             return false;
         }
 
-        String startMsg = "Starte Schreiben von index.html (Größe: " + String(htmlSize) + " Bytes)";
+        String startMsg = "Starting to write index.html (Size: " + String(htmlSize) + " bytes)";
         log(startMsg.c_str());
         
-        // Versuche zuerst, mögliche alte Datei zu löschen
+        // Try to delete possible old file first
         if (LittleFS.exists("/index.html")) {
             LittleFS.remove("/index.html");
             delay(100);
         }
         
-        // Datei in kleineren Blöcken schreiben
+        // Write file in smaller blocks
         File file = LittleFS.open("/index.html", "w");
         if (!file) {
             log("Failed to open file for writing");
             return false;
         }
         
-        // Schreibe die Datei in Blöcken zu 512 Bytes (kleinere Blöcke)
+        // Write file in 512-byte blocks (smaller blocks)
         const size_t chunkSize = 512;
         size_t remaining = htmlSize;
         size_t position = 0;
@@ -481,7 +481,7 @@ bool initializeFileSystem() {
             position += toWrite;
             remaining -= toWrite;
             
-            // Längere Pause nach jedem Block
+            // Longer pause after each block
             delay(20);
         }
         
@@ -490,24 +490,24 @@ bool initializeFileSystem() {
         file.close();
         delay(20);
         
-        // Überprüfen ob die Datei erfolgreich geschrieben wurde
+        // Check if file was written successfully
         if (LittleFS.exists("/index.html")) {
             File checkFile = LittleFS.open("/index.html", "r");
             if (checkFile && checkFile.size() > 0) {
-                String successMsg = "index.html erfolgreich gespeichert (" + String(checkFile.size()) + " Bytes)";
+                String successMsg = "index.html successfully saved (" + String(checkFile.size()) + " bytes)";
                 log(successMsg.c_str());
                 checkFile.close();
             } else {
-                log("index.html existiert, aber ist möglicherweise leer");
+                log("index.html exists but might be empty");
                 if (checkFile) checkFile.close();
                 return false;
             }
         } else {
-            log("index.html konnte nicht gespeichert werden");
+            log("index.html could not be saved");
             return false;
         }
     } else {
-        log("index.html bereits vorhanden, überspringe");
+        log("index.html already exists, skipping");
     }
     
     // Store version.txt in LittleFS if it doesn't exist
@@ -530,13 +530,13 @@ bool initializeFileSystem() {
 
 // Store a file in LittleFS
 bool storeFile(const char* path, const char* content) {
-    String logMsg = "Speichere Datei: " + String(path);
+    String logMsg = "Storing file: " + String(path);
     log(logMsg.c_str());
     
-    // Längeres Delay für Hardware-Operationen
+    // Longer delay for hardware operations
     delay(100);
     
-    // Versuche zuerst, mögliche alte Datei zu löschen
+    // Try to delete possible old file first
     if (LittleFS.exists(path)) {
         LittleFS.remove(path);
         delay(100);
@@ -549,13 +549,13 @@ bool storeFile(const char* path, const char* content) {
         return false;
     }
     
-    // Datei in Blöcken schreiben
-    const size_t chunkSize = 512; // Reduziert die Blockgröße
+    // Write file in blocks
+    const size_t chunkSize = 512; // Reduced block size
     size_t contentSize = strlen(content);
     size_t remaining = contentSize;
     size_t position = 0;
     
-    String sizeMsg = "Schreibe " + String(contentSize) + " Bytes in Blöcken zu " + String(chunkSize) + " Bytes";
+    String sizeMsg = "Writing " + String(contentSize) + " bytes in blocks of " + String(chunkSize) + " bytes";
     log(sizeMsg.c_str());
     
     while (remaining > 0) {
@@ -571,7 +571,7 @@ bool storeFile(const char* path, const char* content) {
         position += toWrite;
         remaining -= toWrite;
         
-        // Längere Pause nach jedem Block
+        // Longer pause after each block
         delay(20);
     }
     
@@ -580,22 +580,22 @@ bool storeFile(const char* path, const char* content) {
     file.close();
     delay(20);
     
-    // Überprüfen ob die Datei erfolgreich geschrieben wurde
+    // Check if file was written successfully
     if (LittleFS.exists(path)) {
         File checkFile = LittleFS.open(path, "r");
         if (checkFile && checkFile.size() > 0) {
-            String successMsg = "Datei erfolgreich gespeichert: " + String(path) + " (" + String(checkFile.size()) + " Bytes)";
+            String successMsg = "File successfully saved: " + String(path) + " (" + String(checkFile.size()) + " bytes)";
             log(successMsg.c_str());
             checkFile.close();
             return true;
         } else {
-            String emptyMsg = "Datei existiert, aber ist möglicherweise leer: " + String(path);
+            String emptyMsg = "File exists but might be empty: " + String(path);
             log(emptyMsg.c_str());
             if (checkFile) checkFile.close();
             return false;
         }
     } else {
-        String failMsg = "Datei konnte nicht gespeichert werden: " + String(path);
+        String failMsg = "File could not be saved: " + String(path);
         log(failMsg.c_str());
         return false;
     }

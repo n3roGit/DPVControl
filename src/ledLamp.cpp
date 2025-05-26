@@ -16,9 +16,9 @@
 */
 
 // LED PWM parameters
-const int LEDfrequency = 960;  // Initializing the integer variable 'LEDfrequency' as a constant at 4000 Hz. This sets the PWM signal frequency to 4000 Hz.
-const int LEDresolution = 8;   // Initializing the integer variable 'LEDresolution' as a constant with 8-bit resolution. This defines the PWM signal resolution as 8 bits.
-const int LEDchannel = 0;      // Initializing the integer variable 'LEDchannel' as a constant, set to 0 out of 16 possible channels. This designates the PWM channel as channel 0 out of a total of 16 channels.
+const int LEDfrequency = 960;  // PWM frequency for LED control (Hz)
+const int LEDresolution = 8;   // PWM resolution (8-bit = 0-255 values)
+const int LEDchannel = 0;      // PWM channel number (0-15 available)
 const int LAMP_OFF = 0;
 const int LAMP_MAX = 4;
 const int StandbyBlinkStart = 15 * 60/*s*/ * 1000 * 1000;         //in microseconds. 15 Minutes for blink start
@@ -63,9 +63,9 @@ BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, LAMP_BLINK
 
 void ledLampSetup(){
     // Initialize LED PWM
-  pinMode(PIN_LAMP, OUTPUT);                            //Setzt den GPIO-Pin 23 als Output (Ausgang)
-  ledcSetup(0, LEDfrequency, LEDresolution);            //Configure PWM channel 0 with frequency and resolution
-  ledcAttachPin(PIN_LAMP, 0);                           //Attach pin to PWM channel 0
+  pinMode(PIN_LAMP, OUTPUT);                            // Set GPIO pin as output for LED control
+  ledcSetup(0, LEDfrequency, LEDresolution);            // Configure PWM channel 0 with frequency and resolution
+  ledcAttachPin(PIN_LAMP, 0);                           // Attach pin to PWM channel 0
 }
 
 void ledLampLoop(){

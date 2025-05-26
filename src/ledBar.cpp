@@ -27,7 +27,7 @@ static int lastDisplayedBattery = -1;
 void ledBarSetup(){
   //Neopixel
   strip.begin();
-  strip.show();  // Alle LEDs ausschalten
+  strip.show();  // Turn off all LEDs
   setBarStandby();
 }
 
@@ -38,7 +38,7 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     return; // Unauthorized value, do nothing
   }
 
-  // Berechne den Startindex basierend auf stripNumber
+  // Calculate start index based on stripNumber
   int startIndex = (stripNumber == 1) ? 0 : LedBar_Num;
 
   // Calculate the end index based on stripNumber

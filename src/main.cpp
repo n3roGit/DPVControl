@@ -13,31 +13,32 @@
 #include "settings.h" // Include DPV settings system
 #include <LittleFS.h> // For settings storage
 
-int leakSensorState = 0;
+// Global variables
+int leakSensorState = 0;  // Current state of leak sensors
+int loopCount = 0;        // Counter for main loop iterations
+int NormalLogOutputIntervall = 1000*10;  // Normal logging interval (10 seconds)
 
+DHTesp dhtSensor;  // Temperature and humidity sensor
 
-int loopCount = 0;
-int NormalLogOutputIntervall = 1000*10;
-
-DHTesp dhtSensor;
-
-/*
-The Setup is chaotic. Needs a cleanup
-*/
+/**
+ * System initialization
+ * Sets up all hardware components and subsystems
+ */
 void setup() {
-  pinMode(PIN_LEFT_BUTTON, INPUT);
-  pinMode(PIN_RIGHT_BUTTON, INPUT);
-  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP);
-  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);
-  pinMode(PIN_LAMP, OUTPUT);
-  pinMode(PIN_BEEP, OUTPUT);
+  // Configure GPIO pins
+  pinMode(PIN_LEFT_BUTTON, INPUT);      // Left control button
+  pinMode(PIN_RIGHT_BUTTON, INPUT);     // Right control button
+  pinMode(PIN_LEAK_FRONT, INPUT_PULLUP); // Front leak sensor with pullup
+  pinMode(PIN_LEAK_BACK, INPUT_PULLUP);  // Back leak sensor with pullup
+  pinMode(PIN_LAMP, OUTPUT);            // Main LED lamp
+  pinMode(PIN_BEEP, OUTPUT);            // Buzzer/beeper
 
   // Initialize serial communication
   Serial.begin(115200);
 
   Serial.println("Booting started...!");
 
-
+  // Initialize button control system
   buttonSetup();
 
   // Setup DHT22 sensor with error handling
@@ -56,10 +57,11 @@ void setup() {
   }
   Serial.println("---");
 
-  motorSetup();
-  ledLampSetup();
-  ledBarSetup();
-  batterySetup();
+  // Initialize hardware subsystems
+  motorSetup();     // Motor control and VESC communication
+  ledLampSetup();   // Main LED lamp PWM control
+  ledBarSetup();    // LED status bar
+  batterySetup();   // Battery monitoring
   
   // Initialize LittleFS first for settings
   if (!LittleFS.begin(true)) {
@@ -85,26 +87,32 @@ void setup() {
   beep("1");
 }
 
+/**
+ * Main system loop
+ * Handles all real-time operations and system monitoring
+ */
 void loop() {
   long loopStart = millis();
   loopCount++;
 
-  buttonLoop();
-  motorLoop();
-  checkForLeak();
-  GetVESCValues();
-  logVehicleState();
-  FromTimeToTimeExecution();
-  beepLoop();
-  ledLampLoop();
-  datalogLoop();
+  // Core system operations
+  buttonLoop();           // Process button inputs and actions
+  motorLoop();           // Update motor control and speed
+  checkForLeak();        // Monitor leak sensors
+  GetVESCValues();       // Read motor controller data
+  logVehicleState();     // Log current system state
+  FromTimeToTimeExecution(); // Periodic maintenance tasks
+  beepLoop();            // Handle beeper sequences
+  ledLampLoop();         // Update LED lamp states
+  datalogLoop();         // Data logging operations
 
+  // Performance monitoring
   long loopEnd = millis();
   long diff = loopEnd-loopStart;
   if (diff > 30){
-    log("Loop took", diff, true);
+    log("Loop took", diff, true);  // Warn if loop takes too long
   }
   
-  delay(1);
+  delay(1);  // Small delay to prevent watchdog issues
 }
 
