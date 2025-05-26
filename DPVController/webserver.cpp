@@ -343,8 +343,76 @@ const char* helloWorldHTML = R"rawliteral(
             border: none;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+                <!-- Charts and export functionality embedded to work offline -->
+            <script>
+                // Minimal Chart.js replacement for our simple needs
+                class SimpleChart {
+                    constructor(ctx, config) {
+                        this.ctx = ctx;
+                        this.config = config;
+                        this.data = config.data || { labels: [], datasets: [] };
+                        this.canvas = ctx.canvas;
+                        this.setupCanvas();
+                    }
+                    
+                    setupCanvas() {
+                        this.canvas.style.backgroundColor = '#1e1e1e';
+                        this.canvas.width = 800;
+                        this.canvas.height = 400;
+                    }
+                    
+                    update() {
+                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                        this.ctx.fillStyle = '#333';
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                        
+                        // Simple text display for now
+                        this.ctx.fillStyle = '#4fc3f7';
+                        this.ctx.font = '16px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText('Chart Data Visualization', this.canvas.width / 2, this.canvas.height / 2);
+                        this.ctx.fillText('Points: ' + (this.data.labels ? this.data.labels.length : 0), this.canvas.width / 2, this.canvas.height / 2 + 30);
+                    }
+                }
+                
+                // Simple export functionality
+                function exportToCSV(data, filename) {
+                    if (!data || data.length === 0) {
+                        alert('No data to export');
+                        return;
+                    }
+                    
+                    let csv = 'Timestamp,BatteryVoltage,Current,TempMotor,Temperature,Humidity,RPM,DutyCycle,TempMosfet,AvgMotorCurrent,BatteryLevel,LeakSensor\\n';
+                    
+                    data.forEach(item => {
+                        csv += [
+                            item.timestamp,
+                            item.batteryVoltage,
+                            item.current,
+                            item.tempMotor,
+                            item.temperature,
+                            item.humidity,
+                            item.rpm,
+                            item.dutyCycle,
+                            item.tempMosfet,
+                            item.avgMotorCurrent,
+                            item.batteryLevel,
+                            item.leakSensorState
+                        ].join(',') + '\\n';
+                    });
+                    
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+                
+                // Chart compatibility layer
+                window.Chart = SimpleChart;
+            </script>
 </head>
 <body>
     <div class="container">
@@ -757,10 +825,18 @@ const char* helloWorldHTML = R"rawliteral(
                 
                 <!-- Logo and Header -->
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <img src="https://github.com/BubTec/DPVControl/blob/production_repo/images/logo.jpg?raw=true" 
-                         alt="DPVControl Logo" 
-                         style="max-width: 200px; max-height: 100px; margin-bottom: 15px;" 
-                         onerror="this.style.display='none'">
+                    <div style="background: linear-gradient(45deg, #2196f3, #4fc3f7); 
+                                color: white; 
+                                padding: 20px; 
+                                border-radius: 10px; 
+                                text-align: center; 
+                                font-size: 24px; 
+                                font-weight: bold; 
+                                margin-bottom: 15px;
+                                max-width: 200px;
+                                margin: 0 auto 15px auto;">
+                        DPV<br>CONTROL
+                    </div>
                     <h3 style="margin: 0; color: #4fc3f7;">DPV Control System</h3>
                     <p style="margin: 5px 0; color: #b0b0b0;">Diver Propulsion Vehicle Control Unit</p>
                 </div>

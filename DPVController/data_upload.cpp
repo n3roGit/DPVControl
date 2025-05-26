@@ -101,7 +101,38 @@ bool initializeFileSystem() {
             color: white;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+                <!-- Embedded chart functionality for offline use -->
+            <script>
+                // Simple chart placeholder for data upload page
+                class SimpleChart {
+                    constructor(ctx, config) {
+                        this.ctx = ctx;
+                        this.config = config;
+                        this.data = config.data || { labels: [], datasets: [] };
+                        this.canvas = ctx.canvas;
+                        this.setupCanvas();
+                    }
+                    
+                    setupCanvas() {
+                        this.canvas.style.backgroundColor = '#1e1e1e';
+                        this.canvas.width = 600;
+                        this.canvas.height = 300;
+                    }
+                    
+                    update() {
+                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                        this.ctx.fillStyle = '#333';
+                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                        
+                        this.ctx.fillStyle = '#4fc3f7';
+                        this.ctx.font = '14px Arial';
+                        this.ctx.textAlign = 'center';
+                        this.ctx.fillText('Data Upload Visualization', this.canvas.width / 2, this.canvas.height / 2);
+                    }
+                }
+                
+                window.Chart = SimpleChart;
+            </script>
 </head>
 <body>
     <div class="container">
