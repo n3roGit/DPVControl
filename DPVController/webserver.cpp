@@ -5,11 +5,17 @@
 #include "constants.h" // Für PIN-Definitionen
 #include "beep.h" // For beeper settings
 #include "settings.h" // For DPV settings system
+#include "motor.h" // For motor control functions
+#include "ledLamp.h" // For lamp control functions
+#include "ledBar.h" // For LED bar functions
 #include <LittleFS.h> // Add missing LittleFS include
 #include <ArduinoJson.h> // For JSON parsing
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
+extern int currentMotorStep; // From motor.cpp
+extern MotorState motorState; // From motor.cpp
+extern unsigned long lastActionTime; // From main.cpp
 
 // Task handle for the webserver task
 TaskHandle_t webserverTaskHandle = NULL;
@@ -2605,12 +2611,37 @@ void handleClient(WiFiClient client) {
             }
         }
         
-        // TODO: Implement actual motor control here
-        // This would integrate with your existing motor control functions
-        String controlMsg = "Motor control - Enabled: " + String(motorEnabled ? "true" : "false") + ", Speed: " + String(speed);
+        // Integrate with actual motor control functions
+        String controlMsg = "Remote motor control - Enabled: " + String(motorEnabled ? "true" : "false") + ", Speed: " + String(speed) + "%";
         log(controlMsg.c_str());
         
-        String response = "{\"success\":true,\"enabled\":" + String(motorEnabled ? "true" : "false") + ",\"speed\":" + String(speed) + "}";
+        if (motorEnabled && speed > 0) {
+            // Wake up motor if in standby
+            if (motorState == standby) {
+                wakeUp();
+            }
+            
+            // Convert speed percentage (0-100) to motor steps (1-10)
+            int targetStep = max(1, min(10, (speed * 10) / 100));
+            currentMotorStep = targetStep;
+            motorState = on;
+            
+            // Update LED bar to show new speed
+            setBarSpeed(currentMotorStep);
+            
+            String speedMsg = "Remote control set motor to step " + String(currentMotorStep) + " (speed " + String(speed) + "%)";
+            log(speedMsg.c_str());
+            
+        } else {
+            // Stop motor
+            motorState = off;
+            lastActionTime = micros(); // Prevent immediate standby
+            setBarSpeed(currentMotorStep); // Update display but keep step setting
+            
+            log("Remote control stopped motor");
+        }
+        
+        String response = "{\"success\":true,\"enabled\":" + String(motorEnabled ? "true" : "false") + ",\"speed\":" + String(speed) + ",\"motorStep\":" + String(currentMotorStep) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/lamp" && method == "POST") {
@@ -2651,12 +2682,25 @@ void handleClient(WiFiClient client) {
             }
         }
         
-        // TODO: Implement actual lamp control here
-        // This would integrate with your existing LED lamp functions
-        String controlMsg = "Lamp control - Level: " + String(level);
+        // Integrate with actual LED lamp functions
+        String controlMsg = "Remote lamp control - Level: " + String(level);
         log(controlMsg.c_str());
         
-        String response = "{\"success\":true,\"level\":" + String(level) + "}";
+        // Validate level range (0-4: LAMP_OFF to LAMP_MAX)
+        if (level >= 0 && level <= 4) {
+            LED_State = level;
+            setLEDState(LED_State);
+            setBarLED(LED_State);
+            
+            String levelMsg = "Remote control set lamp to level " + String(level);
+            log(levelMsg.c_str());
+        } else {
+            String errorMsg = "Invalid lamp level: " + String(level) + " (valid: 0-4)";
+            log(errorMsg.c_str());
+            level = LED_State; // Return current level if invalid
+        }
+        
+        String response = "{\"success\":true,\"level\":" + String(level) + ",\"actualLevel\":" + String(LED_State) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/version") {

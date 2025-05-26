@@ -28,8 +28,8 @@ struct LogdataRow {
   unsigned long totalUptime;
 };
 
-// Simple append-only logging system for trip data
-#define MAX_RECENT_POINTS 100     // RAM buffer for live display (5.6 KB)
+// Optimized logging system with longer sessions
+#define MAX_RECENT_POINTS 300     // RAM buffer for live display - 25 minutes @ 5s intervals
 // All data is immediately written to LittleFS for persistence
 
 extern LogdataRow recentData[MAX_RECENT_POINTS];        // RAM buffer for live display
@@ -41,8 +41,8 @@ extern int totalRecentPoints;
 extern unsigned long lastHourlySave;
 extern unsigned long lastHistoricalSave;
 
-// Total uptime tracking
-extern unsigned long totalUptimeSeconds;
+// Simple runtime tracking (like HeatControl)
+extern unsigned long bootTimeSeconds;
 extern bool isDataloggerRunning;
 
 // Funktionsdeklarationen
@@ -60,7 +60,8 @@ LogdataRow* getHourlyData(int count);
 LogdataRow* getHistoricalData(int count);
 int getTotalDataPoints(String timeRange = "recent");
 
-// Simple append-only logging functions
+// Optimized logging functions with multi-interval support
+LogdataRow createOptimizedDatapoint(unsigned long currentTime);
 void addToRecentData(LogdataRow datapoint);
 void appendToTripLog(LogdataRow datapoint);
 void initializeTripLog();

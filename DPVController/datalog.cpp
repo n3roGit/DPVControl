@@ -17,7 +17,12 @@
 
 const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,rpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,total_uptime";
 const String DATALOG_DIR = "/datalog";
-const unsigned long DATALOG_INTERVAL = 5000; // Wie oft ein Datenpunkt gespeichert wird (ms) - alle 5 Sekunden
+
+// Multi-interval logging for better storage efficiency
+const unsigned long DATALOG_INTERVAL_FAST = 5000;   // Fast sensors: 5s (RPM, current, voltage, temps)
+const unsigned long DATALOG_INTERVAL_SLOW = 30000;  // Slow sensors: 30s (battery level, environment)
+const unsigned long DATALOG_INTERVAL = DATALOG_INTERVAL_FAST; // Main interval
+
 const int MAX_LOG_FILES = 10; // Maximale Anzahl an Log-Dateien
 const double MAX_SPEED_RPM = 15800; // Maximum speed in rpm. Speed of 100%, kopiert aus motor.cpp
 
@@ -37,53 +42,62 @@ int totalRecentPoints = 0;
 // Trip log file handle
 File tripLogFile;
 
-// Persistence and compression tracking
-unsigned long lastHourlySave = 0;
-unsigned long lastHistoricalSave = 0;
-const unsigned long HOURLY_COMPRESSION_INTERVAL = 60000;    // Compress every minute
-const unsigned long HISTORICAL_COMPRESSION_INTERVAL = 300000; // Compress every 5 minutes
-const unsigned long PERSISTENCE_SAVE_INTERVAL = 300000;     // Save to SPIFFS every 5 minutes
+// Multi-interval logging tracking  
+unsigned long lastFastLog = 0;      // Last time fast sensors were logged
+unsigned long lastSlowLog = 0;      // Last time slow sensors were logged
+LogdataRow lastSlowData;             // Cache for slow-changing data
 
 bool isDataloggerRunning = false;
-unsigned long totalUptimeSeconds = 0;
-unsigned long lastUptimeSave = 0;
-const unsigned long UPTIME_SAVE_INTERVAL = 60000; // Save every minute
+
+unsigned long bootTimeSeconds = 0;  // Boot time when system started
+unsigned long lastSaveTime = 0;
+const unsigned long SAVE_INTERVAL = 30000; // Save every 30 seconds
 
 /**
- * Lädt die gespeicherte Total-Uptime aus SPIFFS
+ * Load total runtime from file 
  */
 void loadTotalUptime() {
-  if (LittleFS.exists("/total_uptime.txt")) {
-    File file = LittleFS.open("/total_uptime.txt", "r");
+  if (LittleFS.exists("/runtime.txt")) {
+    File file = LittleFS.open("/runtime.txt", "r");
     if (file) {
-      String uptimeStr = file.readString();
-      totalUptimeSeconds = uptimeStr.toInt();
+      String runtimeStr = file.readString();
+      runtimeStr.trim();
+      bootTimeSeconds = runtimeStr.toInt();
       file.close();
-      String loadMsg = "Total uptime geladen: " + String(totalUptimeSeconds) + " Sekunden";
+      String loadMsg = "Total runtime loaded: " + String(bootTimeSeconds) + " seconds";
       log(loadMsg.c_str());
+    } else {
+      log("Failed to open runtime file");
+      bootTimeSeconds = 0;
     }
   } else {
-    totalUptimeSeconds = 0;
-    log("Keine gespeicherte Total-Uptime gefunden, starte bei 0");
+    bootTimeSeconds = 0;
+    log("No runtime file found, starting at 0");
   }
 }
 
 /**
- * Speichert die aktuelle Total-Uptime in SPIFFS
+ * Save total runtime to file 
  */
 void saveTotalUptime() {
-  File file = LittleFS.open("/total_uptime.txt", "w");
+  unsigned long currentTotalRuntime = bootTimeSeconds + (millis() / 1000);
+  
+  File file = LittleFS.open("/runtime.txt", "w");
   if (file) {
-    file.println(totalUptimeSeconds);
+    file.println(currentTotalRuntime);
     file.close();
+    String saveMsg = "Total runtime saved: " + String(currentTotalRuntime) + " seconds";
+    log(saveMsg.c_str());
+  } else {
+    log("Failed to save runtime");
   }
 }
 
 /**
- * Gibt die Total-Uptime in Sekunden zurück
+ * Get total runtime in seconds (simple calculation)
  */
 unsigned long getTotalUptime() {
-  return totalUptimeSeconds + (millis() / 1000);
+  return bootTimeSeconds + (millis() / 1000);
 }
 
 /**
@@ -257,71 +271,62 @@ String getNewestLogFile() {
 }
 
 /**
- * Erstellt einen neuen Datenpunkt mit aktuellen Werten
+ * Create optimized datapoint with smart interval logging
  */
-LogdataRow createDatapoint() {
+LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   LogdataRow dp;
-  dp.timestamp = millis();
+  dp.timestamp = currentTime;
   
-  log("Creating datapoint - step 1: timestamp set");
+  // Always log fast-changing critical data (5s interval)
+  dp.batteryVoltage = getBatteryVoltage();
+  dp.totalUptime = getTotalUptime();
   
-  // Simplified data creation with step-by-step debugging
-  // Motortemperatur und MOSFET-Temperatur
   if (HAS_MOTOR) {
     dp.tempMotor = getVescUart().data.tempMotor;
     dp.tempMosfet = getVescUart().data.tempMosfet;
-  } else {
-    dp.tempMotor = 20.0 + (loopCount % 10);
-    dp.tempMosfet = 25.0 + (loopCount % 15);
-  }
-  log("Creating datapoint - step 2: motor temps set");
-  
-  // Batteriespannung
-  dp.batteryVoltage = getBatteryVoltage();
-  log("Creating datapoint - step 3: battery voltage set");
-  
-  // Weitere VESC-Daten
-  if (HAS_MOTOR) {
     dp.current = getVescUart().data.avgInputCurrent;
     dp.avgMotorCurrent = getVescUart().data.avgMotorCurrent;
     dp.rpm = getVescUart().data.rpm;
     dp.dutyCycle = getVescUart().data.dutyCycleNow;
   } else {
-    // Simulierte Werte, falls kein Motor verfügbar
-    dp.current = 5.0 + (loopCount % 20);
-    dp.avgMotorCurrent = 3.0 + (loopCount % 15);
-    dp.rpm = 1000 + (loopCount % 1000);
-    dp.dutyCycle = 25.0 + (loopCount % 50);
-  }
-  log("Creating datapoint - step 4: VESC data set");
-  
-  // Umgebungstemperatur und Luftfeuchtigkeit von DHT-Sensor
-  TempAndHumidity data = dhtSensor.getTempAndHumidity();
-  
-  // Handle NaN values from DHT sensor
-  if (isnan(data.temperature)) {
-    dp.temperature = 0.0; // Default fallback value
-  } else {
-    dp.temperature = data.temperature;
+    // Fallback values if no motor
+    dp.tempMotor = 25.0;
+    dp.tempMosfet = 30.0;
+    dp.current = 0.0;
+    dp.avgMotorCurrent = 0.0;
+    dp.rpm = 0.0;
+    dp.dutyCycle = 0.0;
   }
   
-  if (isnan(data.humidity)) {
-    dp.humidity = 0.0; // Default fallback value
-  } else {
-    dp.humidity = data.humidity;
+  // Check if we need to update slow-changing data (30s interval)
+  bool updateSlowData = (currentTime - lastSlowLog >= DATALOG_INTERVAL_SLOW);
+  
+  if (updateSlowData) {
+    // Update slow-changing environmental data
+    TempAndHumidity dhtData = dhtSensor.getTempAndHumidity();
+    lastSlowData.temperature = isnan(dhtData.temperature) ? 0.0 : dhtData.temperature;
+    lastSlowData.humidity = isnan(dhtData.humidity) ? 0.0 : dhtData.humidity;
+    lastSlowData.batteryLevel = batteryLevel;
+    lastSlowData.leakSensorState = leakSensorState;
+    lastSlowData.ledState = 0; // TODO: Get real LED state
+    lastSlowLog = currentTime;
   }
-  log("Creating datapoint - step 5: DHT data set");
   
-  // Battery Level, Leak Sensor, LED State, Total Uptime
-  dp.batteryLevel = batteryLevel;
-  dp.leakSensorState = leakSensorState;
-  dp.ledState = 0; // TODO: Get actual LED state from LED bar
-  dp.totalUptime = getTotalUptime();
+  // Use cached slow data for this datapoint
+  dp.temperature = lastSlowData.temperature;
+  dp.humidity = lastSlowData.humidity;
+  dp.batteryLevel = lastSlowData.batteryLevel;
+  dp.leakSensorState = lastSlowData.leakSensorState;
+  dp.ledState = lastSlowData.ledState;
   
-  log("Creating datapoint - step 6: additional data set");
-  
-  log("Datapoint creation completed successfully");
   return dp;
+}
+
+/**
+ * Legacy function for compatibility - now calls optimized version
+ */
+LogdataRow createDatapoint() {
+  return createOptimizedDatapoint(millis());
 }
 
 /**
@@ -428,11 +433,11 @@ void checkAndCleanupStorage() {
         int totalDatapoints = fileSize / sizeof(LogdataRow);
         tripFile.close();
         
-        if (totalDatapoints > 10000) { // Keep last 10000 datapoints (about 14 hours at 5s interval)
+        if (totalDatapoints > 50000) { // Keep last 50000 datapoints (about 3+ days at 5s interval)
           log("Trimming trip log to preserve storage space...");
           
-          // Read last 10000 datapoints in chunks to avoid memory issues
-          const int keepDatapoints = 8000; // Keep 8000 points for safety margin
+          // Read last datapoints in chunks to avoid memory issues
+          const int keepDatapoints = 40000; // Keep 40000 points for safety margin (~2.3 days)
           const int chunkSize = 1000; // Process in 1000-point chunks
           
           File writeFile = LittleFS.open("/trip_log_temp.bin", "w");
@@ -503,15 +508,15 @@ void checkAndCleanupStorage() {
  * Append datapoint directly to trip log file (bombproof persistence)
  */
 void appendToTripLog(LogdataRow datapoint) {
-  // Check storage space every 100 writes
+  // Check storage space every 1000 writes (more efficient)
   static int writeCounter = 0;
   writeCounter++;
-  if (writeCounter % 100 == 0) {
+  if (writeCounter % 1000 == 0) {
     checkAndCleanupStorage();
   }
   
-  // Log storage stats every 1000 writes (every ~83 minutes at 5s interval)
-  if (writeCounter % 1000 == 0) {
+  // Log storage stats every 5000 writes (every ~7 hours at 5s interval)
+  if (writeCounter % 5000 == 0) {
     logStorageStats();
   }
   
@@ -884,10 +889,6 @@ void dataloggerTask(void *pvParameters) {
   log("Entering main loop...");
   
   unsigned long lastDataLogTime = millis();
-  unsigned long lastPersistenceTime = millis();
-  unsigned long lastHourlySave = millis();
-  unsigned long lastHistoricalSave = millis();
-  unsigned long lastUptimeUpdate = millis();
   
   while (true) {
     unsigned long currentTime = millis();
@@ -900,70 +901,29 @@ void dataloggerTask(void *pvParameters) {
       lastDebugTime = currentTime;
     }
     
-    // Create new datapoint every 5 seconds
+    // Create new datapoint every 5 seconds with optimized multi-interval logging
     if (currentTime - lastDataLogTime >= DATALOG_INTERVAL) {
-      log("Creating new datapoint...");
-      
-      // Create datapoint with real sensor values
-      LogdataRow newData;
-      newData.timestamp = currentTime;
-      
-      // Real motor data from VESC
-      if (HAS_MOTOR) {
-        newData.tempMotor = getVescUart().data.tempMotor;
-        newData.tempMosfet = getVescUart().data.tempMosfet;
-        newData.current = getVescUart().data.avgInputCurrent;
-        newData.avgMotorCurrent = getVescUart().data.avgMotorCurrent;
-        newData.rpm = getVescUart().data.rpm;
-        newData.dutyCycle = getVescUart().data.dutyCycleNow;
-      } else {
-        // Fallback values if no motor
-        newData.tempMotor = 25.0;
-        newData.tempMosfet = 30.0;
-        newData.current = 1.0;
-        newData.avgMotorCurrent = 0.8;
-        newData.rpm = 0.0;
-        newData.dutyCycle = 0.0;
-      }
-      
-      // Real sensor values
-      newData.batteryVoltage = getBatteryVoltage();
-      
-      // DHT sensor data with fallback
-      TempAndHumidity dhtData = dhtSensor.getTempAndHumidity();
-      newData.temperature = isnan(dhtData.temperature) ? 0.0 : dhtData.temperature;
-      newData.humidity = isnan(dhtData.humidity) ? 0.0 : dhtData.humidity;
-      
-      // Real system status
-      newData.batteryLevel = batteryLevel;
-      newData.leakSensorState = leakSensorState;
-      newData.ledState = 0; // TODO: Get real LED state
-      newData.totalUptime = getTotalUptime();
+      // Create optimized datapoint with smart sensor intervals
+      LogdataRow newData = createOptimizedDatapoint(currentTime);
       
       // Add to buffer AND save to trip log
       addToRecentData(newData);
       
       lastDataLogTime = currentTime;
       
-      String newPointMsg = "New datapoint added - Index: " + String(recentIndex) + ", Total: " + String(totalRecentPoints);
-      log(newPointMsg.c_str());
-      
-              // Simple milestone logging (no saving needed - data is already persistent)
-      if (totalRecentPoints % 100 == 0) {
-        String milestoneMsg = "Milestone reached: " + String(totalRecentPoints) + " datapoints (auto-saved to trip log)";
-        log(milestoneMsg.c_str());
+      // Log occasionally to show activity (every 10th datapoint = ~50s)
+      static int logCounter = 0;
+      logCounter++;
+      if (logCounter % 10 == 0) {
+        String newPointMsg = "Datapoint #" + String(logCounter) + " - Runtime: " + String(getTotalUptime()/60) + " min, " + String(totalRecentPoints) + " in buffer";
+        log(newPointMsg.c_str());
       }
     }
     
-    // Update and save total uptime every 30 seconds
-    if (currentTime - lastUptimeUpdate >= 30000) {
-      // Update totalUptimeSeconds with actual running time
-      totalUptimeSeconds += (currentTime - lastUptimeUpdate) / 1000;
+    // Save total runtime every 30 seconds (simple approach)
+    if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
       saveTotalUptime();
-      lastUptimeUpdate = currentTime;
-      
-      String uptimeMsg = "Total uptime updated and saved: " + String(totalUptimeSeconds) + "s";
-      log(uptimeMsg.c_str());
+      lastSaveTime = currentTime;
     }
     
     // Keep task alive
