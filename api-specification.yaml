@@ -33,6 +33,8 @@ tags:
     description: Sensor data and logging
   - name: Settings
     description: Device configuration
+  - name: Control
+    description: Motor and lamp control
   - name: Trip Log
     description: Historical trip data
 
@@ -215,6 +217,214 @@ paths:
                     properties:
                       enabled:
                         type: boolean
+
+  /api/sessions:
+    get:
+      tags:
+        - Data
+      summary: List all available sessions
+      description: |
+        Retrieve a list of all recorded session files with metadata.
+        Sessions are sorted with newest first and grouped by session number.
+      responses:
+        '200':
+          description: Array of available sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SessionInfo'
+              example:
+                - filename: "session_0003.bin"
+                  displayName: "Session 0003 (Current)"
+                  sessionNumber: "0003"
+                  splitInfo: ""
+                  isCurrent: true
+                - filename: "session_0002-02.bin"
+                  displayName: "Session 0002 (Part 02)"
+                  sessionNumber: "0002"
+                  splitInfo: "02"
+                  isCurrent: false
+
+  /api/session-data:
+    get:
+      tags:
+        - Data
+      summary: Get data from specific session
+      description: |
+        Retrieve sensor data from a specific session file.
+        Limited to 500 data points to prevent memory issues.
+      parameters:
+        - name: session
+          in: query
+          description: Session filename to retrieve data from
+          required: true
+          schema:
+            type: string
+          example: "session_0003.bin"
+      responses:
+        '200':
+          description: Array of sensor data points from the session
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataPoint'
+        '400':
+          description: Missing session parameter
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Missing session parameter"
+
+  /api/motor:
+    post:
+      tags:
+        - Control
+      summary: Control motor operation
+      description: |
+        Send motor control commands including speed adjustments and emergency stop.
+        Commands are processed immediately and affect the motor state.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [speed_up, speed_down, stop, emergency_stop]
+                  description: Motor control action to perform
+                speed:
+                  type: integer
+                  minimum: 0
+                  maximum: 20
+                  description: Target speed step (0-20, optional for direct speed setting)
+              required:
+                - action
+              example:
+                action: "speed_up"
+      responses:
+        '200':
+          description: Motor control result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      currentSpeed:
+                        type: integer
+                        description: Current motor speed step
+                      motorState:
+                        type: string
+                        description: Current motor state
+              example:
+                success: true
+                currentSpeed: 3
+                motorState: "running"
+
+  /api/lamp:
+    post:
+      tags:
+        - Control
+      summary: Control front lamp
+      description: |
+        Adjust the brightness level of the front LED lamp.
+        Level 0 turns the lamp off, higher levels increase brightness.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                level:
+                  type: integer
+                  minimum: 0
+                  maximum: 10
+                  description: Lamp brightness level (0 = off, 1-10 = brightness levels)
+              required:
+                - level
+              example:
+                level: 5
+      responses:
+        '200':
+          description: Lamp control result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      level:
+                        type: integer
+                        description: Current lamp level
+              example:
+                success: true
+                level: 5
+
+  /api/version:
+    get:
+      tags:
+        - Status
+      summary: Get firmware version
+      description: |
+        Retrieve the current firmware version information.
+        Version is read from version.txt file or defaults to 2.0.0.
+      responses:
+        '200':
+          description: Current firmware version
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: Firmware version string
+                required:
+                  - version
+              example:
+                version: "2.0.0"
+
+  /api/delete-all-sessions:
+    post:
+      tags:
+        - Data
+      summary: Delete all session files
+      description: |
+        Delete all recorded session files from the device storage.
+        This operation cannot be undone. Use with caution.
+      responses:
+        '200':
+          description: Deletion operation result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      deleted:
+                        type: integer
+                        description: Number of files successfully deleted
+                      message:
+                        type: string
+                        description: Detailed result message
+                      error:
+                        type: string
+                        description: Error message if operation failed
+              example:
+                success: true
+                deleted: 5
+                message: "Successfully deleted 5 session files"
 
 components:
   schemas:
@@ -487,6 +697,36 @@ components:
           minimum: 1
           maximum: 60
           example: 10
+
+    SessionInfo:
+      type: object
+      properties:
+        filename:
+          type: string
+          description: Original session filename
+          example: "session_0003.bin"
+        displayName:
+          type: string
+          description: Human-readable session name
+          example: "Session 0003 (Current)"
+        sessionNumber:
+          type: string
+          description: Session number extracted from filename
+          example: "0003"
+        splitInfo:
+          type: string
+          description: Split part information for multi-part sessions
+          example: "02"
+        isCurrent:
+          type: boolean
+          description: Whether this is the currently active session
+          example: true
+      required:
+        - filename
+        - displayName
+        - sessionNumber
+        - splitInfo
+        - isCurrent
 
     ApiResponse:
       type: object
