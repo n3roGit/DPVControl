@@ -497,6 +497,21 @@ bool initializeFileSystem() {
         log("index.html bereits vorhanden, überspringe");
     }
     
+    // Store version.txt in LittleFS if it doesn't exist
+    if (!LittleFS.exists("/version.txt")) {
+        log("Creating version.txt file...");
+        
+        const char* versionContent = "2.0.0";
+        
+        if (!storeFile("/version.txt", versionContent)) {
+            log("Failed to store version.txt, but continuing anyway");
+        } else {
+            log("version.txt stored successfully");
+        }
+    } else {
+        log("version.txt already exists, skipping");
+    }
+    
     return true;
 }
 

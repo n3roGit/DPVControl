@@ -199,6 +199,7 @@ const char* helloWorldHTML = R"rawliteral(
                 <button class="nav-tab" onclick="showTab('charts')">Charts</button>
                 <button class="nav-tab" onclick="showTab('remote')">Remote Control</button>
                 <button class="nav-tab" onclick="showTab('settings')">Settings</button>
+                <button class="nav-tab" onclick="showTab('info')">Info</button>
             </div>
         </div>
         
@@ -610,6 +611,221 @@ const char* helloWorldHTML = R"rawliteral(
                 </form>
                 
                 <div id="settingsStatus" style="margin-top: 20px; text-align: center; color: #2c3e50;"></div>
+            </div>
+        </div>
+        
+        <div id="info-tab" class="tab-content">
+            <div class="section">
+                <h2>DPVControl Information</h2>
+                
+                <!-- Logo and Header -->
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <img src="https://github.com/BubTec/DPVControl/blob/production_repo/images/logo.jpg?raw=true" 
+                         alt="DPVControl Logo" 
+                         style="max-width: 200px; max-height: 100px; margin-bottom: 15px;" 
+                         onerror="this.style.display='none'">
+                    <h3 style="margin: 0; color: #4fc3f7;">DPV Control System</h3>
+                    <p style="margin: 5px 0; color: #b0b0b0;">Diver Propulsion Vehicle Control Unit</p>
+                </div>
+                
+                <!-- Version Information -->
+                <div class="settings-group">
+                    <h3>System Information</h3>
+                    <table class="settings-table">
+                        <tr>
+                            <td>Current Version:</td>
+                            <td id="currentVersion" style="color: #4fc3f7; font-weight: bold;">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td>System Uptime:</td>
+                            <td id="systemUptime" style="color: #4fc3f7;">Loading...</td>
+                        </tr>
+                        <tr>
+                            <td>Total Runtime:</td>
+                            <td id="totalRuntime" style="color: #4fc3f7;">Loading...</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <!-- Button Control Guide -->
+                <div class="settings-group">
+                    <h3>Button Control Guide</h3>
+                    <p style="color: #b0b0b0; margin-bottom: 15px;">Control your DPV using the left and right buttons with these commands:</p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; background-color: #3a3a3a;">
+                        <thead>
+                            <tr style="background-color: #2196f3; color: white;">
+                                <th style="border: 1px solid #505050; padding: 10px; text-align: center;">Left Button</th>
+                                <th style="border: 1px solid #505050; padding: 10px; text-align: center;">Right Button</th>
+                                <th style="border: 1px solid #505050; padding: 10px; text-align: center;">Function</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Motor Control -->
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;"><strong>Hold</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;"><strong>Hold</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;"><strong>Turn motor ON</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;"><strong>Hold</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Turn motor ON</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;"><strong>Hold</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Turn motor ON</td>
+                            </tr>
+                            
+                            <!-- Cruise Control -->
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">1 Click</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">1 Click</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;"><strong>Cruise Control</strong> (within 150ms)</td>
+                            </tr>
+                            
+                            <!-- Speed Control -->
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">2 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Speed Down</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">2 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Speed Up</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">2 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">2 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Wake up from Standby</td>
+                            </tr>
+                            
+                            <!-- Turbo Mode -->
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;"><strong>2 Clicks + Hold</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;"><strong>2 Clicks + Hold</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;"><strong>Turbo Mode</strong> (Maximum Power)</td>
+                            </tr>
+                            
+                            <!-- Lighting -->
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">3 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Short Light Flash</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">3 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Toggle Light Level (0→1→2→3→4→0)</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">3 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">3 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #ff9800;">PowerBank ON/OFF (Not implemented)</td>
+                            </tr>
+                            
+                            <!-- Battery Information -->
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">4 Clicks</td>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">-</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Battery Level Beep Output</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Beep Codes -->
+                <div class="settings-group">
+                    <h3>Beep Codes Reference</h3>
+                    <p style="color: #b0b0b0; margin-bottom: 15px;">Understanding system status through audio signals:</p>
+                    <p style="color: #b0b0b0; font-size: 14px; margin-bottom: 15px;">
+                        <strong>Legend:</strong> 1 = short beep, 2 = long beep
+                    </p>
+                    
+                    <table style="width: 100%; border-collapse: collapse; background-color: #3a3a3a;">
+                        <thead>
+                            <tr style="background-color: #2196f3; color: white;">
+                                <th style="border: 1px solid #505050; padding: 10px; text-align: center;">Beep Pattern</th>
+                                <th style="border: 1px solid #505050; padding: 10px; text-align: center;">Meaning</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;"><strong>12121212</strong></td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #f44336;"><strong>⚠️ LEAK WARNING</strong></td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">1</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Still in standby / Boot confirmation</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">11</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Going to standby / Wake up from standby</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">111</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #ff9800;">No speed up (overloaded)</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">111222111</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #f44336;">SOS Signal (Long standby)</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">2</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #f44336;">10% battery remaining</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">22</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #ff9800;">20% battery remaining</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center;">222</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #ff9800;">30% battery remaining</td>
+                            </tr>
+                            <tr>
+                                <td style="border: 1px solid #505050; padding: 8px; text-align: center; background-color: #4a4a4a;">n×2</td>
+                                <td style="border: 1px solid #505050; padding: 8px; color: #4fc3f7;">Battery level in 10% steps (4 clicks command)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Project Links -->
+                <div class="settings-group">
+                    <h3>Project Information</h3>
+                    <table class="settings-table">
+                        <tr>
+                            <td>GitHub Repository:</td>
+                            <td>
+                                <a href="https://github.com/BubTec/DPVControl" 
+                                   target="_blank" 
+                                   style="color: #4fc3f7; text-decoration: none;">
+                                    https://github.com/BubTec/DPVControl
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Project Blog:</td>
+                            <td>
+                                <a href="https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/" 
+                                   target="_blank" 
+                                   style="color: #4fc3f7; text-decoration: none;">
+                                    BubTec DPV Blog Post
+                                </a>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Hardware Platform:</td>
+                            <td style="color: #4fc3f7;">ESP32 with VESC Motor Controller</td>
+                        </tr>
+                        <tr>
+                            <td>Project Type:</td>
+                            <td style="color: #4fc3f7;">Open Source DIY Diver Propulsion Vehicle</td>
+                        </tr>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -1033,6 +1249,35 @@ const char* helloWorldHTML = R"rawliteral(
             
             // Load chart data separately
             loadChartData();
+            
+            // Load version info separately
+            loadVersionInfo();
+        }
+        
+        // Load version information
+        function loadVersionInfo() {
+            fetch('/api/version')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('currentVersion').textContent = data.version;
+                })
+                .catch(error => {
+                    console.error('Error fetching version:', error);
+                    document.getElementById('currentVersion').textContent = 'Unknown';
+                });
+            
+            // Update system uptime and total runtime from status data
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('systemUptime').textContent = formatTime(data.uptime);
+                    document.getElementById('totalRuntime').textContent = formatTime(data.totalUptime * 1000);
+                })
+                .catch(error => {
+                    console.error('Error fetching uptime:', error);
+                    document.getElementById('systemUptime').textContent = 'Unknown';
+                    document.getElementById('totalRuntime').textContent = 'Unknown';
+                });
         }
         
         // Load chart data based on current settings
@@ -2413,6 +2658,25 @@ void handleClient(WiFiClient client) {
         
         String response = "{\"success\":true,\"level\":" + String(level) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+    } else if (path == "/api/version") {
+        // API endpoint for version information
+        log("API /api/version called");
+        
+        String version = "2.0.0"; // Default version
+        
+        // Try to read version from file
+        if (LittleFS.exists("/version.txt")) {
+            File versionFile = LittleFS.open("/version.txt", "r");
+            if (versionFile) {
+                version = versionFile.readString();
+                version.trim(); // Remove whitespace
+                versionFile.close();
+            }
+        }
+        
+        String jsonVersion = "{\"version\":\"" + version + "\"}";
+        sendHttpResponse(client, 200, "application/json", jsonVersion.c_str());
         
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings (legacy compatibility)
