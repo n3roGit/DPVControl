@@ -58,7 +58,7 @@ void initializeDefaultSettings() {
     defaultSettings.standbyBlinkDurationSeconds = 10;
 
     // Debug logging setting
-    defaultSettings.debugLoggingEnabled = false;
+    defaultSettings.debugLoggingEnabled = true;
 }
 
 /**
@@ -178,6 +178,7 @@ void loadSettings() {
     strncpy(currentSettings.wifiPassword, doc["wifiPassword"] | defaultSettings.wifiPassword, sizeof(currentSettings.wifiPassword));
     
     currentSettings.beeperEnabled = doc["beeperEnabled"] | defaultSettings.beeperEnabled;
+    currentSettings.debugLoggingEnabled = doc["debugLoggingEnabled"] | defaultSettings.debugLoggingEnabled;
     
     currentSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"] | defaultSettings.standbyBlinkStartMinutes;
     currentSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"] | defaultSettings.standbyBlinkDurationSeconds;
@@ -232,6 +233,7 @@ void saveSettings() {
     doc["wifiPassword"] = currentSettings.wifiPassword;
     
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
+    doc["debugLoggingEnabled"] = currentSettings.debugLoggingEnabled;
     
     doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
     doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
