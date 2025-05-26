@@ -1568,45 +1568,89 @@ const char* helloWorldHTML = R"rawliteral(
                 .then(response => response.json())
                 .then(data => {
                     // Motor and speed settings
-                    document.getElementById('speedSteps').value = data.speedSteps;
-                    document.getElementById('standbyDelaySeconds').value = data.standbyDelaySeconds;
-                    document.getElementById('batteryPowerMax').value = data.batteryPowerMax;
-                    document.getElementById('minSpeedPercent').value = parseFloat(data.minSpeedPercent).toFixed(2);
-                    document.getElementById('maxSpeedRpm').value = data.maxSpeedRpm;
-                    document.getElementById('speedUpTimeMs').value = data.speedUpTimeMs;
-                    document.getElementById('speedDownTimeMs').value = data.speedDownTimeMs;
-                    document.getElementById('maxTimeOverloadedMs').value = data.maxTimeOverloadedMs;
+                    const speedStepsEl = document.getElementById('speedSteps');
+                    if (speedStepsEl) speedStepsEl.value = data.speedSteps || 10;
+                    
+                    const standbyDelayEl = document.getElementById('standbyDelaySeconds');
+                    if (standbyDelayEl) standbyDelayEl.value = data.standbyDelaySeconds || 300;
+                    
+                    const batteryPowerMaxEl = document.getElementById('batteryPowerMax');
+                    if (batteryPowerMaxEl) batteryPowerMaxEl.value = data.batteryPowerMax || 1000;
+                    
+                    const minSpeedPercentEl = document.getElementById('minSpeedPercent');
+                    if (minSpeedPercentEl) minSpeedPercentEl.value = parseFloat(data.minSpeedPercent || 0.1).toFixed(2);
+                    
+                    const maxSpeedRpmEl = document.getElementById('maxSpeedRpm');
+                    if (maxSpeedRpmEl) maxSpeedRpmEl.value = data.maxSpeedRpm || 3000;
+                    
+                    const speedUpTimeEl = document.getElementById('speedUpTimeMs');
+                    if (speedUpTimeEl) speedUpTimeEl.value = data.speedUpTimeMs || 1000;
+                    
+                    const speedDownTimeEl = document.getElementById('speedDownTimeMs');
+                    if (speedDownTimeEl) speedDownTimeEl.value = data.speedDownTimeMs || 1000;
+                    
+                    const maxTimeOverloadedEl = document.getElementById('maxTimeOverloadedMs');
+                    if (maxTimeOverloadedEl) maxTimeOverloadedEl.value = data.maxTimeOverloadedMs || 5000;
                     
                     // Jam detection
-                    document.getElementById('jamMin').value = parseFloat(data.jamMin).toFixed(2);
-                    document.getElementById('jamDetectionThreshold').value = parseFloat(data.jamDetectionThreshold).toFixed(2);
+                    const jamMinEl = document.getElementById('jamMin');
+                    if (jamMinEl) jamMinEl.value = parseFloat(data.jamMin || 0.5).toFixed(2);
+                    
+                    const jamDetectionEl = document.getElementById('jamDetectionThreshold');
+                    if (jamDetectionEl) jamDetectionEl.value = parseFloat(data.jamDetectionThreshold || 2.0).toFixed(2);
                     
                     // Battery
-                    document.getElementById('cellsInSeries').value = data.cellsInSeries;
+                    const cellsInSeriesEl = document.getElementById('cellsInSeries');
+                    if (cellsInSeriesEl) cellsInSeriesEl.value = data.cellsInSeries || 6;
                     
                     // LED Bar
-                    document.getElementById('ledBarNum').value = data.ledBarNum;
-                    document.getElementById('ledBarBrightness').value = data.ledBarBrightness;
-                    document.getElementById('ledBarBrightnessSecond').value = data.ledBarBrightnessSecond;
-                    document.getElementById('ledFrequency').value = data.ledFrequency;
+                    const ledBarNumEl = document.getElementById('ledBarNum');
+                    if (ledBarNumEl) ledBarNumEl.value = data.ledBarNum || 10;
+                    
+                    const ledBarBrightnessEl = document.getElementById('ledBarBrightness');
+                    if (ledBarBrightnessEl) ledBarBrightnessEl.value = data.ledBarBrightness || 50;
+                    
+                    const ledBarBrightnessSecondEl = document.getElementById('ledBarBrightnessSecond');
+                    if (ledBarBrightnessSecondEl) ledBarBrightnessSecondEl.value = data.ledBarBrightnessSecond || 25;
+                    
+                    const ledFrequencyEl = document.getElementById('ledFrequency');
+                    if (ledFrequencyEl) ledFrequencyEl.value = data.ledFrequency || 800;
                     
                     // Lamp settings
-                    document.getElementById('lampMaxLevels').value = data.lampMaxLevels;
-                    updateLampBrightnessInputs();
-                    for (let i = 0; i < data.lampMaxLevels; i++) {
-                        document.getElementById('lampBrightness' + i).value = data.lampBrightness[i];
+                    const lampMaxLevelsEl = document.getElementById('lampMaxLevels');
+                    if (lampMaxLevelsEl) {
+                        lampMaxLevelsEl.value = data.lampMaxLevels || 5;
+                        updateLampBrightnessInputs();
+                        for (let i = 0; i < (data.lampMaxLevels || 5); i++) {
+                            const lampBrightnessEl = document.getElementById('lampBrightness' + i);
+                            if (lampBrightnessEl && data.lampBrightness && data.lampBrightness[i] !== undefined) {
+                                lampBrightnessEl.value = data.lampBrightness[i];
+                            }
+                        }
                     }
                     
                     // WiFi
-                    document.getElementById('wifiSSID').value = data.wifiSSID;
-                    document.getElementById('wifiPassword').value = data.wifiPassword;
+                    const wifiSSIDEl = document.getElementById('wifiSSID');
+                    if (wifiSSIDEl) wifiSSIDEl.value = data.wifiSSID || '';
+                    
+                    const wifiPasswordEl = document.getElementById('wifiPassword');
+                    if (wifiPasswordEl) wifiPasswordEl.value = data.wifiPassword || '';
                     
                     // System
-                    document.getElementById('beeperEnabled').checked = data.beeperEnabled;
-                    document.getElementById('standbyBlinkStartMinutes').value = data.standbyBlinkStartMinutes;
-                    document.getElementById('standbyBlinkDurationSeconds').value = data.standbyBlinkDurationSeconds;
+                    const beeperEnabledEl = document.getElementById('beeperEnabled');
+                    if (beeperEnabledEl) beeperEnabledEl.checked = data.beeperEnabled || false;
                     
-                    document.getElementById('settingsStatus').textContent = 'Settings loaded successfully';
+                    const debugLoggingEnabledEl = document.getElementById('debugLoggingEnabled');
+                    if (debugLoggingEnabledEl) debugLoggingEnabledEl.checked = data.debugLoggingEnabled || false;
+                    
+                    const standbyBlinkStartEl = document.getElementById('standbyBlinkStartMinutes');
+                    if (standbyBlinkStartEl) standbyBlinkStartEl.value = data.standbyBlinkStartMinutes || 5;
+                    
+                    const standbyBlinkDurationEl = document.getElementById('standbyBlinkDurationSeconds');
+                    if (standbyBlinkDurationEl) standbyBlinkDurationEl.value = data.standbyBlinkDurationSeconds || 10;
+                    
+                    const settingsStatusEl = document.getElementById('settingsStatus');
+                    if (settingsStatusEl) settingsStatusEl.textContent = 'Settings loaded successfully';
                 })
                 .catch(error => {
                     console.error('Error loading settings:', error);
@@ -1616,43 +1660,69 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Save DPV settings to API
         function saveDPVSettings() {
-            document.getElementById('settingsStatus').textContent = 'Saving settings...';
+            const settingsStatusEl = document.getElementById('settingsStatus');
+            if (settingsStatusEl) settingsStatusEl.textContent = 'Saving settings...';
             
-            // Collect lamp brightness values
-            const maxLevels = parseInt(document.getElementById('lampMaxLevels').value);
+            // Collect lamp brightness values with null checks
+            const lampMaxLevelsEl = document.getElementById('lampMaxLevels');
+            const maxLevels = lampMaxLevelsEl ? parseInt(lampMaxLevelsEl.value) || 5 : 5;
             const lampBrightness = [];
             for (let i = 0; i < 10; i++) {
                 if (i < maxLevels) {
-                    lampBrightness[i] = parseInt(document.getElementById('lampBrightness' + i).value) || 0;
+                    const lampBrightnessEl = document.getElementById('lampBrightness' + i);
+                    lampBrightness[i] = lampBrightnessEl ? parseInt(lampBrightnessEl.value) || 0 : 0;
                 } else {
                     lampBrightness[i] = 0;
                 }
             }
             
+            // Collect all settings with null checks and fallback values
+            const speedStepsEl = document.getElementById('speedSteps');
+            const standbyDelayEl = document.getElementById('standbyDelaySeconds');
+            const batteryPowerMaxEl = document.getElementById('batteryPowerMax');
+            const minSpeedPercentEl = document.getElementById('minSpeedPercent');
+            const maxSpeedRpmEl = document.getElementById('maxSpeedRpm');
+            const speedUpTimeEl = document.getElementById('speedUpTimeMs');
+            const speedDownTimeEl = document.getElementById('speedDownTimeMs');
+            const maxTimeOverloadedEl = document.getElementById('maxTimeOverloadedMs');
+            const jamMinEl = document.getElementById('jamMin');
+            const jamDetectionEl = document.getElementById('jamDetectionThreshold');
+            const cellsInSeriesEl = document.getElementById('cellsInSeries');
+            const ledBarNumEl = document.getElementById('ledBarNum');
+            const ledBarBrightnessEl = document.getElementById('ledBarBrightness');
+            const ledBarBrightnessSecondEl = document.getElementById('ledBarBrightnessSecond');
+            const ledFrequencyEl = document.getElementById('ledFrequency');
+            const wifiSSIDEl = document.getElementById('wifiSSID');
+            const wifiPasswordEl = document.getElementById('wifiPassword');
+            const beeperEnabledEl = document.getElementById('beeperEnabled');
+            const debugLoggingEnabledEl = document.getElementById('debugLoggingEnabled');
+            const standbyBlinkStartEl = document.getElementById('standbyBlinkStartMinutes');
+            const standbyBlinkDurationEl = document.getElementById('standbyBlinkDurationSeconds');
+            
             const settingsData = {
-                speedSteps: parseInt(document.getElementById('speedSteps').value),
-                standbyDelaySeconds: parseInt(document.getElementById('standbyDelaySeconds').value),
-                batteryPowerMax: parseInt(document.getElementById('batteryPowerMax').value),
-                minSpeedPercent: parseFloat(document.getElementById('minSpeedPercent').value),
-                maxSpeedRpm: parseFloat(document.getElementById('maxSpeedRpm').value),
-                speedUpTimeMs: parseInt(document.getElementById('speedUpTimeMs').value),
-                speedDownTimeMs: parseInt(document.getElementById('speedDownTimeMs').value),
-                maxTimeOverloadedMs: parseInt(document.getElementById('maxTimeOverloadedMs').value),
-                jamMin: parseFloat(document.getElementById('jamMin').value),
-                jamDetectionThreshold: parseFloat(document.getElementById('jamDetectionThreshold').value),
-                cellsInSeries: parseInt(document.getElementById('cellsInSeries').value),
-                ledBarNum: parseInt(document.getElementById('ledBarNum').value),
-                ledBarBrightness: parseInt(document.getElementById('ledBarBrightness').value),
-                ledBarBrightnessSecond: parseInt(document.getElementById('ledBarBrightnessSecond').value),
-                ledFrequency: parseInt(document.getElementById('ledFrequency').value),
+                speedSteps: speedStepsEl ? parseInt(speedStepsEl.value) || 10 : 10,
+                standbyDelaySeconds: standbyDelayEl ? parseInt(standbyDelayEl.value) || 300 : 300,
+                batteryPowerMax: batteryPowerMaxEl ? parseInt(batteryPowerMaxEl.value) || 1000 : 1000,
+                minSpeedPercent: minSpeedPercentEl ? parseFloat(minSpeedPercentEl.value) || 0.1 : 0.1,
+                maxSpeedRpm: maxSpeedRpmEl ? parseFloat(maxSpeedRpmEl.value) || 3000 : 3000,
+                speedUpTimeMs: speedUpTimeEl ? parseInt(speedUpTimeEl.value) || 1000 : 1000,
+                speedDownTimeMs: speedDownTimeEl ? parseInt(speedDownTimeEl.value) || 1000 : 1000,
+                maxTimeOverloadedMs: maxTimeOverloadedEl ? parseInt(maxTimeOverloadedEl.value) || 5000 : 5000,
+                jamMin: jamMinEl ? parseFloat(jamMinEl.value) || 0.5 : 0.5,
+                jamDetectionThreshold: jamDetectionEl ? parseFloat(jamDetectionEl.value) || 2.0 : 2.0,
+                cellsInSeries: cellsInSeriesEl ? parseInt(cellsInSeriesEl.value) || 6 : 6,
+                ledBarNum: ledBarNumEl ? parseInt(ledBarNumEl.value) || 10 : 10,
+                ledBarBrightness: ledBarBrightnessEl ? parseInt(ledBarBrightnessEl.value) || 50 : 50,
+                ledBarBrightnessSecond: ledBarBrightnessSecondEl ? parseInt(ledBarBrightnessSecondEl.value) || 25 : 25,
+                ledFrequency: ledFrequencyEl ? parseInt(ledFrequencyEl.value) || 800 : 800,
                 lampMaxLevels: maxLevels,
                 lampBrightness: lampBrightness,
-                wifiSSID: document.getElementById('wifiSSID').value,
-                wifiPassword: document.getElementById('wifiPassword').value,
-                beeperEnabled: document.getElementById('beeperEnabled').checked,
-                debugLoggingEnabled: document.getElementById('debugLoggingEnabled').checked,
-                standbyBlinkStartMinutes: parseInt(document.getElementById('standbyBlinkStartMinutes').value),
-                standbyBlinkDurationSeconds: parseInt(document.getElementById('standbyBlinkDurationSeconds').value)
+                wifiSSID: wifiSSIDEl ? wifiSSIDEl.value || '' : '',
+                wifiPassword: wifiPasswordEl ? wifiPasswordEl.value || '' : '',
+                beeperEnabled: beeperEnabledEl ? beeperEnabledEl.checked : false,
+                debugLoggingEnabled: debugLoggingEnabledEl ? debugLoggingEnabledEl.checked : false,
+                standbyBlinkStartMinutes: standbyBlinkStartEl ? parseInt(standbyBlinkStartEl.value) || 5 : 5,
+                standbyBlinkDurationSeconds: standbyBlinkDurationEl ? parseInt(standbyBlinkDurationEl.value) || 10 : 10
             };
             
             fetch('/api/settings', {
@@ -1664,38 +1734,51 @@ const char* helloWorldHTML = R"rawliteral(
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
-                    document.getElementById('settingsStatus').textContent = 'Settings saved successfully!';
-                } else {
-                    document.getElementById('settingsStatus').textContent = 'Error saving settings!';
+                const settingsStatusEl = document.getElementById('settingsStatus');
+                if (settingsStatusEl) {
+                    if (data.success) {
+                        settingsStatusEl.textContent = 'Settings saved successfully!';
+                    } else {
+                        settingsStatusEl.textContent = 'Error saving settings!';
+                    }
                 }
             })
             .catch(error => {
                 console.error('Error saving settings:', error);
-                document.getElementById('settingsStatus').textContent = 'Error saving settings!';
+                const settingsStatusEl = document.getElementById('settingsStatus');
+                if (settingsStatusEl) {
+                    settingsStatusEl.textContent = 'Error saving settings!';
+                }
             });
         }
         
         // Restore default settings
         function restoreDefaultSettings() {
             if (confirm('Are you sure you want to restore default settings? This will overwrite all current settings.')) {
-                document.getElementById('settingsStatus').textContent = 'Restoring defaults...';
+                const settingsStatusEl = document.getElementById('settingsStatus');
+                if (settingsStatusEl) settingsStatusEl.textContent = 'Restoring defaults...';
                 
                 fetch('/api/settings/restore', {
                     method: 'POST'
                 })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
-                        document.getElementById('settingsStatus').textContent = 'Default settings restored!';
-                        loadDPVSettings(); // Reload settings from server
-                    } else {
-                        document.getElementById('settingsStatus').textContent = 'Error restoring defaults!';
+                    const settingsStatusEl = document.getElementById('settingsStatus');
+                    if (settingsStatusEl) {
+                        if (data.success) {
+                            settingsStatusEl.textContent = 'Default settings restored!';
+                            loadDPVSettings(); // Reload settings from server
+                        } else {
+                            settingsStatusEl.textContent = 'Error restoring defaults!';
+                        }
                     }
                 })
                 .catch(error => {
                     console.error('Error restoring defaults:', error);
-                    document.getElementById('settingsStatus').textContent = 'Error restoring defaults!';
+                    const settingsStatusEl = document.getElementById('settingsStatus');
+                    if (settingsStatusEl) {
+                        settingsStatusEl.textContent = 'Error restoring defaults!';
+                    }
                 });
             }
         }
@@ -2840,36 +2923,62 @@ void handleClient(WiFiClient client) {
         // API endpoint to save settings
         log("API /api/settings POST called");
         
-        // Skip headers first
-        while (client.connected() && client.available()) {
-            String line = client.readStringUntil('\n');
-            line.trim();
-            if (line.length() == 0) {
-                break; // End of headers
-            }
-        }
-        
-        // Wait a bit for body data to arrive
-        delay(50);
-        
-        // Read POST body - all available data
+        // Read POST body using Content-Length if available
         String body = "";
-        while (client.available()) {
-            body += (char)client.read();
+        if (contentLength.length() > 0) {
+            int bodyLength = contentLength.toInt();
+            if (bodyLength > 0 && bodyLength < 4096) { // Reasonable limit for settings JSON
+                char* buffer = new char[bodyLength + 1];
+                int bytesRead = 0;
+                unsigned long startTime = millis();
+                
+                // Read the exact number of bytes specified in Content-Length
+                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 5000)) {
+                    if (client.available()) {
+                        buffer[bytesRead] = client.read();
+                        bytesRead++;
+                    } else {
+                        delay(1);
+                    }
+                }
+                
+                buffer[bytesRead] = '\0';
+                body = String(buffer);
+                delete[] buffer;
+                
+                String readMsg = "Settings: Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
+                log(readMsg.c_str());
+            } else {
+                log("Settings: Invalid Content-Length or too large");
+            }
+        } else {
+            // Fallback: read whatever is available (old method)
+            delay(100); // Give more time for settings data to arrive
+            while (client.available()) {
+                body += (char)client.read();
+            }
+            log("Settings: Using fallback reading method");
         }
         
-        String bodyMsg = "POST body received, length: " + String(body.length());
+        String bodyMsg = "Settings POST body received, length: " + String(body.length());
         log(bodyMsg.c_str());
         
-        if (body.length() > 50) {
-            String bodyPreview = "POST body preview: " + body.substring(0, 50) + "...";
+        if (body.length() > 100) {
+            String bodyPreview = "Settings body preview: " + body.substring(0, 100) + "...";
             log(bodyPreview.c_str());
         } else if (body.length() > 0) {
-            String bodyFull = "POST body full: " + body;
+            String bodyFull = "Settings body full: " + body;
             log(bodyFull.c_str());
+        } else {
+            log("Settings: ERROR - No body data received!");
         }
         
-        bool success = updateSettingsFromJson(body);
+        bool success = false;
+        if (body.length() > 0) {
+            success = updateSettingsFromJson(body);
+        } else {
+            log("Settings: Cannot save - empty body");
+        }
         
         String response = "{\"success\":" + String(success ? "true" : "false") + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
