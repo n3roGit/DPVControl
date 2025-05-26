@@ -34,7 +34,7 @@ WiFiServer server(80);
 bool spiffsInitialized = false;
 
 /**
- * Generate JSON list of all available sessions
+ * Generate JSON list of all available sessions sorted with newest first
  */
 String generateSessionListJson() {
     int count;
@@ -43,6 +43,18 @@ String generateSessionListJson() {
     // Extract filename from full path
     if (currentSession.startsWith("/datalog/")) {
         currentSession = currentSession.substring(9); // Remove "/datalog/"
+    }
+    
+    // Sort sessions by filename (newest first for 4-digit numbering)
+    // Bubble sort for simplicity
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = 0; j < count - i - 1; j++) {
+            if (sessions[j] < sessions[j + 1]) { // Reverse order for newest first
+                String temp = sessions[j];
+                sessions[j] = sessions[j + 1];
+                sessions[j + 1] = temp;
+            }
+        }
     }
     
     String json = "[";
@@ -1068,11 +1080,15 @@ const char* helloWorldHTML = R"rawliteral(
                         selectedSession = sortedSessions[0].filename; // Select newest session by default
                         document.getElementById('sessionSelect').value = selectedSession;
                         console.log('Auto-selected newest session:', selectedSession);
-                        refreshChart();
+                        // Only load chart after session is properly selected
+                        setTimeout(() => {
+                            refreshChart();
+                        }, 100);
                     }
                 })
                 .catch(error => {
                     console.error('Error loading sessions:', error);
+                    selectedSession = null; // Clear selection on error
                 });
         }
         
@@ -1277,8 +1293,8 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Load chart data from selected session
         function loadChartData() {
-            if (!selectedSession) {
-                console.log('No session selected');
+            if (!selectedSession || selectedSession === 'undefined' || selectedSession === 'null') {
+                console.log('No valid session selected, waiting for session list to load');
                 return;
             }
             
@@ -1288,6 +1304,9 @@ const char* helloWorldHTML = R"rawliteral(
             fetch(apiUrl)
                 .then(response => {
                     console.log('Chart data response:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
                     return response.json();
                 })
                 .then(data => {

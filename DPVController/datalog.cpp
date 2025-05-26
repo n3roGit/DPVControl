@@ -11,11 +11,39 @@ String currentSessionFile = "";
 const String SESSION_DIR = "/datalog";
 
 /**
- * Generate a unique filename for a new session using timestamp
+ * Generate a unique filename for a new session using sequential numbering
  */
 String generateSessionFilename() {
-    unsigned long timestamp = millis();
-    String filename = SESSION_DIR + "/session_" + String(timestamp) + ".bin";
+    // Find the highest existing session number
+    int maxSessionNumber = 0;
+    
+    // List existing sessions to find highest number
+    File root = LittleFS.open(SESSION_DIR);
+    if (root && root.isDirectory()) {
+        File file = root.openNextFile();
+        while (file) {
+            String filename = String(file.name());
+            if (filename.startsWith("session_") && filename.endsWith(".bin")) {
+                // Extract number from filename like "session_0001.bin"
+                String numberPart = filename.substring(8, filename.length() - 4); // Remove "session_" and ".bin"
+                int sessionNumber = numberPart.toInt();
+                if (sessionNumber > maxSessionNumber) {
+                    maxSessionNumber = sessionNumber;
+                }
+            }
+            file = root.openNextFile();
+        }
+        root.close();
+    }
+    
+    // Create next session number with 4-digit padding
+    int nextSessionNumber = maxSessionNumber + 1;
+    String paddedNumber = String(nextSessionNumber);
+    while (paddedNumber.length() < 4) {
+        paddedNumber = "0" + paddedNumber;
+    }
+    
+    String filename = SESSION_DIR + "/session_" + paddedNumber + ".bin";
     return filename;
 }
 
@@ -50,11 +78,14 @@ String getCurrentSessionFile() {
 }
 
 /**
- * List all session files
+ * List all session files with improved file descriptor management
  */
 String* listSessionFiles(int* count) {
     *count = 0;
     static String files[50]; // Maximum 50 sessions stored
+
+    // Add delay to prevent file descriptor exhaustion
+    vTaskDelay(5 / portTICK_PERIOD_MS);
 
     File root = LittleFS.open(SESSION_DIR);
     if (!root || !root.isDirectory()) {
@@ -67,8 +98,17 @@ String* listSessionFiles(int* count) {
             files[*count] = String(file.name());
             (*count)++;
         }
+        file.close(); // Explicitly close each file
         file = root.openNextFile();
+        
+        // Small delay between file operations
+        vTaskDelay(1 / portTICK_PERIOD_MS);
     }
+
+    root.close(); // Explicitly close directory
+    
+    // Add delay after directory operations
+    vTaskDelay(5 / portTICK_PERIOD_MS);
 
     return files;
 }
@@ -603,11 +643,17 @@ void appendToTripLog(LogdataRow datapoint) {
     log(sessionMsg.c_str());
   }
   
+  // Add small delay to prevent file descriptor exhaustion
+  vTaskDelay(2 / portTICK_PERIOD_MS);
+  
   File tripFile = LittleFS.open(currentSessionFile, "a");
   if (tripFile) {
     size_t written = tripFile.write((uint8_t*)&datapoint, sizeof(LogdataRow));
     tripFile.flush(); // Immediate write to flash
     tripFile.close(); // Close immediately to ensure data is saved
+    
+    // Small delay after closing to ensure proper cleanup
+    vTaskDelay(2 / portTICK_PERIOD_MS);
     
     if (written == sizeof(LogdataRow)) {
       // Success - minimal logging to avoid stack issues
@@ -627,6 +673,8 @@ void appendToTripLog(LogdataRow datapoint) {
   } else {
     String errorMsg = "Failed to open session log for writing: " + currentSessionFile;
     log(errorMsg.c_str());
+    // Add longer delay when file opening fails to prevent rapid retries
+    vTaskDelay(50 / portTICK_PERIOD_MS);
   }
 }
 
