@@ -1212,17 +1212,17 @@ const char* helloWorldHTML = R"rawliteral(
                     document.getElementById('totalUptime').textContent = formatTime(data.totalUptime * 1000);
                     document.getElementById('dataPointCount').textContent = data.dataPoints || 0;
                     
-                    // Update additional sensor data
-                    document.getElementById('waterSensorFront').textContent = data.waterSensorFront === 'true' ? 'LEAK DETECTED!' : 'OK';
-                    document.getElementById('waterSensorBack').textContent = data.waterSensorBack === 'true' ? 'LEAK DETECTED!' : 'OK';
-                                    document.getElementById('leftButton').textContent = data.leftButton === 'true' ? 'PRESSED' : 'RELEASED';
-                    document.getElementById('rightButton').textContent = data.rightButton === 'true' ? 'PRESSED' : 'RELEASED';
+                    // Update additional sensor data  
+                    document.getElementById('waterSensorFront').textContent = data.waterSensorFront === true ? 'LEAK DETECTED!' : 'OK';
+                    document.getElementById('waterSensorBack').textContent = data.waterSensorBack === true ? 'LEAK DETECTED!' : 'OK';
+                    document.getElementById('leftButton').textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
+                    document.getElementById('rightButton').textContent = data.rightButton === true ? 'PRESSED' : 'RELEASED';
                     document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel;
-                    document.getElementById('beeperStatus').textContent = data.beeperEnabled === 'true' ? 'Enabled' : 'Disabled';
+                    document.getElementById('beeperStatus').textContent = data.beeperEnabled === true ? 'Enabled' : 'Disabled';
                     
                     // Update beeper setting checkbox (new settings tab)
                     if (document.getElementById('beeperEnabled')) {
-                        document.getElementById('beeperEnabled').checked = data.beeperEnabled === 'true';
+                        document.getElementById('beeperEnabled').checked = data.beeperEnabled === true;
                     }
                 })
                 .catch(error => {
