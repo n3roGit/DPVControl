@@ -43,6 +43,14 @@ ClickButton rightButton(PIN_RIGHT_BUTTON, LOW);
 LastClick lastLeftClick;
 LastClick lastRightClick;
 
+// Forward declarations
+void updateButtonState();
+void performActions();
+bool heldForLong(long heldDownSince);
+void updateLastClick(LastClick &click, ClickButton &button); 
+bool checkCruise(ClickButton &button, LastClick &lastClick);
+bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs);
+
 void buttonSetup(){
   // Set debounce and click times for buttons
   leftButton.debounceTime = DEBOUNCE_TIME;
@@ -58,10 +66,7 @@ void buttonLoop(){
   performActions();
 }
 
-// Forward declarations
-void updateLastClick(LastClick &click, ClickButton &button); 
-bool checkCruise(ClickButton &button, LastClick &lastClick);
-bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs);
+
 
 
 void updateButtonState(){

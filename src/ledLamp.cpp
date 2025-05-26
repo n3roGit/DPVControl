@@ -64,7 +64,8 @@ BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, LAMP_BLINK
 void ledLampSetup(){
     // Initialize LED PWM
   pinMode(PIN_LAMP, OUTPUT);                            //Setzt den GPIO-Pin 23 als Output (Ausgang)
-  ledcAttach(PIN_LAMP, LEDfrequency, LEDresolution);  //Configure PWM on LED pin with frequency and resolution
+  ledcSetup(0, LEDfrequency, LEDresolution);            //Configure PWM channel 0 with frequency and resolution
+  ledcAttachPin(PIN_LAMP, 0);                           //Attach pin to PWM channel 0
 }
 
 void ledLampLoop(){
@@ -177,7 +178,7 @@ void setLEDState(int state) {
   Is it possible to change pwm frequency to advoid led flickering while filming 
   */
   //analogWrite(PIN_LED, brightness);  // LED-PIN, Brightness 0-255
-  ledcWrite(PIN_LAMP, brightness);  // Set LED brightness using PWM
+  ledcWrite(0, brightness);  // Set LED brightness using PWM channel 0
 }
 
 void blinkLED(const String& sequence) {
