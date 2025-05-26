@@ -122,11 +122,26 @@ String generateSessionDataJson(String sessionFile) {
         return "[]";
     }
     
+    // Get file size and calculate total datapoints
+    size_t fileSize = file.size();
+    int totalDatapoints = fileSize / sizeof(LogdataRow);
+    
+    // Limit to max 500 datapoints to prevent memory issues (ESP32 optimization)
+    const int maxDatapoints = 500;
+    int startSkip = 0;
+    
+    if (totalDatapoints > maxDatapoints) {
+        // Skip to the last maxDatapoints 
+        startSkip = totalDatapoints - maxDatapoints;
+        file.seek(startSkip * sizeof(LogdataRow));
+    }
+    
     String json = "[";
     LogdataRow dataPoint;
     bool firstPoint = true;
+    int pointsRead = 0;
     
-    while (file.available()) {
+    while (file.available() && pointsRead < maxDatapoints) {
         size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
         if (bytesRead != sizeof(LogdataRow)) break;
         
@@ -149,10 +164,22 @@ String generateSessionDataJson(String sessionFile) {
         json += "\"ledState\":" + String(dataPoint.ledState) + ",";
         json += "\"totalUptime\":" + String(dataPoint.totalUptime);
         json += "}";
+        
+        pointsRead++;
+        
+        // Emergency break if JSON gets too large (>30KB)
+        if (json.length() > 30720) {
+            String limitMsg = "Session data truncated at " + String(pointsRead) + " points to prevent memory issues";
+            log(limitMsg.c_str());
+            break;
+        }
     }
     
     json += "]";
     file.close();
+    
+    String resultMsg = "Generated session JSON: " + String(pointsRead) + " points, " + String(json.length()) + " bytes";
+    log(resultMsg.c_str());
     
     return json;
 }
@@ -344,6 +371,10 @@ const char* helloWorldHTML = R"rawliteral(
                     <tr>
                         <td>Total Uptime:</td>
                         <td class="status-value" id="totalUptime">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Data Points:</td>
+                        <td class="status-value" id="dataPointCount">Loading...</td>
                     </tr>
                     <tr>
                         <td>Battery Voltage:</td>
@@ -1169,8 +1200,12 @@ const char* helloWorldHTML = R"rawliteral(
             if (data.length > 0) {
                 const startTime = new Date(data[startIndex].timestamp).toLocaleTimeString();
                 const endTime = new Date(data[Math.min(endIndex - 1, data.length - 1)].timestamp).toLocaleTimeString();
-                document.getElementById('sliderStart').textContent = startTime;
-                document.getElementById('sliderEnd').textContent = endTime;
+                
+                const sliderStart = document.getElementById('sliderStart');
+                if (sliderStart) sliderStart.textContent = startTime;
+                
+                const sliderEnd = document.getElementById('sliderEnd');
+                if (sliderEnd) sliderEnd.textContent = endTime;
             }
             
             return data.slice(startIndex, endIndex);
@@ -1211,26 +1246,44 @@ const char* helloWorldHTML = R"rawliteral(
                 })
                 .then(data => {
                     console.log('Status data:', data);
-                    document.getElementById('uptime').textContent = formatTime(data.uptime);
-                    document.getElementById('totalUptime').textContent = formatTime(data.totalUptime * 1000);
-                    document.getElementById('dataPointCount').textContent = data.dataPoints || 0;
                     
-                    // Update additional sensor data  
-                    document.getElementById('waterSensorFront').textContent = data.waterSensorFront === true ? 'LEAK DETECTED!' : 'OK';
-                    document.getElementById('waterSensorBack').textContent = data.waterSensorBack === true ? 'LEAK DETECTED!' : 'OK';
-                    document.getElementById('leftButton').textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
-                    document.getElementById('rightButton').textContent = data.rightButton === true ? 'PRESSED' : 'RELEASED';
-                    document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel;
-                    document.getElementById('beeperStatus').textContent = data.beeperEnabled === true ? 'Enabled' : 'Disabled';
+                    // Safe element updates with null checks
+                    const uptime = document.getElementById('uptime');
+                    if (uptime) uptime.textContent = formatTime(data.uptime || 0);
+                    
+                    const totalUptime = document.getElementById('totalUptime');
+                    if (totalUptime) totalUptime.textContent = formatTime((data.totalUptime || 0) * 1000);
+                    
+                    const dataPointCount = document.getElementById('dataPointCount');
+                    if (dataPointCount) dataPointCount.textContent = data.dataPoints || 0;
+                    
+                    // Update additional sensor data with null checks
+                    const waterSensorFront = document.getElementById('waterSensorFront');
+                    if (waterSensorFront) waterSensorFront.textContent = data.waterSensorFront === true ? 'LEAK DETECTED!' : 'OK';
+                    
+                    const waterSensorBack = document.getElementById('waterSensorBack');
+                    if (waterSensorBack) waterSensorBack.textContent = data.waterSensorBack === true ? 'LEAK DETECTED!' : 'OK';
+                    
+                    const leftButton = document.getElementById('leftButton');
+                    if (leftButton) leftButton.textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
+                    
+                    const rightButton = document.getElementById('rightButton');
+                    if (rightButton) rightButton.textContent = data.rightButton === true ? 'PRESSED' : 'RELEASED';
+                    
+                    const lampLevel = document.getElementById('lampLevel');
+                    if (lampLevel) lampLevel.textContent = 'Level ' + (data.lampLevel || 0);
+                    
+                    const beeperStatus = document.getElementById('beeperStatus');
+                    if (beeperStatus) beeperStatus.textContent = data.beeperEnabled === true ? 'Enabled' : 'Disabled';
                     
                     // Update beeper setting checkbox (new settings tab)
-                    if (document.getElementById('beeperEnabled')) {
-                        document.getElementById('beeperEnabled').checked = data.beeperEnabled === true;
-                    }
+                    const beeperEnabled = document.getElementById('beeperEnabled');
+                    if (beeperEnabled) beeperEnabled.checked = data.beeperEnabled === true;
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
-                    document.getElementById('uptime').textContent = 'Error loading';
+                    const uptime = document.getElementById('uptime');
+                    if (uptime) uptime.textContent = 'Error loading';
                 });
             
             // Fetch latest data point for status display
@@ -1243,22 +1296,46 @@ const char* helloWorldHTML = R"rawliteral(
                     console.log('Latest data point:', data);
                     if (data.length > 0) {
                         const latest = data[0];
-                        document.getElementById('battery').textContent = latest.batteryVoltage.toFixed(2) + ' V';
-                        document.getElementById('motorTemp').textContent = latest.tempMotor.toFixed(1) + ' °C';
-                        document.getElementById('mosfetTemp').textContent = latest.tempMosfet.toFixed(1) + ' °C';
-                        document.getElementById('temperature').textContent = latest.temperature.toFixed(1) + ' °C';
-                        document.getElementById('humidity').textContent = latest.humidity.toFixed(1) + ' %';
-                        document.getElementById('current').textContent = latest.current.toFixed(2) + ' A';
-                        document.getElementById('motorCurrent').textContent = latest.avgMotorCurrent.toFixed(2) + ' A';
-                        document.getElementById('rpm').textContent = latest.rpm.toFixed(0) + ' RPM';
-                        document.getElementById('dutyCycle').textContent = latest.dutyCycle.toFixed(1) + ' %';
-                        document.getElementById('batteryLevel').textContent = latest.batteryLevel + ' %';
-                        document.getElementById('waterSensorFront').textContent = latest.leakSensorState === 1 ? 'LEAK DETECTED!' : 'OK';
+                        
+                        // Safe element updates with null checks
+                        const battery = document.getElementById('battery');
+                        if (battery) battery.textContent = (latest.batteryVoltage || 0).toFixed(2) + ' V';
+                        
+                        const motorTemp = document.getElementById('motorTemp');
+                        if (motorTemp) motorTemp.textContent = (latest.tempMotor || 0).toFixed(1) + ' °C';
+                        
+                        const mosfetTemp = document.getElementById('mosfetTemp');
+                        if (mosfetTemp) mosfetTemp.textContent = (latest.tempMosfet || 0).toFixed(1) + ' °C';
+                        
+                        const temperature = document.getElementById('temperature');
+                        if (temperature) temperature.textContent = (latest.temperature || 0).toFixed(1) + ' °C';
+                        
+                        const humidity = document.getElementById('humidity');
+                        if (humidity) humidity.textContent = (latest.humidity || 0).toFixed(1) + ' %';
+                        
+                        const current = document.getElementById('current');
+                        if (current) current.textContent = (latest.current || 0).toFixed(2) + ' A';
+                        
+                        const motorCurrent = document.getElementById('motorCurrent');
+                        if (motorCurrent) motorCurrent.textContent = (latest.avgMotorCurrent || 0).toFixed(2) + ' A';
+                        
+                        const rpm = document.getElementById('rpm');
+                        if (rpm) rpm.textContent = (latest.rpm || 0).toFixed(0) + ' RPM';
+                        
+                        const dutyCycle = document.getElementById('dutyCycle');
+                        if (dutyCycle) dutyCycle.textContent = (latest.dutyCycle || 0).toFixed(1) + ' %';
+                        
+                        const batteryLevel = document.getElementById('batteryLevel');
+                        if (batteryLevel) batteryLevel.textContent = (latest.batteryLevel || 0) + ' %';
+                        
+                        const waterSensorFront = document.getElementById('waterSensorFront');
+                        if (waterSensorFront) waterSensorFront.textContent = latest.leakSensorState === 1 ? 'LEAK DETECTED!' : 'OK';
                     }
                 })
                 .catch(error => {
                     console.error('Error fetching data:', error);
-                    document.getElementById('battery').textContent = 'Error loading';
+                    const battery = document.getElementById('battery');
+                    if (battery) battery.textContent = 'Error loading';
                 });
             
             // Load chart data separately
@@ -1273,24 +1350,32 @@ const char* helloWorldHTML = R"rawliteral(
             fetch('/api/version')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('currentVersion').textContent = data.version;
+                    const currentVersion = document.getElementById('currentVersion');
+                    if (currentVersion) currentVersion.textContent = data.version || 'Unknown';
                 })
                 .catch(error => {
                     console.error('Error fetching version:', error);
-                    document.getElementById('currentVersion').textContent = 'Unknown';
+                    const currentVersion = document.getElementById('currentVersion');
+                    if (currentVersion) currentVersion.textContent = 'Unknown';
                 });
             
             // Update system uptime and total runtime from status data
             fetch('/api/status')
                 .then(response => response.json())
                 .then(data => {
-                    document.getElementById('systemUptime').textContent = formatTime(data.uptime);
-                    document.getElementById('totalRuntime').textContent = formatTime(data.totalUptime * 1000);
+                    const systemUptime = document.getElementById('systemUptime');
+                    if (systemUptime) systemUptime.textContent = formatTime(data.uptime || 0);
+                    
+                    const totalRuntime = document.getElementById('totalRuntime');
+                    if (totalRuntime) totalRuntime.textContent = formatTime((data.totalUptime || 0) * 1000);
                 })
                 .catch(error => {
                     console.error('Error fetching uptime:', error);
-                    document.getElementById('systemUptime').textContent = 'Unknown';
-                    document.getElementById('totalRuntime').textContent = 'Unknown';
+                    const systemUptime = document.getElementById('systemUptime');
+                    if (systemUptime) systemUptime.textContent = 'Unknown';
+                    
+                    const totalRuntime = document.getElementById('totalRuntime');
+                    if (totalRuntime) totalRuntime.textContent = 'Unknown';
                 });
         }
         
