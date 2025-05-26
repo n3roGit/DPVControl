@@ -2395,35 +2395,45 @@ void handleClient(WiFiClient client) {
         return;
     }
     
-    // Read the first line of the request
-    String request = client.readStringUntil('\r');
-    client.readStringUntil('\n');
-    
-    // Extract the request method and path
-    int firstSpace = request.indexOf(' ');
-    int secondSpace = request.indexOf(' ', firstSpace + 1);
-    
-    if (firstSpace == -1 || secondSpace == -1) {
-        client.stop();
-        return;
-    }
-    
-    String method = request.substring(0, firstSpace);
-    String path = request.substring(firstSpace + 1, secondSpace);
+    // Read the complete HTTP request
+    String httpRequest = "";
+    String line = "";
+    String method = "";
+    String path = "";
     String host = "";
+    String contentLength = "";
+    
+    // Read request line
+    line = client.readStringUntil('\n');
+    httpRequest += line;
+    
+    // Extract method and path from first line
+    int firstSpace = line.indexOf(' ');
+    int secondSpace = line.indexOf(' ', firstSpace + 1);
+    
+    if (firstSpace != -1 && secondSpace != -1) {
+        method = line.substring(0, firstSpace);
+        path = line.substring(firstSpace + 1, secondSpace);
+    }
     
     log(("Request: " + method + " " + path).c_str());
     
-    // Get the host from headers - important for captive portal detection
-    while (client.connected() && client.available()) {
-        String line = client.readStringUntil('\n');
+    // Read headers
+    while (client.connected()) {
+        line = client.readStringUntil('\n');
         line.trim();
+        httpRequest += line + "\n";
         
         if (line.startsWith("Host: ")) {
             host = line.substring(6);
             log(("Host: " + host).c_str());
         }
         
+        if (line.startsWith("Content-Length: ")) {
+            contentLength = line.substring(16);
+        }
+        
+        // Empty line indicates end of headers
         if (line.length() == 0) {
             break;
         }
@@ -2574,22 +2584,38 @@ void handleClient(WiFiClient client) {
         // API endpoint for motor control
         log("API /api/motor called");
         
-        // Skip headers first
-        while (client.connected() && client.available()) {
-            String line = client.readStringUntil('\n');
-            line.trim();
-            if (line.length() == 0) {
-                break; // End of headers
-            }
-        }
-        
-        // Wait a bit for body data to arrive
-        delay(50);
-        
-        // Read POST body
+        // Read POST body if Content-Length is specified
         String body = "";
-        while (client.available()) {
-            body += (char)client.read();
+        if (contentLength.length() > 0) {
+            int bodyLength = contentLength.toInt();
+            if (bodyLength > 0 && bodyLength < 2048) { // Reasonable limit
+                char* buffer = new char[bodyLength + 1];
+                int bytesRead = 0;
+                unsigned long startTime = millis();
+                
+                // Read the exact number of bytes specified in Content-Length
+                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 2000)) {
+                    if (client.available()) {
+                        buffer[bytesRead] = client.read();
+                        bytesRead++;
+                    } else {
+                        delay(1);
+                    }
+                }
+                
+                buffer[bytesRead] = '\0';
+                body = String(buffer);
+                delete[] buffer;
+                
+                String readMsg = "Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
+                log(readMsg.c_str());
+            }
+        } else {
+            // Fallback: read whatever is available
+            delay(50); // Give time for data to arrive
+            while (client.available()) {
+                body += (char)client.read();
+            }
         }
         
         String bodyMsg = "Motor control body: " + body;
@@ -2616,6 +2642,9 @@ void handleClient(WiFiClient client) {
         log(controlMsg.c_str());
         
         if (motorEnabled && speed > 0) {
+            // Enable remote control mode
+            remoteControlActive = true;
+            
             // Wake up motor if in standby
             if (motorState == standby) {
                 wakeUp();
@@ -2626,6 +2655,9 @@ void handleClient(WiFiClient client) {
             currentMotorStep = targetStep;
             motorState = on;
             
+            // Update lastActionTime to keep motor running (simulates button press)
+            lastActionTime = micros();
+            
             // Update LED bar to show new speed
             setBarSpeed(currentMotorStep);
             
@@ -2633,7 +2665,8 @@ void handleClient(WiFiClient client) {
             log(speedMsg.c_str());
             
         } else {
-            // Stop motor
+            // Disable remote control mode and stop motor
+            remoteControlActive = false;
             motorState = off;
             lastActionTime = micros(); // Prevent immediate standby
             setBarSpeed(currentMotorStep); // Update display but keep step setting
@@ -2648,22 +2681,38 @@ void handleClient(WiFiClient client) {
         // API endpoint for lamp control
         log("API /api/lamp called");
         
-        // Skip headers first
-        while (client.connected() && client.available()) {
-            String line = client.readStringUntil('\n');
-            line.trim();
-            if (line.length() == 0) {
-                break; // End of headers
-            }
-        }
-        
-        // Wait a bit for body data to arrive
-        delay(50);
-        
-        // Read POST body
+        // Read POST body if Content-Length is specified
         String body = "";
-        while (client.available()) {
-            body += (char)client.read();
+        if (contentLength.length() > 0) {
+            int bodyLength = contentLength.toInt();
+            if (bodyLength > 0 && bodyLength < 2048) { // Reasonable limit
+                char* buffer = new char[bodyLength + 1];
+                int bytesRead = 0;
+                unsigned long startTime = millis();
+                
+                // Read the exact number of bytes specified in Content-Length
+                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 2000)) {
+                    if (client.available()) {
+                        buffer[bytesRead] = client.read();
+                        bytesRead++;
+                    } else {
+                        delay(1);
+                    }
+                }
+                
+                buffer[bytesRead] = '\0';
+                body = String(buffer);
+                delete[] buffer;
+                
+                String readMsg = "Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
+                log(readMsg.c_str());
+            }
+        } else {
+            // Fallback: read whatever is available
+            delay(50); // Give time for data to arrive
+            while (client.available()) {
+                body += (char)client.read();
+            }
         }
         
         String bodyMsg = "Lamp control body: " + body;

@@ -135,7 +135,8 @@ void performActions(){
     }else if (checkCruise(rightButton, lastLeftClick)
             ||checkCruise(leftButton,  lastRightClick)){
       enterCruiseMode(); 
-    }else{
+    }else if (!remoteControlActive) {
+      // Only turn off motor if not under remote control
       motorState = off;
     }
   

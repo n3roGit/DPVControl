@@ -12,6 +12,7 @@
 */
 
 MotorState motorState = standby;
+bool remoteControlActive = false; // Flag for remote control override
 const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
 
 VescUart UART;

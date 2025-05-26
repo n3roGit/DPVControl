@@ -6,6 +6,7 @@
 enum MotorState {standby, on, off, cruise, turbo, jammed};
 
 extern MotorState motorState;
+extern bool remoteControlActive; // Flag for remote control override
 
 extern const bool HAS_MOTOR;//Indicates that we have an actual motor plugged in.
 
