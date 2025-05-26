@@ -40,24 +40,25 @@ const char* helloWorldHTML = R"rawliteral(
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #e0e5e9;
-            color: #1e272e;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
         }
         h1, h2 {
-            color: #3498db;
+            color: #4fc3f7;
         }
         .container {
             max-width: 800px;
             margin: 20px auto;
             padding: 20px;
-            background-color: white;
-            border-radius: 5px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: 1px solid #404040;
         }
         .section {
             margin-bottom: 20px;
             padding: 15px;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid #404040;
         }
         table {
             width: 100%;
@@ -66,30 +67,38 @@ const char* helloWorldHTML = R"rawliteral(
         th, td {
             padding: 8px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #404040;
+            color: #e0e0e0;
         }
         .button {
-            background-color: #3498db;
+            background-color: #2196f3;
             color: white;
             border: none;
             padding: 10px 15px;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             margin: 5px;
+            transition: background-color 0.3s ease;
+            font-weight: 500;
         }
         .button:hover {
-            background-color: #2c3e50;
+            background-color: #1976d2;
         }
         .nav-tab {
             padding: 10px 20px;
-            background-color: #f8f8f8;
+            background-color: #3d3d3d;
             border: none;
             cursor: pointer;
             transition: background-color 0.3s ease;
             margin-right: 5px;
+            color: #e0e0e0;
+            border-radius: 6px 6px 0 0;
+        }
+        .nav-tab:hover {
+            background-color: #4a4a4a;
         }
         .nav-tab.active {
-            background-color: #3498db;
+            background-color: #2196f3;
             color: white;
         }
         .tab-content {
@@ -100,18 +109,19 @@ const char* helloWorldHTML = R"rawliteral(
         }
         .status-value {
             font-weight: bold;
-            color: #2c3e50;
+            color: #4fc3f7;
         }
         .settings-group {
             margin-bottom: 25px;
             padding: 15px;
-            background-color: #f9f9f9;
-            border-radius: 5px;
+            background-color: #3a3a3a;
+            border-radius: 8px;
+            border: 1px solid #505050;
         }
         .settings-group h3 {
             margin-top: 0;
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
+            color: #4fc3f7;
+            border-bottom: 2px solid #2196f3;
             padding-bottom: 5px;
         }
         .settings-table {
@@ -121,12 +131,59 @@ const char* helloWorldHTML = R"rawliteral(
         .settings-table td:first-child {
             width: 40%;
             font-weight: bold;
+            color: #b0b0b0;
         }
-        .settings-table input {
+        .settings-table input, .settings-table select {
             width: 100%;
-            padding: 5px;
-            border: 1px solid #ddd;
+            padding: 6px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background-color: #4a4a4a;
+            color: #e0e0e0;
+        }
+        .settings-table input:focus, .settings-table select:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 5px rgba(33, 150, 243, 0.3);
+        }
+        .settings-table input[type="checkbox"] {
+            width: auto;
+            transform: scale(1.2);
+        }
+        /* Range slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-track {
+            background: #404040;
+            height: 6px;
             border-radius: 3px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #2196f3;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-track {
+            background: #404040;
+            height: 6px;
+            border-radius: 3px;
+            border: none;
+        }
+        input[type="range"]::-moz-range-thumb {
+            background: #2196f3;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -140,6 +197,7 @@ const char* helloWorldHTML = R"rawliteral(
                 <button class="nav-tab active" onclick="showTab('status')">Status</button>
                 <button class="nav-tab" onclick="showTab('data')">Data</button>
                 <button class="nav-tab" onclick="showTab('charts')">Charts</button>
+                <button class="nav-tab" onclick="showTab('remote')">Remote Control</button>
                 <button class="nav-tab" onclick="showTab('settings')">Settings</button>
             </div>
         </div>
@@ -305,15 +363,111 @@ const char* helloWorldHTML = R"rawliteral(
             </div>
         </div>
         
+        <div id="remote-tab" class="tab-content">
+            <div class="section">
+                <h2>Remote Control</h2>
+                <p style="text-align: center; color: #ff9800; margin-bottom: 25px;">
+                    ⚠️ <strong>Warning:</strong> Use remote control carefully. Ensure propeller area is clear before starting motor.
+                </p>
+                
+                <!-- Motor Control -->
+                <div class="settings-group">
+                    <h3>Motor Control</h3>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <button id="motorToggle" class="button" onclick="toggleMotor()" style="background-color: #4caf50; font-size: 18px; padding: 15px 30px;">
+                            START MOTOR
+                        </button>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="motorSpeedSlider" style="display: block; margin-bottom: 10px; font-weight: bold;">
+                            Motor Speed: <span id="motorSpeedValue">0</span>%
+                        </label>
+                        <input type="range" id="motorSpeedSlider" min="0" max="100" value="0" 
+                               style="width: 100%; height: 6px;" 
+                               oninput="updateMotorSpeed(this.value)" onchange="setMotorSpeed(this.value)">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #b0b0b0; margin-top: 5px;">
+                            <span>0%</span>
+                            <span>25%</span>
+                            <span>50%</span>
+                            <span>75%</span>
+                            <span>100%</span>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <button class="button" onclick="emergencyStop()" style="background-color: #f44336; font-size: 16px; padding: 12px 25px;">
+                            🛑 EMERGENCY STOP
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Lamp Control -->
+                <div class="settings-group">
+                    <h3>Front Lamp Control</h3>
+                    <div style="margin-bottom: 20px;">
+                        <label for="lampLevelSlider" style="display: block; margin-bottom: 10px; font-weight: bold;">
+                            Lamp Level: <span id="lampLevelValue">0</span> (OFF)
+                        </label>
+                        <input type="range" id="lampLevelSlider" min="0" max="4" value="0" 
+                               style="width: 100%; height: 6px;" 
+                               oninput="updateLampLevel(this.value)" onchange="setLampLevel(this.value)">
+                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #b0b0b0; margin-top: 5px;">
+                            <span>OFF</span>
+                            <span>Level 1</span>
+                            <span>Level 2</span>
+                            <span>Level 3</span>
+                            <span>MAX</span>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center;">
+                        <button class="button" onclick="setLampLevel(0)" style="background-color: #666;">
+                            💡 Turn OFF
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Status Display -->
+                <div class="settings-group">
+                    <h3>Control Status</h3>
+                    <table style="width: 100%;">
+                        <tr>
+                            <td><strong>Motor Status:</strong></td>
+                            <td id="remoteMotorStatus" style="color: #4fc3f7;">STOPPED</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Current Speed:</strong></td>
+                            <td id="remoteMotorSpeed" style="color: #4fc3f7;">0%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Lamp Status:</strong></td>
+                            <td id="remoteLampStatus" style="color: #4fc3f7;">OFF</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Last Command:</strong></td>
+                            <td id="remoteLastCommand" style="color: #4fc3f7;">-</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div id="remoteControlStatus" style="margin-top: 20px; text-align: center; color: #4fc3f7;"></div>
+            </div>
+        </div>
+        
         <div id="settings-tab" class="tab-content">
             <div class="section">
                 <h2>DPV Settings</h2>
                 
                 <!-- Settings Controls -->
                 <div style="margin-bottom: 20px; text-align: center;">
-                    <button class="button" onclick="loadSettings()" style="background-color: #3498db;">Reload</button>
-                    <button class="button" onclick="saveSettings()" style="background-color: #27ae60;">Save Settings</button>
-                    <button class="button" onclick="restoreDefaultSettings()" style="background-color: #e74c3c;">Restore Defaults</button>
+                    <button class="button" onclick="loadDPVSettings()" style="background-color: #2196f3;">Reload</button>
+                    <button class="button" onclick="saveDPVSettings()" style="background-color: #4caf50;">Save Settings</button>
+                    <button class="button" onclick="restoreDefaultSettings()" style="background-color: #f44336;">Restore Defaults</button>
+                    <br>
+                    <button class="button" onclick="exportSettings()" style="background-color: #ff9800; margin-top: 10px;">Export Settings</button>
+                    <button class="button" onclick="importSettings()" style="background-color: #9c27b0; margin-top: 10px;">Import Settings</button>
+                    <input type="file" id="settingsFileInput" accept=".json" style="display: none;" onchange="handleSettingsFile(event)">
                 </div>
                 
                 <!-- Settings Form -->
@@ -501,6 +655,10 @@ const char* helloWorldHTML = R"rawliteral(
             
             // Update time range controls
             updateTimeRange();
+            
+            // Initialize settings tab
+            updateLampBrightnessInputs();
+            loadDPVSettings();
         });
         
         // Initialize Charts
@@ -835,8 +993,10 @@ const char* helloWorldHTML = R"rawliteral(
                     document.getElementById('lampLevel').textContent = 'Level ' + data.lampLevel;
                     document.getElementById('beeperStatus').textContent = data.beeperEnabled === 'true' ? 'Enabled' : 'Disabled';
                     
-                    // Update beeper setting checkbox
-                    document.getElementById('beeperEnabledSetting').checked = data.beeperEnabled === 'true';
+                    // Update beeper setting checkbox (new settings tab)
+                    if (document.getElementById('beeperEnabled')) {
+                        document.getElementById('beeperEnabled').checked = data.beeperEnabled === 'true';
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching status:', error);
@@ -1040,8 +1200,8 @@ const char* helloWorldHTML = R"rawliteral(
             container.innerHTML += '</table>';
         }
         
-        // Load settings from API
-        function loadSettings() {
+        // Load DPV settings from API
+        function loadDPVSettings() {
             document.getElementById('settingsStatus').textContent = 'Loading settings...';
             
             fetch('/api/settings')
@@ -1051,15 +1211,15 @@ const char* helloWorldHTML = R"rawliteral(
                     document.getElementById('speedSteps').value = data.speedSteps;
                     document.getElementById('standbyDelaySeconds').value = data.standbyDelaySeconds;
                     document.getElementById('batteryPowerMax').value = data.batteryPowerMax;
-                    document.getElementById('minSpeedPercent').value = data.minSpeedPercent;
+                    document.getElementById('minSpeedPercent').value = parseFloat(data.minSpeedPercent).toFixed(2);
                     document.getElementById('maxSpeedRpm').value = data.maxSpeedRpm;
                     document.getElementById('speedUpTimeMs').value = data.speedUpTimeMs;
                     document.getElementById('speedDownTimeMs').value = data.speedDownTimeMs;
                     document.getElementById('maxTimeOverloadedMs').value = data.maxTimeOverloadedMs;
                     
                     // Jam detection
-                    document.getElementById('jamMin').value = data.jamMin;
-                    document.getElementById('jamDetectionThreshold').value = data.jamDetectionThreshold;
+                    document.getElementById('jamMin').value = parseFloat(data.jamMin).toFixed(2);
+                    document.getElementById('jamDetectionThreshold').value = parseFloat(data.jamDetectionThreshold).toFixed(2);
                     
                     // Battery
                     document.getElementById('cellsInSeries').value = data.cellsInSeries;
@@ -1092,6 +1252,378 @@ const char* helloWorldHTML = R"rawliteral(
                     console.error('Error loading settings:', error);
                     document.getElementById('settingsStatus').textContent = 'Error loading settings';
                 });
+        }
+        
+        // Save DPV settings to API
+        function saveDPVSettings() {
+            document.getElementById('settingsStatus').textContent = 'Saving settings...';
+            
+            // Collect lamp brightness values
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels').value);
+            const lampBrightness = [];
+            for (let i = 0; i < 10; i++) {
+                if (i < maxLevels) {
+                    lampBrightness[i] = parseInt(document.getElementById('lampBrightness' + i).value) || 0;
+                } else {
+                    lampBrightness[i] = 0;
+                }
+            }
+            
+            const settingsData = {
+                speedSteps: parseInt(document.getElementById('speedSteps').value),
+                standbyDelaySeconds: parseInt(document.getElementById('standbyDelaySeconds').value),
+                batteryPowerMax: parseInt(document.getElementById('batteryPowerMax').value),
+                minSpeedPercent: parseFloat(document.getElementById('minSpeedPercent').value),
+                maxSpeedRpm: parseFloat(document.getElementById('maxSpeedRpm').value),
+                speedUpTimeMs: parseInt(document.getElementById('speedUpTimeMs').value),
+                speedDownTimeMs: parseInt(document.getElementById('speedDownTimeMs').value),
+                maxTimeOverloadedMs: parseInt(document.getElementById('maxTimeOverloadedMs').value),
+                jamMin: parseFloat(document.getElementById('jamMin').value),
+                jamDetectionThreshold: parseFloat(document.getElementById('jamDetectionThreshold').value),
+                cellsInSeries: parseInt(document.getElementById('cellsInSeries').value),
+                ledBarNum: parseInt(document.getElementById('ledBarNum').value),
+                ledBarBrightness: parseInt(document.getElementById('ledBarBrightness').value),
+                ledBarBrightnessSecond: parseInt(document.getElementById('ledBarBrightnessSecond').value),
+                ledFrequency: parseInt(document.getElementById('ledFrequency').value),
+                lampMaxLevels: maxLevels,
+                lampBrightness: lampBrightness,
+                wifiSSID: document.getElementById('wifiSSID').value,
+                wifiPassword: document.getElementById('wifiPassword').value,
+                beeperEnabled: document.getElementById('beeperEnabled').checked,
+                standbyBlinkStartMinutes: parseInt(document.getElementById('standbyBlinkStartMinutes').value),
+                standbyBlinkDurationSeconds: parseInt(document.getElementById('standbyBlinkDurationSeconds').value)
+            };
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(settingsData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('settingsStatus').textContent = 'Settings saved successfully!';
+                } else {
+                    document.getElementById('settingsStatus').textContent = 'Error saving settings!';
+                }
+            })
+            .catch(error => {
+                console.error('Error saving settings:', error);
+                document.getElementById('settingsStatus').textContent = 'Error saving settings!';
+            });
+        }
+        
+        // Restore default settings
+        function restoreDefaultSettings() {
+            if (confirm('Are you sure you want to restore default settings? This will overwrite all current settings.')) {
+                document.getElementById('settingsStatus').textContent = 'Restoring defaults...';
+                
+                fetch('/api/settings/restore', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('settingsStatus').textContent = 'Default settings restored!';
+                        loadDPVSettings(); // Reload settings from server
+                    } else {
+                        document.getElementById('settingsStatus').textContent = 'Error restoring defaults!';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error restoring defaults:', error);
+                    document.getElementById('settingsStatus').textContent = 'Error restoring defaults!';
+                });
+            }
+        }
+        
+        // Export settings to JSON file
+        function exportSettings() {
+            document.getElementById('settingsStatus').textContent = 'Exporting settings...';
+            
+            fetch('/api/settings')
+                .then(response => response.json())
+                .then(data => {
+                    // Add metadata to the export
+                    const exportData = {
+                        exportInfo: {
+                            version: "1.0",
+                            timestamp: new Date().toISOString(),
+                            device: "DPVControl"
+                        },
+                        settings: data
+                    };
+                    
+                    // Create and download file
+                    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                    a.download = `dpv_settings_${timestamp}.json`;
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    document.getElementById('settingsStatus').textContent = 'Settings exported successfully!';
+                })
+                .catch(error => {
+                    console.error('Error exporting settings:', error);
+                    document.getElementById('settingsStatus').textContent = 'Error exporting settings!';
+                });
+        }
+        
+        // Import settings from JSON file
+        function importSettings() {
+            document.getElementById('settingsFileInput').click();
+        }
+        
+        // Handle selected settings file
+        function handleSettingsFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('settingsStatus').textContent = 'Importing settings...';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    // Check if it's a valid DPV settings export
+                    let settingsToImport;
+                    if (importData.exportInfo && importData.settings) {
+                        settingsToImport = importData.settings;
+                        console.log('Importing settings from:', importData.exportInfo);
+                    } else {
+                        // Assume it's raw settings data
+                        settingsToImport = importData;
+                    }
+                    
+                    // Get current settings to compare
+                    fetch('/api/settings')
+                        .then(response => response.json())
+                        .then(currentSettings => {
+                            processSettingsImport(settingsToImport, currentSettings);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching current settings:', error);
+                            document.getElementById('settingsStatus').textContent = 'Error importing settings!';
+                        });
+                        
+                } catch (error) {
+                    console.error('Error parsing settings file:', error);
+                    document.getElementById('settingsStatus').textContent = 'Error: Invalid settings file format!';
+                }
+            };
+            
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
+        }
+        
+        // Process settings import with validation
+        function processSettingsImport(importedSettings, currentSettings) {
+            const missingFields = [];
+            const importedData = {};
+            
+            // Check each field in current settings
+            for (const key in currentSettings) {
+                if (importedSettings.hasOwnProperty(key)) {
+                    importedData[key] = importedSettings[key];
+                } else {
+                    missingFields.push(key);
+                    // Keep current value for missing fields
+                    importedData[key] = currentSettings[key];
+                }
+            }
+            
+            // Save the merged settings
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(importedData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let statusMsg = 'Settings imported successfully!';
+                    
+                    if (missingFields.length > 0) {
+                        statusMsg += ` Note: ${missingFields.length} field(s) not found in import file: ${missingFields.join(', ')}. Using current values for these fields.`;
+                    }
+                    
+                    document.getElementById('settingsStatus').textContent = statusMsg;
+                    
+                    // Reload settings to update UI
+                    setTimeout(() => {
+                        loadDPVSettings();
+                    }, 1000);
+                    
+                } else {
+                    document.getElementById('settingsStatus').textContent = 'Error saving imported settings!';
+                }
+            })
+            .catch(error => {
+                console.error('Error saving imported settings:', error);
+                document.getElementById('settingsStatus').textContent = 'Error saving imported settings!';
+            });
+        }
+        
+        // Remote Control Variables
+        let motorRunning = false;
+        let currentMotorSpeed = 0;
+        let currentLampLevel = 0;
+        
+        // Toggle motor on/off
+        function toggleMotor() {
+            motorRunning = !motorRunning;
+            const button = document.getElementById('motorToggle');
+            
+            if (motorRunning) {
+                button.textContent = 'STOP MOTOR';
+                button.style.backgroundColor = '#f44336';
+                setMotorSpeed(currentMotorSpeed);
+            } else {
+                button.textContent = 'START MOTOR';
+                button.style.backgroundColor = '#4caf50';
+                setMotorSpeed(0);
+            }
+            
+            updateRemoteStatus();
+        }
+        
+        // Update motor speed display (while dragging)
+        function updateMotorSpeed(value) {
+            currentMotorSpeed = parseInt(value);
+            document.getElementById('motorSpeedValue').textContent = currentMotorSpeed;
+            document.getElementById('remoteMotorSpeed').textContent = currentMotorSpeed + '%';
+        }
+        
+        // Set motor speed (when slider is released)
+        function setMotorSpeed(value) {
+            currentMotorSpeed = parseInt(value);
+            updateMotorSpeed(value);
+            
+            const enabled = motorRunning && currentMotorSpeed > 0;
+            const actualSpeed = motorRunning ? currentMotorSpeed : 0;
+            
+            fetch('/api/motor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    enabled: enabled,
+                    speed: actualSpeed 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Motor control response:', data);
+                document.getElementById('remoteLastCommand').textContent = 
+                    `Motor ${enabled ? 'ON' : 'OFF'} @ ${actualSpeed}%`;
+                updateRemoteStatus();
+            })
+            .catch(error => {
+                console.error('Error controlling motor:', error);
+                document.getElementById('remoteControlStatus').textContent = 'Error controlling motor!';
+            });
+        }
+        
+        // Emergency stop
+        function emergencyStop() {
+            motorRunning = false;
+            currentMotorSpeed = 0;
+            
+            // Reset UI
+            document.getElementById('motorToggle').textContent = 'START MOTOR';
+            document.getElementById('motorToggle').style.backgroundColor = '#4caf50';
+            document.getElementById('motorSpeedSlider').value = 0;
+            updateMotorSpeed(0);
+            
+            // Send stop command
+            fetch('/api/motor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    enabled: false,
+                    speed: 0 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Emergency stop response:', data);
+                document.getElementById('remoteLastCommand').textContent = 'EMERGENCY STOP';
+                document.getElementById('remoteControlStatus').textContent = 'Emergency stop executed!';
+                updateRemoteStatus();
+            })
+            .catch(error => {
+                console.error('Error with emergency stop:', error);
+                document.getElementById('remoteControlStatus').textContent = 'Error with emergency stop!';
+            });
+        }
+        
+        // Update lamp level display (while dragging)
+        function updateLampLevel(value) {
+            currentLampLevel = parseInt(value);
+            const levelNames = ['OFF', 'Level 1', 'Level 2', 'Level 3', 'MAX'];
+            document.getElementById('lampLevelValue').textContent = currentLampLevel;
+            document.getElementById('remoteLampStatus').textContent = levelNames[currentLampLevel] || 'OFF';
+        }
+        
+        // Set lamp level (when slider is released)
+        function setLampLevel(value) {
+            currentLampLevel = parseInt(value);
+            updateLampLevel(value);
+            document.getElementById('lampLevelSlider').value = value;
+            
+            fetch('/api/lamp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    level: currentLampLevel 
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Lamp control response:', data);
+                const levelNames = ['OFF', 'Level 1', 'Level 2', 'Level 3', 'MAX'];
+                document.getElementById('remoteLastCommand').textContent = 
+                    `Lamp set to ${levelNames[currentLampLevel]}`;
+                document.getElementById('remoteControlStatus').textContent = 'Lamp level updated!';
+            })
+            .catch(error => {
+                console.error('Error controlling lamp:', error);
+                document.getElementById('remoteControlStatus').textContent = 'Error controlling lamp!';
+            });
+        }
+        
+        // Update remote control status display
+        function updateRemoteStatus() {
+            const statusElement = document.getElementById('remoteMotorStatus');
+            if (motorRunning && currentMotorSpeed > 0) {
+                statusElement.textContent = 'RUNNING';
+                statusElement.style.color = '#4caf50';
+            } else if (motorRunning && currentMotorSpeed === 0) {
+                statusElement.textContent = 'STANDBY';
+                statusElement.style.color = '#ff9800';
+            } else {
+                statusElement.textContent = 'STOPPED';
+                statusElement.style.color = '#f44336';
+            }
         }
         
         // Save beeper setting
@@ -1744,10 +2276,33 @@ void handleClient(WiFiClient client) {
         // API endpoint to save settings
         log("API /api/settings POST called");
         
-        // Read POST body
+        // Skip headers first
+        while (client.connected() && client.available()) {
+            String line = client.readStringUntil('\n');
+            line.trim();
+            if (line.length() == 0) {
+                break; // End of headers
+            }
+        }
+        
+        // Wait a bit for body data to arrive
+        delay(50);
+        
+        // Read POST body - all available data
         String body = "";
         while (client.available()) {
             body += (char)client.read();
+        }
+        
+        String bodyMsg = "POST body received, length: " + String(body.length());
+        log(bodyMsg.c_str());
+        
+        if (body.length() > 50) {
+            String bodyPreview = "POST body preview: " + body.substring(0, 50) + "...";
+            log(bodyPreview.c_str());
+        } else if (body.length() > 0) {
+            String bodyFull = "POST body full: " + body;
+            log(bodyFull.c_str());
         }
         
         bool success = updateSettingsFromJson(body);
@@ -1762,6 +2317,101 @@ void handleClient(WiFiClient client) {
         restoreDefaultSettings();
         
         String response = "{\"success\":true}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+    } else if (path == "/api/motor" && method == "POST") {
+        // API endpoint for motor control
+        log("API /api/motor called");
+        
+        // Skip headers first
+        while (client.connected() && client.available()) {
+            String line = client.readStringUntil('\n');
+            line.trim();
+            if (line.length() == 0) {
+                break; // End of headers
+            }
+        }
+        
+        // Wait a bit for body data to arrive
+        delay(50);
+        
+        // Read POST body
+        String body = "";
+        while (client.available()) {
+            body += (char)client.read();
+        }
+        
+        String bodyMsg = "Motor control body: " + body;
+        log(bodyMsg.c_str());
+        
+        // Simple JSON parsing for motor control
+        bool motorEnabled = body.indexOf("\"enabled\":true") != -1;
+        int speed = 0;
+        
+        // Extract speed value
+        int speedIndex = body.indexOf("\"speed\":");
+        if (speedIndex != -1) {
+            String speedStr = body.substring(speedIndex + 8);
+            int endIndex = speedStr.indexOf(',');
+            if (endIndex == -1) endIndex = speedStr.indexOf('}');
+            if (endIndex != -1) {
+                speedStr = speedStr.substring(0, endIndex);
+                speed = speedStr.toInt();
+            }
+        }
+        
+        // TODO: Implement actual motor control here
+        // This would integrate with your existing motor control functions
+        String controlMsg = "Motor control - Enabled: " + String(motorEnabled ? "true" : "false") + ", Speed: " + String(speed);
+        log(controlMsg.c_str());
+        
+        String response = "{\"success\":true,\"enabled\":" + String(motorEnabled ? "true" : "false") + ",\"speed\":" + String(speed) + "}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+    } else if (path == "/api/lamp" && method == "POST") {
+        // API endpoint for lamp control
+        log("API /api/lamp called");
+        
+        // Skip headers first
+        while (client.connected() && client.available()) {
+            String line = client.readStringUntil('\n');
+            line.trim();
+            if (line.length() == 0) {
+                break; // End of headers
+            }
+        }
+        
+        // Wait a bit for body data to arrive
+        delay(50);
+        
+        // Read POST body
+        String body = "";
+        while (client.available()) {
+            body += (char)client.read();
+        }
+        
+        String bodyMsg = "Lamp control body: " + body;
+        log(bodyMsg.c_str());
+        
+        // Extract level value
+        int level = 0;
+        int levelIndex = body.indexOf("\"level\":");
+        if (levelIndex != -1) {
+            String levelStr = body.substring(levelIndex + 8);
+            int endIndex = levelStr.indexOf(',');
+            if (endIndex == -1) endIndex = levelStr.indexOf('}');
+            if (endIndex != -1) {
+                levelStr = levelStr.substring(0, endIndex);
+                level = levelStr.toInt();
+            }
+        }
+        
+        // TODO: Implement actual lamp control here
+        // This would integrate with your existing LED lamp functions
+        String controlMsg = "Lamp control - Level: " + String(level);
+        log(controlMsg.c_str());
+        
+        String response = "{\"success\":true,\"level\":" + String(level) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/beeper" && method == "POST") {

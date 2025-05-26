@@ -60,12 +60,38 @@ Download the .zip files for all the required Libraries (use the github-links in 
 them in the /libraries -Folder and install them into Arduino.
 
 
+# API Documentation
+
+The DPV Control system provides a comprehensive REST API for system monitoring, data retrieval, and configuration management.
+
+📖 **[View API Specification](./api-specification.yaml)** - Complete OpenAPI 3.0 documentation
+
+**Quick Links:**
+- **Interactive Documentation:** Open `api-specification.yaml` in [Swagger Editor](https://editor.swagger.io/) or VS Code with OpenAPI extension
+- **Base URL:** `http://4.3.2.1` (when connected to DPV WiFi)
+- **Format:** JSON REST API
+
+**Available Endpoints:**
+- `GET /api/status` - Real-time system status and sensor readings
+- `GET /api/data` - Historical sensor data with filtering options
+- `GET /api/trip-log` - Complete trip log download
+- `GET /api/settings` - Current device configuration
+- `POST /api/settings` - Update device settings
+- `POST /api/settings/restore` - Restore default settings
+
+**Features:**
+- Real-time monitoring of all sensor data
+- Historical data retrieval with configurable time ranges
+- Complete settings management with validation
+- Trip log export functionality
+- Session-based data filtering
+
 # TODO
 
-- 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
+- 95% - **Web interface:** Retrieve basic information and adjust settings if necessary. ✅
 - 0% - **Update via WiFi**
 - 0% - **Implement watchdog to make it smooth and stable**
-- 30% - **display uptime and overall runtime in gui**
+- 100% - **display uptime and overall runtime in gui** ✅
 
 
 

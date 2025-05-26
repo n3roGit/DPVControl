@@ -1,0 +1,505 @@
+openapi: 3.0.3
+info:
+  title: DPV Control API
+  description: |
+    REST API for the DPV (Diver Propulsion Vehicle) Control System.
+    
+    This API provides access to system status, sensor data, trip logs, and configuration settings
+    for the ESP32-based DPV controller with VESC motor control.
+    
+    **Key Features:**
+    - Real-time system status and sensor readings
+    - Historical data logging and retrieval
+    - Configuration management with export/import
+    - Trip log download functionality
+  version: 1.0.0
+  contact:
+    name: DPV Control Project
+    url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://4.3.2.1
+    description: DPV Control Device (Captive Portal)
+  - url: http://192.168.4.1
+    description: DPV Control Device (AP Mode)
+
+tags:
+  - name: Status
+    description: System status and real-time data
+  - name: Data
+    description: Sensor data and logging
+  - name: Settings
+    description: Device configuration
+  - name: Trip Log
+    description: Historical trip data
+
+paths:
+  /api/status:
+    get:
+      tags:
+        - Status
+      summary: Get current system status
+      description: Returns real-time system information including uptime, sensor states, and operational status
+      responses:
+        '200':
+          description: Current system status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemStatus'
+              example:
+                uptime: 129752
+                totalUptime: 5649
+                dataPoints: 100
+                isDataloggerRunning: true
+                waterSensorFront: false
+                waterSensorBack: false
+                leftButton: false
+                rightButton: false
+                lampLevel: 0
+                beeperEnabled: false
+
+  /api/data:
+    get:
+      tags:
+        - Data
+      summary: Get sensor data points
+      description: |
+        Retrieve recent sensor data points with optional filtering by count and time range.
+        Data includes battery voltage, temperatures, currents, RPM, and other sensor readings.
+      parameters:
+        - name: count
+          in: query
+          description: Number of data points to retrieve (1-500)
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 60
+        - name: range
+          in: query
+          description: Time range for data retrieval
+          required: false
+          schema:
+            type: string
+            enum: [recent, hourly, historical]
+            default: recent
+      responses:
+        '200':
+          description: Array of sensor data points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataPoint'
+              example:
+                - timestamp: 129784
+                  tempMotor: 21.0
+                  tempMosfet: 22.8
+                  batteryVoltage: 52.5
+                  current: 0.0
+                  avgMotorCurrent: 0.0
+                  rpm: 0
+                  dutyCycle: 0.0
+                  temperature: 22.5
+                  humidity: 65.2
+                  batteryLevel: 85
+                  leakSensorState: 0
+                  ledState: 0
+                  totalUptime: 5649
+
+  /api/trip-log:
+    get:
+      tags:
+        - Trip Log
+      summary: Download complete trip log
+      description: |
+        Download the complete trip log as JSON containing all recorded data points.
+        This can be a large file depending on the logging duration.
+      responses:
+        '200':
+          description: Complete trip log data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DataPoint'
+
+  /api/settings:
+    get:
+      tags:
+        - Settings
+      summary: Get current device settings
+      description: Retrieve all configurable device parameters including motor settings, LED configuration, and system preferences
+      responses:
+        '200':
+          description: Current device settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceSettings'
+    
+    post:
+      tags:
+        - Settings
+      summary: Update device settings
+      description: |
+        Update device configuration. All settings are validated before being saved.
+        Invalid settings will be rejected with an error response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceSettings'
+      responses:
+        '200':
+          description: Settings update result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+
+  /api/settings/restore:
+    post:
+      tags:
+        - Settings
+      summary: Restore default settings
+      description: Reset all device settings to their default values
+      responses:
+        '200':
+          description: Restore operation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+
+  /api/beeper:
+    post:
+      tags:
+        - Settings
+      summary: Update beeper setting (legacy)
+      description: |
+        Legacy endpoint for updating beeper setting only.
+        Prefer using /api/settings for comprehensive configuration.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabled:
+                  type: boolean
+              required:
+                - enabled
+      responses:
+        '200':
+          description: Beeper setting update result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      enabled:
+                        type: boolean
+
+components:
+  schemas:
+    SystemStatus:
+      type: object
+      properties:
+        uptime:
+          type: integer
+          description: System uptime in milliseconds since last boot
+          example: 129752
+        totalUptime:
+          type: integer
+          description: Total accumulated uptime in seconds across all boots
+          example: 5649
+        dataPoints:
+          type: integer
+          description: Number of data points currently in memory buffer
+          example: 100
+        isDataloggerRunning:
+          type: boolean
+          description: Whether the data logging system is active
+          example: true
+        waterSensorFront:
+          type: boolean
+          description: Front water leak sensor state (true = leak detected)
+          example: false
+        waterSensorBack:
+          type: boolean
+          description: Back water leak sensor state (true = leak detected)
+          example: false
+        leftButton:
+          type: boolean
+          description: Left control button state (true = pressed)
+          example: false
+        rightButton:
+          type: boolean
+          description: Right control button state (true = pressed)
+          example: false
+        lampLevel:
+          type: integer
+          description: Current front lamp brightness level (0 = off)
+          minimum: 0
+          maximum: 10
+          example: 0
+        beeperEnabled:
+          type: boolean
+          description: Whether the beeper is enabled
+          example: false
+
+    DataPoint:
+      type: object
+      properties:
+        timestamp:
+          type: integer
+          description: Timestamp in milliseconds since device boot
+          example: 129784
+        tempMotor:
+          type: number
+          format: float
+          description: Motor temperature in Celsius
+          example: 21.0
+        tempMosfet:
+          type: number
+          format: float
+          description: MOSFET temperature in Celsius
+          example: 22.8
+        batteryVoltage:
+          type: number
+          format: float
+          description: Battery voltage in Volts
+          example: 52.5
+        current:
+          type: number
+          format: float
+          description: Input current in Amperes
+          example: 0.0
+        avgMotorCurrent:
+          type: number
+          format: float
+          description: Average motor current in Amperes
+          example: 0.0
+        rpm:
+          type: number
+          format: float
+          description: Motor RPM (revolutions per minute)
+          example: 0
+        dutyCycle:
+          type: number
+          format: float
+          description: Motor duty cycle as percentage
+          example: 0.0
+        temperature:
+          type: number
+          format: float
+          description: Ambient temperature in Celsius
+          example: 22.5
+        humidity:
+          type: number
+          format: float
+          description: Ambient humidity as percentage
+          example: 65.2
+        batteryLevel:
+          type: integer
+          description: Battery level as percentage
+          minimum: 0
+          maximum: 100
+          example: 85
+        leakSensorState:
+          type: integer
+          description: Water leak sensor state (0 = no leak, 1 = leak detected)
+          example: 0
+        ledState:
+          type: integer
+          description: LED state indicator
+          example: 0
+        totalUptime:
+          type: integer
+          description: Total uptime in seconds at time of measurement
+          example: 5649
+
+    DeviceSettings:
+      type: object
+      properties:
+        # Motor and Speed Settings
+        speedSteps:
+          type: integer
+          description: Number of speed steps (1-20)
+          minimum: 1
+          maximum: 20
+          example: 10
+        standbyDelaySeconds:
+          type: integer
+          description: Standby delay in seconds (10-600)
+          minimum: 10
+          maximum: 600
+          example: 60
+        batteryPowerMax:
+          type: integer
+          description: Maximum battery power in Amperes (10-100)
+          minimum: 10
+          maximum: 100
+          example: 40
+        minSpeedPercent:
+          type: number
+          format: float
+          description: Minimum speed as percentage (0.1-1.0)
+          minimum: 0.1
+          maximum: 1.0
+          example: 0.38
+        maxSpeedRpm:
+          type: number
+          format: float
+          description: Maximum speed in RPM (1000-50000)
+          minimum: 1000
+          maximum: 50000
+          example: 15800
+        speedUpTimeMs:
+          type: integer
+          description: Speed up time in milliseconds (100-10000)
+          minimum: 100
+          maximum: 10000
+          example: 3000
+        speedDownTimeMs:
+          type: integer
+          description: Speed down time in milliseconds (50-5000)
+          minimum: 50
+          maximum: 5000
+          example: 500
+        maxTimeOverloadedMs:
+          type: integer
+          description: Maximum overload time in milliseconds (1000-30000)
+          minimum: 1000
+          maximum: 30000
+          example: 5000
+        
+        # Jam Detection
+        jamMin:
+          type: number
+          format: float
+          description: Minimum jam detection threshold (0.05-0.5)
+          minimum: 0.05
+          maximum: 0.5
+          example: 0.2
+        jamDetectionThreshold:
+          type: number
+          format: float
+          description: Jam detection threshold (0.1-1.0)
+          minimum: 0.1
+          maximum: 1.0
+          example: 0.5
+        
+        # Battery Settings
+        cellsInSeries:
+          type: integer
+          description: Number of battery cells in series (1-20)
+          minimum: 1
+          maximum: 20
+          example: 13
+        
+        # LED Bar Settings
+        ledBarNum:
+          type: integer
+          description: Number of LEDs in bar (1-50)
+          minimum: 1
+          maximum: 50
+          example: 10
+        ledBarBrightness:
+          type: integer
+          description: LED bar brightness (1-255)
+          minimum: 1
+          maximum: 255
+          example: 15
+        ledBarBrightnessSecond:
+          type: integer
+          description: LED bar secondary brightness (1-255)
+          minimum: 1
+          maximum: 255
+          example: 3
+        ledFrequency:
+          type: integer
+          description: LED frequency in Hz (100-10000)
+          minimum: 100
+          maximum: 10000
+          example: 960
+        
+        # Lamp Settings
+        lampMaxLevels:
+          type: integer
+          description: Number of lamp brightness levels (2-10)
+          minimum: 2
+          maximum: 10
+          example: 5
+        lampBrightness:
+          type: array
+          description: Array of brightness values for each lamp level
+          items:
+            type: integer
+            minimum: 0
+            maximum: 255
+          minItems: 10
+          maxItems: 10
+          example: [0, 20, 76, 153, 255, 0, 0, 0, 0, 0]
+        
+        # WiFi Settings
+        wifiSSID:
+          type: string
+          description: WiFi SSID (max 31 characters)
+          maxLength: 31
+          example: "DPVControl"
+        wifiPassword:
+          type: string
+          description: WiFi password (max 31 characters)
+          maxLength: 31
+          example: "DPVControl"
+        
+        # System Settings
+        beeperEnabled:
+          type: boolean
+          description: Whether the beeper is enabled
+          example: true
+        standbyBlinkStartMinutes:
+          type: integer
+          description: Standby blink start time in minutes (1-60)
+          minimum: 1
+          maximum: 60
+          example: 15
+        standbyBlinkDurationSeconds:
+          type: integer
+          description: Standby blink duration in seconds (1-60)
+          minimum: 1
+          maximum: 60
+          example: 10
+
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation was successful
+        message:
+          type: string
+          description: Optional message with additional information
+      required:
+        - success
+
+  securitySchemes: {}
+
+security: [] 
