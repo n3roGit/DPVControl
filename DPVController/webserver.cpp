@@ -949,8 +949,8 @@ const char* helloWorldHTML = R"rawliteral(
             // First data load
             loadData();
             
-            // Set up periodic updates with fixed interval
-            setInterval(loadData, FIXED_UPDATE_INTERVAL_MS);
+            // Set up periodic updates with enhanced live session support
+            setInterval(loadDataWithLiveSession, FIXED_UPDATE_INTERVAL_MS);
             
             // Initialize settings tab
             updateLampBrightnessInputs();
@@ -1113,8 +1113,8 @@ const char* helloWorldHTML = R"rawliteral(
                 sessionSelect.appendChild(option);
             });
             
-            // Store filenames for compatibility
-            availableSessions = sessions.map(s => s.filename);
+            // Store complete session objects for live updates
+            availableSessions = sessions;
             console.log('Updated session dropdown with', sessions.length, 'sessions');
             
             // Ensure selected session is visible in dropdown
@@ -1320,6 +1320,31 @@ const char* helloWorldHTML = R"rawliteral(
                     allDataPoints = [];
                     updateCharts([]);
                 });
+        }
+        
+        // Check if selected session is the current (active) session
+        function isCurrentSession(sessionFilename) {
+            // Find session in availableSessions array that matches current selection
+            if (!availableSessions || availableSessions.length === 0) return false;
+            
+            for (let i = 0; i < availableSessions.length; i++) {
+                if (availableSessions[i].filename === sessionFilename && availableSessions[i].isCurrent) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // Enhanced loadData function with live session updates
+        function loadDataWithLiveSession() {
+            // Always load status and latest data point
+            loadData();
+            
+            // If current session is selected, also reload chart data for live updates
+            if (selectedSession && isCurrentSession(selectedSession)) {
+                console.log('Live updating current session:', selectedSession);
+                loadChartData();
+            }
         }
         
         // Update charts with new data
@@ -1908,11 +1933,9 @@ const char* helloWorldHTML = R"rawliteral(
             let filename = 'current_view';
             
             // Add session info to filename if specific session is selected
-            if (selectedSession !== 'all') {
-                const session = availableSessions.find(s => s.id == selectedSession);
-                if (session) {
-                    filename = `session_${selectedSession}`;
-                }
+            if (selectedSession) {
+                const sessionNumber = selectedSession.replace('session_', '').replace('.bin', '');
+                filename = `session_${sessionNumber}`;
             }
             
             exportDataToCSV(filteredData, filename);
