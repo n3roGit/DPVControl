@@ -36,6 +36,10 @@ void createNewSession() {
     currentSessionFile = generateSessionFilename();
     String msg = "Created new session: " + currentSessionFile;
     log(msg.c_str());
+    
+    // Log session creation for debugging
+    String detailMsg = "Session created at uptime: " + String(millis()/1000) + " seconds";
+    log(detailMsg.c_str());
 }
 
 /**
@@ -585,7 +589,18 @@ void appendToTripLog(LogdataRow datapoint) {
   
   // Open current session file for each write to ensure data is saved immediately
   if (currentSessionFile == "") {
+    log("No current session file - creating new session");
     createNewSession();
+  }
+  
+  // Log session file status periodically
+  static int sessionWriteCount = 0;
+  sessionWriteCount++;
+  if (sessionWriteCount % 60 == 0) { // Every 5 minutes at 5s intervals
+    String sessionMsg = "Session file: " + currentSessionFile + 
+                       ", writes: " + String(sessionWriteCount) + 
+                       ", age: " + String(millis()/1000) + "s";
+    log(sessionMsg.c_str());
   }
   
   File tripFile = LittleFS.open(currentSessionFile, "a");
@@ -599,14 +614,19 @@ void appendToTripLog(LogdataRow datapoint) {
       static int writeCount = 0;
       writeCount++;
       if (writeCount % 10 == 0) {
-        String writeMsg = "Session log writes: " + String(writeCount);
+        String writeMsg = "Session log writes: " + String(writeCount) + 
+                         " to " + currentSessionFile;
         log(writeMsg.c_str());
       }
     } else {
-      log("Failed to write to session log");
+      String errorMsg = "Failed to write to session log: " + currentSessionFile + 
+                       " (wanted: " + String(sizeof(LogdataRow)) + 
+                       ", wrote: " + String(written) + ")";
+      log(errorMsg.c_str());
     }
   } else {
-    log("Failed to open session log for writing");
+    String errorMsg = "Failed to open session log for writing: " + currentSessionFile;
+    log(errorMsg.c_str());
   }
 }
 
@@ -956,6 +976,8 @@ void dataloggerTask(void *pvParameters) {
   log("Entering main loop...");
   
   unsigned long lastDataLogTime = millis();
+  unsigned long sessionStartTime = millis();
+  bool motorWasRunning = false;
   
   while (true) {
     unsigned long currentTime = millis();
@@ -963,9 +985,31 @@ void dataloggerTask(void *pvParameters) {
     // Debug every 10 seconds to show we're alive
     static unsigned long lastDebugTime = 0;
     if (currentTime - lastDebugTime >= 10000) {
-      String aliveMsg = "Datalogger task alive - Total points: " + String(totalRecentPoints);
+      String aliveMsg = "Datalogger task alive - Total points: " + String(totalRecentPoints) + 
+                       ", Session: " + currentSessionFile + 
+                       ", Session age: " + String((currentTime - sessionStartTime)/1000) + "s";
       log(aliveMsg.c_str());
       lastDebugTime = currentTime;
+    }
+    
+    // Check if we need to create a new session (motor start/stop or long sessions)
+    bool motorCurrentlyRunning = false; // TODO: Add actual motor status check
+    unsigned long sessionAge = currentTime - sessionStartTime;
+    
+    // Create new session if:
+    // 1. Motor state changed (start/stop)
+    // 2. Session is older than 30 minutes (prevent extremely long sessions)
+    if ((motorCurrentlyRunning != motorWasRunning) || (sessionAge > 1800000)) { // 30 minutes
+      if (motorCurrentlyRunning != motorWasRunning) {
+        String stateMsg = "Motor state changed: " + String(motorCurrentlyRunning ? "STARTED" : "STOPPED") + " - Creating new session";
+        log(stateMsg.c_str());
+      } else {
+        log("Session time limit reached (30 min) - Creating new session");
+      }
+      
+      createNewSession();
+      sessionStartTime = currentTime;
+      motorWasRunning = motorCurrentlyRunning;
     }
     
     // Create new datapoint every 5 seconds with optimized multi-interval logging

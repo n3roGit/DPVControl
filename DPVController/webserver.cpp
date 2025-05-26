@@ -377,24 +377,18 @@ const char* helloWorldHTML = R"rawliteral(
                 <div style="margin-bottom: 20px; padding: 15px; background-color: #f5f5f5; border-radius: 5px;">
                     <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
                         <div>
-                            <label for="timeRange">Time Range:</label>
-                            <select id="timeRange" onchange="updateTimeRange()">
-                                <option value="live">Live (last 60s)</option>
-                                <option value="recent">Recent (8 minutes)</option>
-                                <option value="hourly">Hourly (48 minutes)</option>
-                                <option value="historical">Historical (2 hours)</option>
-                                <option value="all">All available data</option>
-                            </select>
-                        </div>
-                        
-                        <div>
                             <label for="sessionSelect">Session:</label>
                             <select id="sessionSelect" onchange="updateSessionFilter()">
-                                <option value="all">All Sessions</option>
+                                <!-- Sessions will be populated dynamically -->
                             </select>
                         </div>
                         
-                        <div id="timeSliderContainer" style="display: none; flex: 1; min-width: 200px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span>Time Range: <strong>5 Minutes</strong></span>
+                            <span style="color: #666; font-size: 12px;">(Fixed)</span>
+                        </div>
+                        
+                        <div id="timeSliderContainer" style="flex: 1; min-width: 200px;">
                             <label for="timeSlider">Time Window Position:</label>
                             <input type="range" id="timeSlider" min="0" max="100" value="100" 
                                    style="width: 100%;" onchange="updateTimeWindow()">
@@ -404,10 +398,9 @@ const char* helloWorldHTML = R"rawliteral(
                             </div>
                         </div>
                         
-                        <div>
-                            <label for="updateInterval">Update (s):</label>
-                            <input type="number" id="updateInterval" min="1" max="60" value="5" 
-                                   style="width: 60px;" onchange="saveSettings()">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span>Update: <strong>10s</strong></span>
+                            <span style="color: #666; font-size: 12px;">(Fixed)</span>
                         </div>
                         
                         <button class="button" onclick="refreshChart()">Refresh</button>
@@ -670,6 +663,10 @@ const char* helloWorldHTML = R"rawliteral(
                                 <td><input type="checkbox" id="beeperEnabled" checked></td>
                             </tr>
                             <tr>
+                                <td><label for="debugLoggingEnabled">Debug Logging Enabled:</label></td>
+                                <td><input type="checkbox" id="debugLoggingEnabled"></td>
+                            </tr>
+                            <tr>
                                 <td><label for="standbyBlinkStartMinutes">Standby Blink Start (min):</label></td>
                                 <td><input type="number" id="standbyBlinkStartMinutes" min="1" max="60" value="15"></td>
                             </tr>
@@ -903,49 +900,33 @@ const char* helloWorldHTML = R"rawliteral(
 
     <script>
         // Variables
-        let updateInterval = 5000; // 5 seconds
-        let dataPointsToShow = 20;
+        let updateInterval = 10000; // Fixed 10 seconds
         let charts = {};
         let allDataPoints = [];
-        let currentTimeRange = 'live';
         let timeSliderValue = 100;
         let systemStartTime = null;
         let availableSessions = [];
-        let selectedSession = 'all';
+        let selectedSession = null; // No "all sessions" option
+        const FIXED_TIME_RANGE_MINUTES = 5; // Fixed 5-minute window
+        const FIXED_UPDATE_INTERVAL_MS = 10000; // Fixed 10-second updates
         
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            // Load settings from localStorage
-            if (localStorage.getItem('updateInterval')) {
-                updateInterval = parseInt(localStorage.getItem('updateInterval')) * 1000;
-                document.getElementById('updateInterval').value = updateInterval / 1000;
-            }
-            
-            if (localStorage.getItem('dataPoints')) {
-                dataPointsToShow = parseInt(localStorage.getItem('dataPoints'));
-                document.getElementById('dataPoints').value = dataPointsToShow;
-            }
-            
-            if (localStorage.getItem('timeRange')) {
-                currentTimeRange = localStorage.getItem('timeRange');
-                document.getElementById('timeRange').value = currentTimeRange;
-            }
-            
             // Initialize charts
             initCharts();
             
             // First data load
             loadData();
             
-            // Set up periodic updates
-            setInterval(loadData, updateInterval);
-            
-            // Update time range controls
-            updateTimeRange();
+            // Set up periodic updates with fixed interval
+            setInterval(loadData, FIXED_UPDATE_INTERVAL_MS);
             
             // Initialize settings tab
             updateLampBrightnessInputs();
             loadDPVSettings();
+            
+            // Load available sessions
+            loadSessionList();
         });
         
         // Initialize Charts
@@ -1056,25 +1037,41 @@ const char* helloWorldHTML = R"rawliteral(
             event.target.classList.add('active');
         }
         
-        // Save settings
-        function saveSettings() {
-            updateInterval = parseInt(document.getElementById('updateInterval').value) * 1000;
-            localStorage.setItem('updateInterval', updateInterval / 1000);
-            localStorage.setItem('timeRange', currentTimeRange);
+        // Load available sessions from API
+        function loadSessionList() {
+            fetch('/api/sessions')
+                .then(response => response.json())
+                .then(sessions => {
+                    updateSessionDropdown(sessions);
+                    if (sessions.length > 0) {
+                        selectedSession = sessions[0]; // Select first (newest) session by default
+                        document.getElementById('sessionSelect').value = selectedSession;
+                        refreshChart();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading sessions:', error);
+                });
         }
         
-        // Update time range
-        function updateTimeRange() {
-            currentTimeRange = document.getElementById('timeRange').value;
-            const sliderContainer = document.getElementById('timeSliderContainer');
+        // Update session dropdown with available sessions
+        function updateSessionDropdown(sessions) {
+            const sessionSelect = document.getElementById('sessionSelect');
+            sessionSelect.innerHTML = '';
             
-            if (currentTimeRange === 'live' || currentTimeRange === 'all') {
-                sliderContainer.style.display = 'none';
-            } else {
-                sliderContainer.style.display = 'block';
-            }
+            sessions.forEach(session => {
+                const option = document.createElement('option');
+                option.value = session;
+                option.textContent = session.replace('/datalog/session_', 'Session ').replace('.bin', '');
+                sessionSelect.appendChild(option);
+            });
             
-            saveSettings();
+            availableSessions = sessions;
+        }
+        
+        // Handle session selection change
+        function updateSessionFilter() {
+            selectedSession = document.getElementById('sessionSelect').value;
             refreshChart();
         }
         
@@ -1089,16 +1086,10 @@ const char* helloWorldHTML = R"rawliteral(
             loadChartData();
         }
         
-        // Calculate data points needed based on time range
+        // Calculate data points needed for 5-minute window
         function getDataPointsForTimeRange() {
-            switch(currentTimeRange) {
-                case 'live': return 60; // 60 seconds
-                case 'recent': return 500; // 8.3 minutes (recent buffer)
-                case 'hourly': return 48; // 48 minutes (hourly buffer)
-                case 'historical': return 24; // 2 hours (historical buffer)
-                case 'all': return 500; // All available (max recent buffer size)
-                default: return 60;
-            }
+            // 5 minutes at 5-second intervals = 60 data points
+            return Math.ceil((FIXED_TIME_RANGE_MINUTES * 60) / 5);
         }
         
         // Filter data based on time range, slider position, and selected session
@@ -1351,20 +1342,14 @@ const char* helloWorldHTML = R"rawliteral(
                 });
         }
         
-        // Load chart data based on current settings
+        // Load chart data from selected session
         function loadChartData() {
-            const pointsNeeded = getDataPointsForTimeRange();
-            let apiUrl = '/api/data?count=' + pointsNeeded;
-            
-            // Add range parameter for non-live data
-            if (currentTimeRange === 'hourly') {
-                apiUrl += '&range=hourly';
-            } else if (currentTimeRange === 'historical') {
-                apiUrl += '&range=historical';
-            } else if (currentTimeRange === 'recent' || currentTimeRange === 'all') {
-                apiUrl += '&range=recent';
+            if (!selectedSession) {
+                console.log('No session selected');
+                return;
             }
-            // live uses recent data by default
+            
+            let apiUrl = '/api/session-data?session=' + encodeURIComponent(selectedSession);
             
             console.log('Fetching chart data from:', apiUrl);
             fetch(apiUrl)
@@ -1375,11 +1360,6 @@ const char* helloWorldHTML = R"rawliteral(
                 .then(data => {
                     console.log('Chart data received:', data.length, 'points');
                     allDataPoints = data;
-                    
-                    // Analyze sessions and update dropdown
-                    const sessions = analyzeSessions(data);
-                    updateSessionDropdown(sessions);
-                    
                     updateCharts(data);
                 })
                 .catch(error => {

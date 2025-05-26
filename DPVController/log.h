@@ -1,13 +1,16 @@
 #ifndef log_h
 #define log_h
 
+#include "settings.h"
+
 /**
 *
 * Code that mostly just logs information to serial.
 *
 */ 
 
-const bool EnableDebugLog = true; //Enable/Disable Serial Log
+// Use settings-based debug logging instead of hardcoded constant
+#define EnableDebugLog getDebugLoggingEnabled()
 
 void log(const char* label, int value, bool doLog);
 void log(const char* label, int value);

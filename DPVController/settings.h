@@ -39,6 +39,9 @@ struct DPVSettings {
     // Beeper setting
     bool beeperEnabled;
     
+    // Debug logging setting
+    bool debugLoggingEnabled;
+    
     // Standby blink settings
     int standbyBlinkStartMinutes;
     int standbyBlinkDurationSeconds;
@@ -76,6 +79,7 @@ int getLampBrightness(int level);
 const char* getWifiSSID();
 const char* getWifiPassword();
 bool getBeeperEnabled();
+bool getDebugLoggingEnabled();
 int getStandbyBlinkStart();
 int getStandbyBlinkDuration();
 

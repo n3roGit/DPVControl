@@ -56,6 +56,9 @@ void initializeDefaultSettings() {
     // Standby blink settings
     defaultSettings.standbyBlinkStartMinutes = 15;
     defaultSettings.standbyBlinkDurationSeconds = 10;
+
+    // Debug logging setting
+    defaultSettings.debugLoggingEnabled = false;
 }
 
 /**
@@ -278,5 +281,6 @@ int getLampBrightness(int level) {
 const char* getWifiSSID() { return currentSettings.wifiSSID; }
 const char* getWifiPassword() { return currentSettings.wifiPassword; }
 bool getBeeperEnabled() { return currentSettings.beeperEnabled; }
+bool getDebugLoggingEnabled() { return currentSettings.debugLoggingEnabled; }
 int getStandbyBlinkStart() { return currentSettings.standbyBlinkStartMinutes; }
 int getStandbyBlinkDuration() { return currentSettings.standbyBlinkDurationSeconds; } 
