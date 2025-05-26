@@ -1051,8 +1051,11 @@ const char* helloWorldHTML = R"rawliteral(
                 .then(sessions => {
                     updateSessionDropdown(sessions);
                     if (sessions.length > 0) {
-                        selectedSession = sessions[sessions.length - 1]; // Select last (newest) session by default
+                        // Sort sessions and select the newest one (highest number)
+                        const sortedSessions = sessions.sort().reverse();
+                        selectedSession = sortedSessions[0]; // Select newest session by default
                         document.getElementById('sessionSelect').value = selectedSession;
+                        console.log('Auto-selected newest session:', selectedSession);
                         refreshChart();
                     }
                 })
@@ -1066,20 +1069,31 @@ const char* helloWorldHTML = R"rawliteral(
             const sessionSelect = document.getElementById('sessionSelect');
             sessionSelect.innerHTML = '';
             
+            // Sort sessions by filename (newest first)
+            sessions.sort().reverse();
+            
             sessions.forEach(session => {
                 const option = document.createElement('option');
                 option.value = session;
-                option.textContent = session.replace('session_', 'Session ').replace('.bin', '');
+                // Extract session number and make it more readable
+                const sessionNumber = session.replace('session_', '').replace('.bin', '');
+                option.textContent = `Session ${sessionNumber}`;
                 sessionSelect.appendChild(option);
             });
             
             availableSessions = sessions;
             console.log('Updated session dropdown with', sessions.length, 'sessions');
+            
+            // Ensure selected session is visible in dropdown
+            if (selectedSession && sessionSelect.value !== selectedSession) {
+                sessionSelect.value = selectedSession;
+            }
         }
         
         // Handle session selection change
         function updateSessionFilter() {
             selectedSession = document.getElementById('sessionSelect').value;
+            console.log('Session changed to:', selectedSession);
             refreshChart();
         }
         
@@ -1283,10 +1297,6 @@ const char* helloWorldHTML = R"rawliteral(
             // Filter data based on time range and slider
             const filteredData = filterDataByTimeRange(data);
             console.log('Filtered data:', filteredData.length, 'points');
-            
-            // Detect restarts
-            const restarts = detectRestarts(filteredData);
-            console.log('Detected restarts:', restarts.length);
             
             // Prepare labels (timestamps)
             const labels = filteredData.map(item => {
