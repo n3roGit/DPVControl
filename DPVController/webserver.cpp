@@ -343,39 +343,143 @@ const char* helloWorldHTML = R"rawliteral(
             border: none;
         }
     </style>
-                <!-- Charts and export functionality embedded to work offline -->
+                <!-- Local Chart.js and JSZip for offline functionality -->
             <script>
-                // Minimal Chart.js replacement for our simple needs
-                class SimpleChart {
-                    constructor(ctx, config) {
-                        this.ctx = ctx;
-                        this.config = config;
-                        this.data = config.data || { labels: [], datasets: [] };
-                        this.canvas = ctx.canvas;
-                        this.setupCanvas();
-                    }
-                    
-                    setupCanvas() {
-                        this.canvas.style.backgroundColor = '#1e1e1e';
-                        this.canvas.width = 800;
-                        this.canvas.height = 400;
-                    }
-                    
-                    update() {
-                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                        this.ctx.fillStyle = '#333';
-                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                        
-                        // Simple text display for now
-                        this.ctx.fillStyle = '#4fc3f7';
-                        this.ctx.font = '16px Arial';
-                        this.ctx.textAlign = 'center';
-                        this.ctx.fillText('Chart Data Visualization', this.canvas.width / 2, this.canvas.height / 2);
-                        this.ctx.fillText('Points: ' + (this.data.labels ? this.data.labels.length : 0), this.canvas.width / 2, this.canvas.height / 2 + 30);
-                    }
-                }
+                // Load Chart.js from local SPIFFS
+                let chartJsLoaded = false;
+                let jsZipLoaded = false;
                 
-                // Simple export functionality
+                // Load Chart.js
+                fetch('/chart.min.js')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Chart.js not found');
+                        return response.text();
+                    })
+                    .then(script => {
+                        const scriptElement = document.createElement('script');
+                        scriptElement.textContent = script;
+                        document.head.appendChild(scriptElement);
+                        chartJsLoaded = true;
+                        console.log('Chart.js loaded successfully from local file');
+                    })
+                    .catch(error => {
+                        console.warn('Chart.js not available locally, using fallback:', error);
+                        // Fallback: Enhanced chart placeholder with basic line drawing
+                        window.Chart = class {
+                            constructor(ctx, config) {
+                                this.ctx = ctx;
+                                this.config = config;
+                                this.data = config.data || { labels: [], datasets: [] };
+                                this.canvas = ctx.canvas;
+                                this.canvas.style.backgroundColor = '#1e1e1e';
+                                this.canvas.width = 800;
+                                this.canvas.height = 400;
+                                this.update();
+                            }
+                            
+                            update() {
+                                const ctx = this.ctx;
+                                const canvas = this.canvas;
+                                
+                                // Clear canvas
+                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                ctx.fillStyle = '#2a2a2a';
+                                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                                
+                                // Draw basic chart if data exists
+                                if (this.data.datasets && this.data.datasets.length > 0) {
+                                    const dataset = this.data.datasets[0];
+                                    const data = dataset.data || [];
+                                    
+                                    if (data.length > 1) {
+                                        ctx.strokeStyle = dataset.borderColor || '#4fc3f7';
+                                        ctx.lineWidth = 2;
+                                        ctx.beginPath();
+                                        
+                                        const margin = 40;
+                                        const chartWidth = canvas.width - 2 * margin;
+                                        const chartHeight = canvas.height - 2 * margin;
+                                        
+                                        // Find min/max values
+                                        const values = data.map(d => typeof d === 'object' ? d.y : d);
+                                        const minVal = Math.min(...values);
+                                        const maxVal = Math.max(...values);
+                                        const range = maxVal - minVal || 1;
+                                        
+                                        // Draw line
+                                        for (let i = 0; i < data.length; i++) {
+                                            const x = margin + (i / (data.length - 1)) * chartWidth;
+                                            const val = typeof data[i] === 'object' ? data[i].y : data[i];
+                                            const y = margin + chartHeight - ((val - minVal) / range) * chartHeight;
+                                            
+                                            if (i === 0) {
+                                                ctx.moveTo(x, y);
+                                            } else {
+                                                ctx.lineTo(x, y);
+                                            }
+                                        }
+                                        ctx.stroke();
+                                        
+                                        // Draw axes
+                                        ctx.strokeStyle = '#555';
+                                        ctx.lineWidth = 1;
+                                        ctx.beginPath();
+                                        ctx.moveTo(margin, margin);
+                                        ctx.lineTo(margin, canvas.height - margin);
+                                        ctx.lineTo(canvas.width - margin, canvas.height - margin);
+                                        ctx.stroke();
+                                        
+                                        // Labels
+                                        ctx.fillStyle = '#ccc';
+                                        ctx.font = '12px Arial';
+                                        ctx.textAlign = 'center';
+                                        ctx.fillText(dataset.label || 'Data', canvas.width / 2, 20);
+                                        ctx.fillText(`${data.length} points`, canvas.width / 2, canvas.height - 10);
+                                    }
+                                } else {
+                                    // No data message
+                                    ctx.fillStyle = '#888';
+                                    ctx.font = '16px Arial';
+                                    ctx.textAlign = 'center';
+                                    ctx.fillText('Chart.js offline mode - No data available', canvas.width / 2, canvas.height / 2);
+                                }
+                            }
+                            
+                            destroy() {}
+                        };
+                        chartJsLoaded = true;
+                    });
+                
+                // Load JSZip
+                fetch('/jszip.min.js')
+                    .then(response => {
+                        if (!response.ok) throw new Error('JSZip not found');
+                        return response.text();
+                    })
+                    .then(script => {
+                        const scriptElement = document.createElement('script');
+                        scriptElement.textContent = script;
+                        document.head.appendChild(scriptElement);
+                        jsZipLoaded = true;
+                        console.log('JSZip loaded successfully from local file');
+                    })
+                    .catch(error => {
+                        console.warn('JSZip not available locally, using fallback:', error);
+                        // Fallback: Simple export functionality
+                        window.JSZip = function() {
+                            return {
+                                file: function(name, content) {
+                                    console.log('JSZip file (fallback):', name);
+                                },
+                                generateAsync: function(options) {
+                                    return Promise.resolve(new Blob(['Mock ZIP content - JSZip not available'], {type: 'application/zip'}));
+                                }
+                            };
+                        };
+                        jsZipLoaded = true;
+                    });
+                
+                // Enhanced CSV export functionality
                 function exportToCSV(data, filename) {
                     if (!data || data.length === 0) {
                         alert('No data to export');
@@ -409,9 +513,6 @@ const char* helloWorldHTML = R"rawliteral(
                     a.click();
                     window.URL.revokeObjectURL(url);
                 }
-                
-                // Chart compatibility layer
-                window.Chart = SimpleChart;
             </script>
 </head>
 <body>

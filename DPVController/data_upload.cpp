@@ -101,37 +101,49 @@ bool initializeFileSystem() {
             color: white;
         }
     </style>
-                <!-- Embedded chart functionality for offline use -->
+                <!-- Local Chart.js for offline functionality -->
             <script>
-                // Simple chart placeholder for data upload page
-                class SimpleChart {
-                    constructor(ctx, config) {
-                        this.ctx = ctx;
-                        this.config = config;
-                        this.data = config.data || { labels: [], datasets: [] };
-                        this.canvas = ctx.canvas;
-                        this.setupCanvas();
-                    }
-                    
-                    setupCanvas() {
-                        this.canvas.style.backgroundColor = '#1e1e1e';
-                        this.canvas.width = 600;
-                        this.canvas.height = 300;
-                    }
-                    
-                    update() {
-                        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                        this.ctx.fillStyle = '#333';
-                        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                        
-                        this.ctx.fillStyle = '#4fc3f7';
-                        this.ctx.font = '14px Arial';
-                        this.ctx.textAlign = 'center';
-                        this.ctx.fillText('Data Upload Visualization', this.canvas.width / 2, this.canvas.height / 2);
-                    }
-                }
-                
-                window.Chart = SimpleChart;
+                // Load Chart.js from local SPIFFS for data upload page
+                fetch('/chart.min.js')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Chart.js not found');
+                        return response.text();
+                    })
+                    .then(script => {
+                        const scriptElement = document.createElement('script');
+                        scriptElement.textContent = script;
+                        document.head.appendChild(scriptElement);
+                        console.log('Chart.js loaded successfully for data upload page');
+                    })
+                    .catch(error => {
+                        console.warn('Chart.js not available locally for data upload, using fallback:', error);
+                        // Fallback: Simple chart placeholder for data upload page
+                        window.Chart = class {
+                            constructor(ctx, config) {
+                                this.ctx = ctx;
+                                this.config = config;
+                                this.data = config.data || { labels: [], datasets: [] };
+                                this.canvas = ctx.canvas;
+                                this.canvas.style.backgroundColor = '#1e1e1e';
+                                this.canvas.width = 600;
+                                this.canvas.height = 300;
+                                this.update();
+                            }
+                            
+                            update() {
+                                const ctx = this.ctx;
+                                ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                                ctx.fillStyle = '#333';
+                                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                                ctx.fillStyle = '#4fc3f7';
+                                ctx.font = '14px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.fillText('Chart.js offline mode - Data upload page', this.canvas.width / 2, this.canvas.height / 2);
+                            }
+                            
+                            destroy() {}
+                        };
+                    });
             </script>
 </head>
 <body>
