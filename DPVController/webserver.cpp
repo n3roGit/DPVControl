@@ -286,6 +286,7 @@ const char* helloWorldHTML = R"rawliteral(
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -423,8 +424,8 @@ const char* helloWorldHTML = R"rawliteral(
                     <button class="button" onclick="exportCurrentViewAsCSV()" style="background-color: #27ae60; margin-right: 10px;">
                         Export Current View as CSV
                     </button>
-                    <button class="button" onclick="exportFullTripLogAsCSV()" style="background-color: #e67e22;">
-                        Download Full Trip Log as CSV
+                    <button class="button" onclick="exportAllSessionsAsZip()" style="background-color: #e67e22;">
+                        Export All Sessions as ZIP
                     </button>
                 </div>
                 
@@ -1917,39 +1918,162 @@ const char* helloWorldHTML = R"rawliteral(
             exportDataToCSV(filteredData, filename);
         }
         
-        // Export full trip log as CSV
-        async function exportFullTripLogAsCSV() {
+        // Export all sessions as ZIP using JSZip
+        async function exportAllSessionsAsZip() {
             try {
                 // Show loading indicator
                 const button = event.target;
                 const originalText = button.textContent;
-                button.textContent = 'Downloading...';
+                button.textContent = 'Creating ZIP...';
                 button.disabled = true;
                 
-                // Fetch all trip data
-                const response = await fetch('/api/trip-log');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                // Check if JSZip is available
+                if (typeof JSZip === 'undefined') {
+                    throw new Error('JSZip library not loaded. Please refresh the page.');
                 }
                 
-                const fullTripData = await response.json();
+                // Fetch list of all sessions
+                const sessionsResponse = await fetch('/api/sessions');
+                if (!sessionsResponse.ok) {
+                    throw new Error(`Failed to fetch session list: ${sessionsResponse.status}`);
+                }
                 
-                if (!fullTripData || fullTripData.length === 0) {
-                    alert('No trip data available for download');
+                const sessions = await sessionsResponse.json();
+                
+                if (!sessions || sessions.length === 0) {
+                    alert('No sessions available for export');
                     return;
                 }
                 
-                exportDataToCSV(fullTripData, 'full_trip_log');
+                // Create new ZIP
+                const zip = new JSZip();
+                let processedSessions = 0;
+                
+                // Process each session
+                for (const session of sessions) {
+                    try {
+                        button.textContent = `Processing ${processedSessions + 1}/${sessions.length}...`;
+                        
+                        // Fetch session data
+                        const sessionResponse = await fetch(`/api/session-data?session=${encodeURIComponent(session.filename)}`);
+                        if (!sessionResponse.ok) {
+                            console.warn(`Failed to fetch session ${session.filename}: ${sessionResponse.status}`);
+                            continue;
+                        }
+                        
+                        const sessionData = await sessionResponse.json();
+                        
+                        if (!sessionData || sessionData.length === 0) {
+                            console.warn(`Session ${session.filename} has no data`);
+                            continue;
+                        }
+                        
+                        // Convert to CSV
+                        const csvContent = convertSessionDataToCSV(sessionData);
+                        
+                        // Add to ZIP with descriptive filename
+                        const sessionNumber = session.filename.replace('session_', '').replace('.bin', '');
+                        const displayName = session.isCurrent ? `session_${sessionNumber}_current.csv` : `session_${sessionNumber}.csv`;
+                        
+                        zip.file(displayName, csvContent);
+                        processedSessions++;
+                        
+                        // Small delay to prevent overwhelming the ESP32
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        
+                    } catch (error) {
+                        console.error(`Error processing session ${session.filename}:`, error);
+                        // Continue with other sessions
+                    }
+                }
+                
+                if (processedSessions === 0) {
+                    throw new Error('No valid session data found');
+                }
+                
+                button.textContent = 'Generating ZIP...';
+                
+                // Generate ZIP file
+                const zipBlob = await zip.generateAsync({ 
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+                
+                // Download ZIP file
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(zipBlob);
+                link.setAttribute('href', url);
+                
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `dpv_all_sessions_${timestamp}.zip`;
+                link.setAttribute('download', filename);
+                
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Cleanup
+                URL.revokeObjectURL(url);
+                
+                alert(`Successfully exported ${processedSessions} sessions to ${filename}`);
                 
             } catch (error) {
-                console.error('Error downloading full trip log:', error);
-                alert('Failed to download trip log: ' + error.message);
+                console.error('Error creating session ZIP:', error);
+                alert('Failed to export sessions: ' + error.message);
             } finally {
                 // Restore button
                 const button = event.target;
                 button.textContent = originalText;
                 button.disabled = false;
             }
+        }
+        
+        // Convert session data to CSV format
+        function convertSessionDataToCSV(sessionData) {
+            // CSV header
+            const headers = [
+                'Timestamp',
+                'Motor Temperature (°C)',
+                'MOSFET Temperature (°C)', 
+                'Battery Voltage (V)',
+                'Input Current (A)',
+                'Motor Current (A)',
+                'RPM',
+                'Duty Cycle (%)',
+                'Ambient Temperature (°C)',
+                'Humidity (%)',
+                'Battery Level (%)',
+                'Leak Sensor State',
+                'LED State',
+                'Total Uptime (s)'
+            ];
+            
+            // Build CSV content
+            let csvContent = headers.join(',') + '\n';
+            
+            sessionData.forEach(point => {
+                const row = [
+                    new Date(point.timestamp).toISOString(),
+                    point.tempMotor || 0,
+                    point.tempMosfet || 0,
+                    point.batteryVoltage || 0,
+                    point.current || 0,
+                    point.avgMotorCurrent || 0,
+                    point.rpm || 0,
+                    point.dutyCycle || 0,
+                    point.temperature || 0,
+                    point.humidity || 0,
+                    point.batteryLevel || 0,
+                    point.leakSensorState || 0,
+                    point.ledState || 0,
+                    point.totalUptime || 0
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            return csvContent;
         }
         
         // Export data to CSV file
