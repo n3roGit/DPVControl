@@ -1,0 +1,25 @@
+.pio/build/esp32dev/lib0b4/FastLED/fl/transform.cpp.o: \
+ .pio/libdeps/esp32dev/FastLED/src/fl/transform.cpp \
+ .pio/libdeps/esp32dev/FastLED/src/fl/lut.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/allocator.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/force_inline.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/ptr.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/namespace.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/scoped_ptr.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/template_magic.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/type_traits.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/geometry.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/math.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/clamp.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/map_range.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/math_macros.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/transform.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/xymap.h \
+ .pio/libdeps/esp32dev/FastLED/src/crgb.h \
+ .pio/libdeps/esp32dev/FastLED/src/chsv.h \
+ .pio/libdeps/esp32dev/FastLED/src/color.h \
+ .pio/libdeps/esp32dev/FastLED/src/lib8tion/types.h \
+ .pio/libdeps/esp32dev/FastLED/src/fl/xmap.h \
+ .pio/libdeps/esp32dev/FastLED/src/lib8tion/intmap.h \
+ .pio/libdeps/esp32dev/FastLED/src/lib8tion/lib8static.h \
+ .pio/libdeps/esp32dev/FastLED/src/lib8tion/trig8.h
