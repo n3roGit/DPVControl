@@ -33,6 +33,71 @@ WiFiServer server(80);
 // Flag to check if SPIFFS is mounted
 bool spiffsInitialized = false;
 
+/**
+ * Generate JSON list of all available sessions
+ */
+String generateSessionListJson() {
+    int count;
+    String* sessions = listSessionFiles(&count);
+    
+    String json = "[";
+    for (int i = 0; i < count; i++) {
+        if (i > 0) json += ",";
+        json += "\"" + sessions[i] + "\"";
+    }
+    json += "]";
+    
+    return json;
+}
+
+/**
+ * Generate JSON data for a specific session
+ */
+String generateSessionDataJson(String sessionFile) {
+    if (!LittleFS.exists(sessionFile)) {
+        return "[]";
+    }
+    
+    File file = LittleFS.open(sessionFile, "r");
+    if (!file) {
+        return "[]";
+    }
+    
+    String json = "[";
+    LogdataRow dataPoint;
+    bool firstPoint = true;
+    
+    while (file.available()) {
+        size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
+        if (bytesRead != sizeof(LogdataRow)) break;
+        
+        if (!firstPoint) json += ",";
+        firstPoint = false;
+        
+        json += "{";
+        json += "\"timestamp\":" + String(dataPoint.timestamp) + ",";
+        json += "\"tempMotor\":" + String(dataPoint.tempMotor) + ",";
+        json += "\"tempMosfet\":" + String(dataPoint.tempMosfet) + ",";
+        json += "\"batteryVoltage\":" + String(dataPoint.batteryVoltage) + ",";
+        json += "\"current\":" + String(dataPoint.current) + ",";
+        json += "\"avgMotorCurrent\":" + String(dataPoint.avgMotorCurrent) + ",";
+        json += "\"rpm\":" + String(dataPoint.rpm) + ",";
+        json += "\"dutyCycle\":" + String(dataPoint.dutyCycle) + ",";
+        json += "\"temperature\":" + String(dataPoint.temperature) + ",";
+        json += "\"humidity\":" + String(dataPoint.humidity) + ",";
+        json += "\"batteryLevel\":" + String(dataPoint.batteryLevel) + ",";
+        json += "\"leakSensorState\":" + String(dataPoint.leakSensorState) + ",";
+        json += "\"ledState\":" + String(dataPoint.ledState) + ",";
+        json += "\"totalUptime\":" + String(dataPoint.totalUptime);
+        json += "}";
+    }
+    
+    json += "]";
+    file.close();
+    
+    return json;
+}
+
 // Simple Hello World HTML
 const char* helloWorldHTML = R"rawliteral(
 <!DOCTYPE html>
@@ -2514,6 +2579,42 @@ void handleClient(WiFiClient client) {
         log(statusMsg.c_str());
         
         sendHttpResponse(client, 200, "application/json", jsonStatus.c_str());
+        
+    } else if (path == "/api/sessions") {
+        // API endpoint for listing all sessions
+        log("API /api/sessions called");
+        
+        String jsonData = generateSessionListJson();
+        
+        String responseMsg = "Sending session list, length: " + String(jsonData.length());
+        log(responseMsg.c_str());
+        
+        sendHttpResponse(client, 200, "application/json", jsonData.c_str());
+        
+    } else if (path.startsWith("/api/session-data?")) {
+        // API endpoint for getting data from a specific session
+        log("API /api/session-data called");
+        
+        // Extract session parameter
+        String sessionFile = "";
+        if (path.indexOf("session=") != -1) {
+            sessionFile = path.substring(path.indexOf("session=") + 8);
+            if (sessionFile.indexOf("&") != -1) {
+                sessionFile = sessionFile.substring(0, sessionFile.indexOf("&"));
+            }
+        }
+        
+        if (sessionFile == "") {
+            sendHttpResponse(client, 400, "text/plain", "Missing session parameter");
+            return;
+        }
+        
+        String jsonData = generateSessionDataJson(sessionFile);
+        
+        String responseMsg = "Sending session data, length: " + String(jsonData.length());
+        log(responseMsg.c_str());
+        
+        sendHttpResponse(client, 200, "application/json", jsonData.c_str());
         
     } else if (path == "/api/trip-log") {
         // API endpoint for full trip log download

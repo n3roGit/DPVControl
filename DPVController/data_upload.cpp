@@ -190,6 +190,8 @@ bool initializeFileSystem() {
         let updateInterval = 5000; // 5 seconds
         let dataPointsToShow = 60;
         let charts = {};
+        let isConnected = true;
+        let updateTimer = null;
         
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
@@ -210,198 +212,166 @@ bool initializeFileSystem() {
             // First data load
             loadData();
             
-            // Set up periodic updates
-            setInterval(loadData, updateInterval);
+            // Set up periodic updates with connection check
+            startUpdateCycle();
+            
+            // Add visibility change handler
+            document.addEventListener('visibilitychange', handleVisibilityChange);
         });
         
-        // Tab Navigation
-        function showTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.style.display = 'none';
-            });
-            
-            // Show selected tab
-            document.getElementById(tabName + '-tab').style.display = 'block';
-            
-            // Update active state of buttons
-            document.querySelectorAll('.nav-tab').forEach(btn => {
-                btn.classList.remove('active');
-            });
-            
-            // Find the button that was clicked
-            event.target.classList.add('active');
+        // Handle page visibility changes
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                stopUpdateCycle();
+            } else {
+                startUpdateCycle();
+            }
         }
         
-        // Save settings
+        // Start the update cycle
+        function startUpdateCycle() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+            }
+            loadData(); // Initial load
+            updateTimer = setInterval(() => {
+                if (isConnected) {
+                    loadData();
+                } else {
+                    reconnect();
+                }
+            }, updateInterval);
+        }
+        
+        // Stop the update cycle
+        function stopUpdateCycle() {
+            if (updateTimer) {
+                clearInterval(updateTimer);
+                updateTimer = null;
+            }
+        }
+        
+        // Attempt to reconnect
+        async function reconnect() {
+            console.log('Attempting to reconnect...');
+            try {
+                const response = await fetch('/api/status', { timeout: 2000 });
+                if (response.ok) {
+                    console.log('Reconnected successfully');
+                    isConnected = true;
+                    loadData();
+                }
+            } catch (error) {
+                console.log('Reconnection failed, will retry in ' + (updateInterval/1000) + ' seconds');
+                isConnected = false;
+            }
+        }
+        
+        // Save settings with connection management
         function saveSettings() {
-            updateInterval = parseInt(document.getElementById('updateInterval').value) * 1000;
-            dataPointsToShow = parseInt(document.getElementById('dataPoints').value);
+            const newInterval = parseInt(document.getElementById('updateInterval').value) * 1000;
+            const newDataPoints = parseInt(document.getElementById('dataPoints').value);
             
-            localStorage.setItem('updateInterval', updateInterval / 1000);
-            localStorage.setItem('dataPoints', dataPointsToShow);
-            
-            alert('Settings saved!');
+            if (newInterval !== updateInterval || newDataPoints !== dataPointsToShow) {
+                updateInterval = newInterval;
+                dataPointsToShow = newDataPoints;
+                
+                localStorage.setItem('updateInterval', updateInterval / 1000);
+                localStorage.setItem('dataPoints', dataPointsToShow);
+                
+                // Restart update cycle with new interval
+                startUpdateCycle();
+                
+                alert('Settings saved! Update cycle restarted.');
+            }
         }
         
-        // Initialize Charts
-        function initCharts() {
-            // Temperature Chart
-            const tempCtx = document.getElementById('tempChart').getContext('2d');
-            charts.tempChart = new Chart(tempCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Motor Temperature (°C)',
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        data: []
-                    }, {
-                        label: 'Ambient Temperature (°C)',
-                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        data: []
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+        // Load data from the API with connection management
+        async function loadData(retryCount = 0) {
+            const maxRetries = 3;
+            const retryDelay = 1000; // 1 second
             
-            // Battery Chart
-            const batteryCtx = document.getElementById('batteryChart').getContext('2d');
-            charts.batteryChart = new Chart(batteryCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Battery Voltage (V)',
-                        yAxisID: 'y',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        data: []
-                    }, {
-                        label: 'Current (A)',
-                        yAxisID: 'y1',
-                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        data: []
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            grid: {
-                                drawOnChartArea: false
-                            }
-                        }
-                    }
-                }
-            });
+            if (!navigator.onLine) {
+                console.log('Browser is offline');
+                isConnected = false;
+                return;
+            }
             
-            // Motor Chart
-            const motorCtx = document.getElementById('motorChart').getContext('2d');
-            charts.motorChart = new Chart(motorCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'RPM',
-                        yAxisID: 'y',
-                        backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                        borderColor: 'rgba(255, 206, 86, 1)',
-                        data: []
-                    }, {
-                        label: 'Duty Cycle (%)',
-                        yAxisID: 'y1',
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        data: []
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            position: 'left',
-                        },
-                        y1: {
-                            type: 'linear',
-                            position: 'right',
-                            grid: {
-                                drawOnChartArea: false
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        
-        // Load data from the API
-        function loadData() {
-            // Fetch status data
-            fetch('/api/status')
-                .then(response => response.json())
-                .then(data => {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                // Fetch status data with timeout
+                const statusResponse = await fetch('/api/status', {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!statusResponse.ok) throw new Error('Status API error');
+                const data = await statusResponse.json();
+                
+                isConnected = true; // Mark as connected on successful response
+                
+                requestAnimationFrame(() => {
                     document.getElementById('uptime').textContent = formatTime(data.uptime);
-                })
-                .catch(error => console.error('Error fetching status:', error));
+                });
+            } catch (error) {
+                console.error('Error fetching status:', error);
+                if (error.name === 'AbortError') {
+                    console.log('Request timed out');
+                }
+                isConnected = false;
+                
+                if (retryCount < maxRetries) {
+                    console.log(`Retrying status fetch in ${retryDelay}ms... (${retryCount + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    return loadData(retryCount + 1);
+                }
+                return; // Don't proceed with chart data if status failed
+            }
             
-            // Fetch chart data
-            fetch('/api/data?count=' + dataPointsToShow)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length === 0) return;
-                    
-                    // Update status values with latest data
-                    const latest = data[data.length - 1];
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000);
+                
+                // Fetch chart data with timeout
+                const dataResponse = await fetch('/api/data?count=' + dataPointsToShow, {
+                    signal: controller.signal
+                });
+                
+                clearTimeout(timeoutId);
+                
+                if (!dataResponse.ok) throw new Error('Data API error');
+                const data = await dataResponse.json();
+                
+                if (data.length === 0) return;
+                
+                isConnected = true; // Mark as connected on successful response
+                
+                // Update status values with latest data
+                const latest = data[data.length - 1];
+                requestAnimationFrame(() => {
                     document.getElementById('battery').textContent = latest.batteryVoltage.toFixed(2) + ' V';
                     document.getElementById('temperature').textContent = latest.temperature.toFixed(1) + ' °C';
                     document.getElementById('humidity').textContent = latest.humidity.toFixed(1) + ' %';
-                    
-                    // Update charts
-                    updateCharts(data);
-                })
-                .catch(error => console.error('Error fetching data:', error));
-        }
-        
-        // Update charts with new data
-        function updateCharts(data) {
-            // Get timestamps for x-axis
-            const labels = data.map(item => {
-                const date = new Date(item.timestamp);
-                return date.toLocaleTimeString();
-            });
-            
-            // Update temperature chart
-            charts.tempChart.data.labels = labels;
-            charts.tempChart.data.datasets[0].data = data.map(item => item.tempMotor);
-            charts.tempChart.data.datasets[1].data = data.map(item => item.temperature);
-            charts.tempChart.update();
-            
-            // Update battery chart
-            charts.batteryChart.data.labels = labels;
-            charts.batteryChart.data.datasets[0].data = data.map(item => item.batteryVoltage);
-            charts.batteryChart.data.datasets[1].data = data.map(item => item.current);
-            charts.batteryChart.update();
-            
-            // Update motor chart
-            charts.motorChart.data.labels = labels;
-            charts.motorChart.data.datasets[0].data = data.map(item => item.rpm);
-            charts.motorChart.data.datasets[1].data = data.map(item => item.dutyCycle);
-            charts.motorChart.update();
+                });
+                
+                // Update charts
+                updateCharts(data);
+            } catch (error) {
+                console.error('Error fetching chart data:', error);
+                if (error.name === 'AbortError') {
+                    console.log('Request timed out');
+                }
+                isConnected = false;
+                
+                if (retryCount < maxRetries) {
+                    console.log(`Retrying chart data fetch in ${retryDelay}ms... (${retryCount + 1}/${maxRetries})`);
+                    await new Promise(resolve => setTimeout(resolve, retryDelay));
+                    return loadData(retryCount + 1);
+                }
+            }
         }
         
         // Format time in HH:MM:SS

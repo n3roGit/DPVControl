@@ -8,6 +8,13 @@
 #include "motor.h"
 #include "main.h"
 
+// Session management
+extern String currentSessionFile;
+void createNewSession();
+String generateSessionFilename();
+String getCurrentSessionFile();
+String* listSessionFiles(int* count);
+
 // Task handle für den Datalogger
 extern TaskHandle_t dataloggerTaskHandle;
 

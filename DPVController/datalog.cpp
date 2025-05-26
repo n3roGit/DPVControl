@@ -6,6 +6,69 @@
 #include "main.h"
 #include "battery.h"
 
+// Session management
+String currentSessionFile = "";
+const String SESSION_DIR = "/datalog";
+
+/**
+ * Generate a unique filename for a new session using timestamp
+ */
+String generateSessionFilename() {
+    unsigned long timestamp = millis();
+    String filename = SESSION_DIR + "/session_" + String(timestamp) + ".bin";
+    return filename;
+}
+
+/**
+ * Create a new session file and directory if needed
+ */
+void createNewSession() {
+    // Create session directory if it doesn't exist
+    if (!LittleFS.exists(SESSION_DIR)) {
+        if (LittleFS.mkdir(SESSION_DIR)) {
+            log("Created session directory");
+        } else {
+            log("Failed to create session directory");
+        }
+    }
+
+    // Generate new session filename
+    currentSessionFile = generateSessionFilename();
+    String msg = "Created new session: " + currentSessionFile;
+    log(msg.c_str());
+}
+
+/**
+ * Get current session file
+ */
+String getCurrentSessionFile() {
+    return currentSessionFile;
+}
+
+/**
+ * List all session files
+ */
+String* listSessionFiles(int* count) {
+    *count = 0;
+    static String files[50]; // Maximum 50 sessions stored
+
+    File root = LittleFS.open(SESSION_DIR);
+    if (!root || !root.isDirectory()) {
+        return files;
+    }
+
+    File file = root.openNextFile();
+    while (file && *count < 50) {
+        if (!file.isDirectory() && String(file.name()).endsWith(".bin")) {
+            files[*count] = String(file.name());
+            (*count)++;
+        }
+        file = root.openNextFile();
+    }
+
+    return files;
+}
+
 /**
 * Regularly saves data about the state of the vehicle to disc.
 * Runs on a separate core to avoid affecting the main application.
@@ -520,8 +583,12 @@ void appendToTripLog(LogdataRow datapoint) {
     logStorageStats();
   }
   
-  // Open file for each write to ensure data is saved immediately
-  File tripFile = LittleFS.open("/trip_log.bin", "a");
+  // Open current session file for each write to ensure data is saved immediately
+  if (currentSessionFile == "") {
+    createNewSession();
+  }
+  
+  File tripFile = LittleFS.open(currentSessionFile, "a");
   if (tripFile) {
     size_t written = tripFile.write((uint8_t*)&datapoint, sizeof(LogdataRow));
     tripFile.flush(); // Immediate write to flash
@@ -532,14 +599,14 @@ void appendToTripLog(LogdataRow datapoint) {
       static int writeCount = 0;
       writeCount++;
       if (writeCount % 10 == 0) {
-        String writeMsg = "Trip log writes: " + String(writeCount);
+        String writeMsg = "Session log writes: " + String(writeCount);
         log(writeMsg.c_str());
       }
     } else {
-      log("Failed to write to trip log");
+      log("Failed to write to session log");
     }
   } else {
-    log("Failed to open trip log for writing");
+    log("Failed to open session log for writing");
   }
 }
 
@@ -942,6 +1009,9 @@ void datalogSetup() {
   recentIndex = 0;
   totalRecentPoints = 0;
   isDataloggerRunning = false;
+  
+  // Create new session
+  createNewSession();
   
   log("Buffer variables initialized");
   
