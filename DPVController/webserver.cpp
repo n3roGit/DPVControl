@@ -35,6 +35,7 @@ bool spiffsInitialized = false;
 
 /**
  * Generate JSON list of all available sessions sorted with newest first
+ * Groups session splits together for better organization
  */
 String generateSessionListJson() {
     int count;
@@ -61,10 +62,40 @@ String generateSessionListJson() {
     for (int i = 0; i < count; i++) {
         if (i > 0) json += ",";
         
-        // Create an object with filename and current flag
+        // Extract display name for session splits
+        String displayName = sessions[i];
+        String sessionNumber = "";
+        String splitInfo = "";
+        
+        // Parse session filename like "session_0001.bin" or "session_0001-02.bin"
+        if (displayName.startsWith("session_") && displayName.endsWith(".bin")) {
+            String numberPart = displayName.substring(8); // Remove "session_"
+            numberPart = numberPart.substring(0, numberPart.length() - 4); // Remove ".bin"
+            
+            int dashPos = numberPart.indexOf('-');
+            if (dashPos != -1) {
+                sessionNumber = numberPart.substring(0, dashPos);
+                splitInfo = numberPart.substring(dashPos + 1);
+                displayName = "Session " + sessionNumber + " (Part " + splitInfo + ")";
+            } else {
+                sessionNumber = numberPart;
+                displayName = "Session " + sessionNumber;
+            }
+        }
+        
+        // Add current session indicator
+        bool isCurrent = (sessions[i] == currentSession);
+        if (isCurrent) {
+            displayName += " (Current)";
+        }
+        
+        // Create an object with filename, display name and current flag
         json += "{";
         json += "\"filename\":\"" + sessions[i] + "\",";
-        json += "\"isCurrent\":" + String(sessions[i] == currentSession ? "true" : "false");
+        json += "\"displayName\":\"" + displayName + "\",";
+        json += "\"sessionNumber\":\"" + sessionNumber + "\",";
+        json += "\"splitInfo\":\"" + splitInfo + "\",";
+        json += "\"isCurrent\":" + String(isCurrent ? "true" : "false");
         json += "}";
     }
     json += "]";
@@ -1080,13 +1111,8 @@ const char* helloWorldHTML = R"rawliteral(
             sessions.forEach(session => {
                 const option = document.createElement('option');
                 option.value = session.filename;
-                // Extract session number and make it more readable
-                const sessionNumber = session.filename.replace('session_', '').replace('.bin', '');
-                let displayText = `Session ${sessionNumber}`;
-                if (session.isCurrent) {
-                    displayText += ' (Current)';
-                }
-                option.textContent = displayText;
+                // Use displayName if available, otherwise fallback to old format
+                option.textContent = session.displayName || session.filename.replace('session_', 'Session ').replace('.bin', '');
                 sessionSelect.appendChild(option);
             });
             

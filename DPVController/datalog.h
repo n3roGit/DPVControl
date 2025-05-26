@@ -10,8 +10,9 @@
 
 // Session management
 extern String currentSessionFile;
-void createNewSession();
-String generateSessionFilename();
+extern int currentSessionSplit;
+void createNewSession(bool forceNewSession = true);
+String generateSessionFilename(int splitPart = 0);
 String getCurrentSessionFile();
 String* listSessionFiles(int* count);
 

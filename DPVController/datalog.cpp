@@ -9,11 +9,14 @@
 // Session management
 String currentSessionFile = "";
 const String SESSION_DIR = "/datalog";
+int currentSessionSplit = 0; // Current split number (0 = no split, 1+ = split parts)
+const size_t MAX_SESSION_SIZE = 1048576; // 1MB max per session file to prevent memory issues
 
 /**
  * Generate a unique filename for a new session using sequential numbering
+ * If splitPart > 0, creates a split session like "session_0001-02.bin"
  */
-String generateSessionFilename() {
+String generateSessionFilename(int splitPart = 0) {
     // Find the highest existing session number
     int maxSessionNumber = 0;
     
@@ -24,8 +27,20 @@ String generateSessionFilename() {
         while (file) {
             String filename = String(file.name());
             if (filename.startsWith("session_") && filename.endsWith(".bin")) {
-                // Extract number from filename like "session_0001.bin"
-                String numberPart = filename.substring(8, filename.length() - 4); // Remove "session_" and ".bin"
+                // Extract number from filename like "session_0001.bin" or "session_0001-02.bin"
+                String numberPart = filename.substring(8); // Remove "session_"
+                
+                // Handle split sessions (e.g., "0001-02.bin")
+                int dashPos = numberPart.indexOf('-');
+                if (dashPos != -1) {
+                    numberPart = numberPart.substring(0, dashPos); // Take only the base number
+                }
+                
+                // Remove ".bin" extension
+                if (numberPart.endsWith(".bin")) {
+                    numberPart = numberPart.substring(0, numberPart.length() - 4);
+                }
+                
                 int sessionNumber = numberPart.toInt();
                 if (sessionNumber > maxSessionNumber) {
                     maxSessionNumber = sessionNumber;
@@ -43,14 +58,26 @@ String generateSessionFilename() {
         paddedNumber = "0" + paddedNumber;
     }
     
-    String filename = SESSION_DIR + "/session_" + paddedNumber + ".bin";
+    String filename = SESSION_DIR + "/session_" + paddedNumber;
+    
+    // Add split part suffix if needed
+    if (splitPart > 0) {
+        String splitSuffix = String(splitPart);
+        while (splitSuffix.length() < 2) {
+            splitSuffix = "0" + splitSuffix;
+        }
+        filename += "-" + splitSuffix;
+    }
+    
+    filename += ".bin";
     return filename;
 }
 
 /**
  * Create a new session file and directory if needed
+ * If forceNewSession is false, it may create a split of the current session
  */
-void createNewSession() {
+void createNewSession(bool forceNewSession = true) {
     // Create session directory if it doesn't exist
     if (!LittleFS.exists(SESSION_DIR)) {
         if (LittleFS.mkdir(SESSION_DIR)) {
@@ -60,10 +87,19 @@ void createNewSession() {
         }
     }
 
-    // Generate new session filename
-    currentSessionFile = generateSessionFilename();
-    String msg = "Created new session: " + currentSessionFile;
-    log(msg.c_str());
+    if (forceNewSession) {
+        // Create completely new session (ESP32 restart)
+        currentSessionSplit = 0;
+        currentSessionFile = generateSessionFilename();
+        String msg = "Created new session: " + currentSessionFile;
+        log(msg.c_str());
+    } else {
+        // Create a split of the current session (memory management)
+        currentSessionSplit++;
+        currentSessionFile = generateSessionFilename(currentSessionSplit);
+        String msg = "Created session split " + String(currentSessionSplit) + ": " + currentSessionFile;
+        log(msg.c_str());
+    }
     
     // Log session creation for debugging
     String detailMsg = "Session created at uptime: " + String(millis()/1000) + " seconds";
@@ -633,13 +669,29 @@ void appendToTripLog(LogdataRow datapoint) {
     createNewSession();
   }
   
+  // Check if current session file is getting too large
+  if (LittleFS.exists(currentSessionFile)) {
+    File sizeCheck = LittleFS.open(currentSessionFile, "r");
+    if (sizeCheck) {
+      size_t fileSize = sizeCheck.size();
+      sizeCheck.close();
+      
+      if (fileSize > MAX_SESSION_SIZE) {
+        String splitMsg = "Session file exceeded " + String(MAX_SESSION_SIZE/1024) + "KB, creating split";
+        log(splitMsg.c_str());
+        createNewSession(false); // Create split, not new session
+      }
+    }
+  }
+  
   // Log session file status periodically
   static int sessionWriteCount = 0;
   sessionWriteCount++;
   if (sessionWriteCount % 60 == 0) { // Every 5 minutes at 5s intervals
     String sessionMsg = "Session file: " + currentSessionFile + 
                        ", writes: " + String(sessionWriteCount) + 
-                       ", age: " + String(millis()/1000) + "s";
+                       ", age: " + String(millis()/1000) + "s" +
+                       (currentSessionSplit > 0 ? ", split: " + String(currentSessionSplit) : "");
     log(sessionMsg.c_str());
   }
   
@@ -1040,25 +1092,9 @@ void dataloggerTask(void *pvParameters) {
       lastDebugTime = currentTime;
     }
     
-    // Check if we need to create a new session (motor start/stop or long sessions)
-    bool motorCurrentlyRunning = false; // TODO: Add actual motor status check
-    unsigned long sessionAge = currentTime - sessionStartTime;
-    
-    // Create new session if:
-    // 1. Motor state changed (start/stop)
-    // 2. Session is older than 30 minutes (prevent extremely long sessions)
-    if ((motorCurrentlyRunning != motorWasRunning) || (sessionAge > 1800000)) { // 30 minutes
-      if (motorCurrentlyRunning != motorWasRunning) {
-        String stateMsg = "Motor state changed: " + String(motorCurrentlyRunning ? "STARTED" : "STOPPED") + " - Creating new session";
-        log(stateMsg.c_str());
-      } else {
-        log("Session time limit reached (30 min) - Creating new session");
-      }
-      
-      createNewSession();
-      sessionStartTime = currentTime;
-      motorWasRunning = motorCurrentlyRunning;
-    }
+    // Sessions now span entire ESP32 uptime - no automatic session splits
+    // A new session is only created at ESP32 startup (handled in datalogSetup)
+    // If memory becomes an issue, we'll split sessions with numbered suffixes
     
     // Create new datapoint every 5 seconds with optimized multi-interval logging
     if (currentTime - lastDataLogTime >= DATALOG_INTERVAL) {
