@@ -913,6 +913,7 @@ const char* helloWorldHTML = R"rawliteral(
         let systemStartTime = null;
         let availableSessions = [];
         let selectedSession = null; // No "all sessions" option
+        let currentTimeRange = 'recent'; // Default time range
         const FIXED_TIME_RANGE_MINUTES = 5; // Fixed 5-minute window
         const FIXED_UPDATE_INTERVAL_MS = 10000; // Fixed 10-second updates
         
@@ -1099,119 +1100,30 @@ const char* helloWorldHTML = R"rawliteral(
             return Math.ceil((FIXED_TIME_RANGE_MINUTES * 60) / 5);
         }
         
-        // Filter data based on time range, slider position, and selected session
+        // Filter data based on time window slider position
         function filterDataByTimeRange(data) {
-            let filteredData = data;
-            
-            // First filter by session if one is selected
-            if (selectedSession !== 'all') {
-                const session = availableSessions.find(s => s.id == selectedSession);
-                if (session) {
-                    filteredData = data.slice(session.startIndex, session.endIndex + 1);
-                    console.log('Filtered to session', selectedSession, ':', filteredData.length, 'points');
-                }
-            }
-            
-            // Then apply time range filter
-            if (currentTimeRange === 'live' || currentTimeRange === 'all') {
-                return filteredData;
-            }
+            // For session data, we don't need session filtering since each session is loaded separately
+            // Just apply the time window based on slider position
             
             const pointsNeeded = getDataPointsForTimeRange();
-            if (filteredData.length <= pointsNeeded) {
-                return filteredData;
+            if (data.length <= pointsNeeded) {
+                return data;
             }
             
             // Calculate window position based on slider
-            const maxStart = filteredData.length - pointsNeeded;
+            const maxStart = data.length - pointsNeeded;
             const startIndex = Math.floor((maxStart * (100 - timeSliderValue)) / 100);
             const endIndex = startIndex + pointsNeeded;
             
             // Update slider labels
-            if (filteredData.length > 0) {
-                const startTime = new Date(filteredData[startIndex].timestamp).toLocaleTimeString();
-                const endTime = new Date(filteredData[Math.min(endIndex - 1, filteredData.length - 1)].timestamp).toLocaleTimeString();
+            if (data.length > 0) {
+                const startTime = new Date(data[startIndex].timestamp).toLocaleTimeString();
+                const endTime = new Date(data[Math.min(endIndex - 1, data.length - 1)].timestamp).toLocaleTimeString();
                 document.getElementById('sliderStart').textContent = startTime;
                 document.getElementById('sliderEnd').textContent = endTime;
             }
             
-            return filteredData.slice(startIndex, endIndex);
-        }
-        
-        // Detect system restart (gap in timestamps > 2 minutes or millis() reset)
-        function detectRestarts(data) {
-            const restarts = [];
-            for (let i = 1; i < data.length; i++) {
-                const prevTimestamp = data[i-1].timestamp;
-                const currentTimestamp = data[i].timestamp;
-                const timeDiff = currentTimestamp - prevTimestamp;
-                
-                // Detect restart: large time gap OR millis() reset (current much smaller than previous)
-                if (timeDiff > 120000 || // 2 minutes gap
-                    currentTimestamp < prevTimestamp - 10000 || // Jump backwards
-                    (currentTimestamp < 60000 && prevTimestamp > 300000)) { // Reset to <1min when prev was >5min
-                    restarts.push(i);
-                }
-            }
-            return restarts;
-        }
-        
-        // Analyze data and create sessions based on restarts
-        function analyzeSessions(data) {
-            if (data.length === 0) return [];
-            
-            const restarts = detectRestarts(data);
-            const sessions = [];
-            
-            let sessionStart = 0;
-            let sessionNumber = 1;
-            
-            // Create sessions based on restart points
-            for (let i = 0; i < restarts.length; i++) {
-                const sessionEnd = restarts[i] - 1;
-                const sessionData = data.slice(sessionStart, restarts[i]);
-                
-                if (sessionData.length > 0) {
-                    const startTime = new Date(sessionData[0].timestamp);
-                    const endTime = new Date(sessionData[sessionData.length - 1].timestamp);
-                    const duration = Math.floor((sessionData[sessionData.length - 1].timestamp - sessionData[0].timestamp) / 1000);
-                    
-                    sessions.push({
-                        id: sessionNumber,
-                        label: `Session ${sessionNumber} (${formatDuration(duration)})`,
-                        startIndex: sessionStart,
-                        endIndex: sessionEnd,
-                        dataPoints: sessionData.length,
-                        startTime: startTime,
-                        endTime: endTime,
-                        duration: duration
-                    });
-                }
-                
-                sessionStart = restarts[i];
-                sessionNumber++;
-            }
-            
-            // Add the last session (current session)
-            const lastSessionData = data.slice(sessionStart);
-            if (lastSessionData.length > 0) {
-                const startTime = new Date(lastSessionData[0].timestamp);
-                const endTime = new Date(lastSessionData[lastSessionData.length - 1].timestamp);
-                const duration = Math.floor((lastSessionData[lastSessionData.length - 1].timestamp - lastSessionData[0].timestamp) / 1000);
-                
-                sessions.push({
-                    id: sessionNumber,
-                    label: `Session ${sessionNumber} (${formatDuration(duration)}) - Current`,
-                    startIndex: sessionStart,
-                    endIndex: data.length - 1,
-                    dataPoints: lastSessionData.length,
-                    startTime: startTime,
-                    endTime: endTime,
-                    duration: duration
-                });
-            }
-            
-            return sessions;
+            return data.slice(startIndex, endIndex);
         }
         
         // Format duration in human readable format
