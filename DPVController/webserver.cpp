@@ -54,11 +54,17 @@ String generateSessionListJson() {
  * Generate JSON data for a specific session
  */
 String generateSessionDataJson(String sessionFile) {
-    if (!LittleFS.exists(sessionFile)) {
+    // Ensure we have the full path
+    String fullPath = sessionFile;
+    if (!sessionFile.startsWith("/datalog/")) {
+        fullPath = "/datalog/" + sessionFile;
+    }
+    
+    if (!LittleFS.exists(fullPath)) {
         return "[]";
     }
     
-    File file = LittleFS.open(sessionFile, "r");
+    File file = LittleFS.open(fullPath, "r");
     if (!file) {
         return "[]";
     }
@@ -1044,7 +1050,7 @@ const char* helloWorldHTML = R"rawliteral(
                 .then(sessions => {
                     updateSessionDropdown(sessions);
                     if (sessions.length > 0) {
-                        selectedSession = sessions[0]; // Select first (newest) session by default
+                        selectedSession = sessions[sessions.length - 1]; // Select last (newest) session by default
                         document.getElementById('sessionSelect').value = selectedSession;
                         refreshChart();
                     }
@@ -1062,11 +1068,12 @@ const char* helloWorldHTML = R"rawliteral(
             sessions.forEach(session => {
                 const option = document.createElement('option');
                 option.value = session;
-                option.textContent = session.replace('/datalog/session_', 'Session ').replace('.bin', '');
+                option.textContent = session.replace('session_', 'Session ').replace('.bin', '');
                 sessionSelect.appendChild(option);
             });
             
             availableSessions = sessions;
+            console.log('Updated session dropdown with', sessions.length, 'sessions');
         }
         
         // Handle session selection change
@@ -1222,24 +1229,7 @@ const char* helloWorldHTML = R"rawliteral(
             }
         }
         
-        // Update session dropdown
-        function updateSessionDropdown(sessions) {
-            const sessionSelect = document.getElementById('sessionSelect');
-            
-            // Clear existing options except "All Sessions"
-            sessionSelect.innerHTML = '<option value="all">All Sessions</option>';
-            
-            // Add session options (newest first)
-            sessions.reverse().forEach(session => {
-                const option = document.createElement('option');
-                option.value = session.id;
-                option.textContent = session.label;
-                sessionSelect.appendChild(option);
-            });
-            
-            availableSessions = sessions;
-            console.log('Updated session dropdown with', sessions.length, 'sessions');
-        }
+
         
         // Handle session filter change
         function updateSessionFilter() {
@@ -1364,6 +1354,9 @@ const char* helloWorldHTML = R"rawliteral(
                 })
                 .catch(error => {
                     console.error('Error fetching chart data:', error);
+                    // Show empty chart on error
+                    allDataPoints = [];
+                    updateCharts([]);
                 });
         }
         
@@ -1586,6 +1579,7 @@ const char* helloWorldHTML = R"rawliteral(
                 wifiSSID: document.getElementById('wifiSSID').value,
                 wifiPassword: document.getElementById('wifiPassword').value,
                 beeperEnabled: document.getElementById('beeperEnabled').checked,
+                debugLoggingEnabled: document.getElementById('debugLoggingEnabled').checked,
                 standbyBlinkStartMinutes: parseInt(document.getElementById('standbyBlinkStartMinutes').value),
                 standbyBlinkDurationSeconds: parseInt(document.getElementById('standbyBlinkDurationSeconds').value)
             };
@@ -2320,6 +2314,7 @@ String generateSettingsJson() {
     
     // System settings
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
+    doc["debugLoggingEnabled"] = currentSettings.debugLoggingEnabled;
     doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
     doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
     
@@ -2388,6 +2383,7 @@ bool updateSettingsFromJson(const String& jsonString) {
     }
     
     if (doc.containsKey("beeperEnabled")) newSettings.beeperEnabled = doc["beeperEnabled"];
+    if (doc.containsKey("debugLoggingEnabled")) newSettings.debugLoggingEnabled = doc["debugLoggingEnabled"];
     if (doc.containsKey("standbyBlinkStartMinutes")) newSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"];
     if (doc.containsKey("standbyBlinkDurationSeconds")) newSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"];
     
