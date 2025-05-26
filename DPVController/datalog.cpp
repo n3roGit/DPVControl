@@ -16,7 +16,7 @@ const size_t MAX_SESSION_SIZE = 1048576; // 1MB max per session file to prevent 
  * Generate a unique filename for a new session using sequential numbering
  * If splitPart > 0, creates a split session like "session_0001-02.bin"
  */
-String generateSessionFilename(int splitPart = 0) {
+String generateSessionFilename(int splitPart) {
     // Find the highest existing session number
     int maxSessionNumber = 0;
     
@@ -77,7 +77,7 @@ String generateSessionFilename(int splitPart = 0) {
  * Create a new session file and directory if needed
  * If forceNewSession is false, it may create a split of the current session
  */
-void createNewSession(bool forceNewSession = true) {
+void createNewSession(bool forceNewSession) {
     // Create session directory if it doesn't exist
     if (!LittleFS.exists(SESSION_DIR)) {
         if (LittleFS.mkdir(SESSION_DIR)) {
