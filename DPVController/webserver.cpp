@@ -39,11 +39,21 @@ bool spiffsInitialized = false;
 String generateSessionListJson() {
     int count;
     String* sessions = listSessionFiles(&count);
+    String currentSession = getCurrentSessionFile();
+    // Extract filename from full path
+    if (currentSession.startsWith("/datalog/")) {
+        currentSession = currentSession.substring(9); // Remove "/datalog/"
+    }
     
     String json = "[";
     for (int i = 0; i < count; i++) {
         if (i > 0) json += ",";
-        json += "\"" + sessions[i] + "\"";
+        
+        // Create an object with filename and current flag
+        json += "{";
+        json += "\"filename\":\"" + sessions[i] + "\",";
+        json += "\"isCurrent\":" + String(sessions[i] == currentSession ? "true" : "false");
+        json += "}";
     }
     json += "]";
     
@@ -410,6 +420,8 @@ const char* helloWorldHTML = R"rawliteral(
                         </div>
                         
                         <button class="button" onclick="refreshChart()">Refresh</button>
+                        
+                        <button class="button" onclick="deleteAllSessions()" style="background-color: #f44336; margin-left: 20px;">Delete All Sessions</button>
                     </div>
                 </div>
                 
@@ -1052,8 +1064,8 @@ const char* helloWorldHTML = R"rawliteral(
                     updateSessionDropdown(sessions);
                     if (sessions.length > 0) {
                         // Sort sessions and select the newest one (highest number)
-                        const sortedSessions = sessions.sort().reverse();
-                        selectedSession = sortedSessions[0]; // Select newest session by default
+                        const sortedSessions = sessions.sort((a, b) => b.filename.localeCompare(a.filename));
+                        selectedSession = sortedSessions[0].filename; // Select newest session by default
                         document.getElementById('sessionSelect').value = selectedSession;
                         console.log('Auto-selected newest session:', selectedSession);
                         refreshChart();
@@ -1070,18 +1082,23 @@ const char* helloWorldHTML = R"rawliteral(
             sessionSelect.innerHTML = '';
             
             // Sort sessions by filename (newest first)
-            sessions.sort().reverse();
+            sessions.sort((a, b) => b.filename.localeCompare(a.filename));
             
             sessions.forEach(session => {
                 const option = document.createElement('option');
-                option.value = session;
+                option.value = session.filename;
                 // Extract session number and make it more readable
-                const sessionNumber = session.replace('session_', '').replace('.bin', '');
-                option.textContent = `Session ${sessionNumber}`;
+                const sessionNumber = session.filename.replace('session_', '').replace('.bin', '');
+                let displayText = `Session ${sessionNumber}`;
+                if (session.isCurrent) {
+                    displayText += ' (Current)';
+                }
+                option.textContent = displayText;
                 sessionSelect.appendChild(option);
             });
             
-            availableSessions = sessions;
+            // Store filenames for compatibility
+            availableSessions = sessions.map(s => s.filename);
             console.log('Updated session dropdown with', sessions.length, 'sessions');
             
             // Ensure selected session is visible in dropdown
@@ -1979,6 +1996,40 @@ const char* helloWorldHTML = R"rawliteral(
             const pointCount = dataPoints.length;
             alert(`Successfully exported ${pointCount} data points to ${filename}`);
         }
+        
+        // Delete all sessions with confirmation
+        function deleteAllSessions() {
+            const confirmMessage = 'Are you sure you want to DELETE ALL SESSION FILES?\\n\\n' +
+                                 'This action cannot be undone!\\n\\n' +
+                                 'Type "DELETE ALL" to confirm:';
+            
+            const userInput = prompt(confirmMessage);
+            
+            if (userInput === 'DELETE ALL') {
+                fetch('/api/delete-all-sessions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('All sessions have been deleted successfully!');
+                        // Reload session list
+                        loadSessionList();
+                    } else {
+                        alert('Error deleting sessions: ' + (data.error || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting sessions:', error);
+                    alert('Failed to delete sessions: ' + error.message);
+                });
+            } else if (userInput !== null) {
+                alert('Deletion cancelled. You must type "DELETE ALL" exactly to confirm.');
+            }
+        }
     </script>
 </body>
 </html>
@@ -2769,6 +2820,58 @@ void handleClient(WiFiClient client) {
         
         String jsonVersion = "{\"version\":\"" + version + "\"}";
         sendHttpResponse(client, 200, "application/json", jsonVersion.c_str());
+        
+    } else if (path == "/api/delete-all-sessions" && method == "POST") {
+        // API endpoint to delete all session files
+        log("API /api/delete-all-sessions called");
+        
+        int deleteCount = 0;
+        String errorMsg = "";
+        bool success = true;
+        
+        try {
+            // Get list of session files
+            int count;
+            String* sessions = listSessionFiles(&count);
+            
+            // Delete each session file
+            for (int i = 0; i < count; i++) {
+                String fullPath = "/datalog/" + sessions[i];
+                if (LittleFS.exists(fullPath)) {
+                    if (LittleFS.remove(fullPath)) {
+                        deleteCount++;
+                        String delMsg = "Deleted session file: " + fullPath;
+                        log(delMsg.c_str());
+                    } else {
+                        errorMsg += "Failed to delete " + sessions[i] + "; ";
+                        success = false;
+                    }
+                } else {
+                    errorMsg += "File not found " + sessions[i] + "; ";
+                }
+            }
+            
+            // Clean up
+            delete[] sessions;
+            
+            String resultMsg = "Deleted " + String(deleteCount) + " session files";
+            log(resultMsg.c_str());
+            
+        } catch (...) {
+            errorMsg = "Exception occurred during deletion";
+            success = false;
+        }
+        
+        String response;
+        if (success && deleteCount > 0) {
+            response = "{\"success\":true,\"deleted\":" + String(deleteCount) + ",\"message\":\"Successfully deleted " + String(deleteCount) + " session files\"}";
+        } else if (deleteCount == 0) {
+            response = "{\"success\":true,\"deleted\":0,\"message\":\"No session files found to delete\"}";
+        } else {
+            response = "{\"success\":false,\"deleted\":" + String(deleteCount) + ",\"error\":\"" + errorMsg + "\"}";
+        }
+        
+        sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings (legacy compatibility)
