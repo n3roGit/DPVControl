@@ -1,7 +1,0 @@
-OneWire@^2.3.7
-ESP32Servo@^3.0.0
-beegee-tokyo/DHT sensor library for ESPx@^1.19
-FastLED@^3.7.0
-https://github.com/SolidGeek/VescUart.git
-ArduinoJson@^7.0.0
-DallasTemperature@^3.11.0
