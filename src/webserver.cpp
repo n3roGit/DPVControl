@@ -912,6 +912,7 @@ const char* helloWorldHTML = R"rawliteral(
                     <button class="button" onclick="loadDPVSettings()" style="background-color: #2196f3;">Reload</button>
                     <button class="button" onclick="saveDPVSettings()" style="background-color: #4caf50;">Save Settings</button>
                     <button class="button" onclick="restoreDefaultSettings()" style="background-color: #f44336;">Restore Defaults</button>
+                    <button class="button" onclick="rebootSystem()" style="background-color: #ff5722; margin-left: 10px;">🔄 Reboot System</button>
                     <br>
                     <button class="button" onclick="exportSettings()" style="background-color: #ff9800; margin-top: 10px;">Export Settings</button>
                     <button class="button" onclick="importSettings()" style="background-color: #9c27b0; margin-top: 10px;">Import Settings</button>
@@ -2973,6 +2974,31 @@ const char* helloWorldHTML = R"rawliteral(
                 alert('Deletion cancelled. You must type "DELETE ALL" exactly to confirm.');
             }
         }
+        
+        // Reboot system function
+        function rebootSystem() {
+            if (confirm('Are you sure you want to reboot the DPV Control System? This will restart the device and you will lose the current connection.')) {
+                document.getElementById('settingsStatus').textContent = 'Rebooting system...';
+                
+                // Disable the reboot button to prevent multiple clicks
+                const rebootBtn = document.querySelector('button[onclick="rebootSystem()"]');
+                if (rebootBtn) {
+                    rebootBtn.disabled = true;
+                    rebootBtn.textContent = '🔄 Rebooting...';
+                }
+                
+                fetch('/api/reboot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        document.getElementById('settingsStatus').textContent = 'Reboot command sent. Device will restart in a few seconds...';
+                        
+                        // Show reconnection message after 5 seconds
+                        setTimeout(() => {
     </script>
 </body>
 </html>
@@ -3747,6 +3773,23 @@ void handleClient(WiFiClient client) {
         String response = "{\"success\":true}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
+    } else if (path == "/api/reboot" && method == "POST") {
+        // API endpoint to reboot the system
+        log("API /api/reboot called");
+        
+        String response = "{\"success\":true,\"message\":\"Reboot initiated\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+        // Close client connection properly before rebooting
+        client.stop();
+        
+        // Wait a moment to ensure response is sent
+        delay(500);
+        
+        // Reboot the ESP32
+        log("System reboot requested via API - restarting now");
+        ESP.restart();
+        
     } else if (path == "/api/motor" && method == "POST") {
         // API endpoint for motor control
         log("API /api/motor called");
@@ -3928,10 +3971,6 @@ void handleClient(WiFiClient client) {
         }
         
         String response = "{\"success\":true,\"percentage\":" + String(levelPercent) + ",\"level\":" + String(actualLevel) + ",\"actualLevel\":" + String(LED_State) + "}";
-            level = LED_State; // Return current level if invalid
-        }
-        
-        String response = "{\"success\":true,\"level\":" + String(level) + ",\"actualLevel\":" + String(LED_State) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/version") {

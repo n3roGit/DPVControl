@@ -26,6 +26,33 @@ static int lastDisplayedSpeed = -1;
 static int lastDisplayedMotorState = -1;
 static int lastDisplayedBattery = -1;
 
+// Function to calculate brightness correction based on active RGB channels
+// This ensures that all colors appear equally bright regardless of how many LEDs are active
+int calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBrightness) {
+    // Count how many channels are significantly active (above 10% of max)
+    int activeChannels = 0;
+    if (red > 25) activeChannels++;      // > 10% of 255
+    if (green > 25) activeChannels++;    // > 10% of 255  
+    if (blue > 25) activeChannels++;     // > 10% of 255
+    
+    // Avoid division by zero
+    if (activeChannels == 0) return targetBrightness;
+    
+    // Reduce brightness proportionally to number of active channels
+    // Single channel (R, G, or B): 100% brightness
+    // Two channels (RG, RB, GB): ~71% brightness  
+    // Three channels (RGB): ~58% brightness
+    float correctionFactor = 1.0 / sqrt(activeChannels);
+    
+    int correctedBrightness = (int)(targetBrightness * correctionFactor);
+    
+    // Ensure we don't go below minimum threshold or above maximum
+    if (correctedBrightness < 1) correctedBrightness = 1;
+    if (correctedBrightness > 100) correctedBrightness = 100;
+    
+    return correctedBrightness;
+}
+
 void ledBarSetup(){
   //Neopixel
   strip.begin();
@@ -53,22 +80,29 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
   int greenOn = (numberOn >> 8) & 0xFF;
   int blueOn = numberOn & 0xFF;
 
+  // Apply brightness correction for ON color
+  int correctedBrightnessOn = calculateBrightnessCorrectedValue(redOn, greenOn, blueOn, brightnessOn);
+
   // Set the LEDs according to the specified brightness and colors
   for (int i = startIndex; i < startIndex + numLEDsOn; i++) {
-    int dimmed_color_r = redOn * brightnessOn / 100;
-    int dimmed_color_g = greenOn * brightnessOn / 100;
-    int dimmed_color_b = blueOn * brightnessOn / 100;
+    int dimmed_color_r = redOn * correctedBrightnessOn / 100;
+    int dimmed_color_g = greenOn * correctedBrightnessOn / 100;
+    int dimmed_color_b = blueOn * correctedBrightnessOn / 100;
     strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
   }
 
+  // Convert the hex color value to RGB color values for the switched off color
+  long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
+  int redOff = numberOff >> 16;
+  int greenOff = (numberOff >> 8) & 0xFF;
+  int blueOff = numberOff & 0xFF;
+
+  // Apply brightness correction for OFF color
+  int correctedBrightnessOff = calculateBrightnessCorrectedValue(redOff, greenOff, blueOff, brightnessOff);
+
   // Set the LEDs for the side that is switched off
   for (int i = startIndex + numLEDsOn; i < endIndex; i++) {
-    // Convert the hex color value to RGB color values for the switched off color
-    long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
-    int redOff = numberOff >> 16;
-    int greenOff = (numberOff >> 8) & 0xFF;
-    int blueOff = numberOff & 0xFF;
-    strip.setPixelColor(i, strip.Color(redOff * brightnessOff / 100, greenOff * brightnessOff / 100, blueOff * brightnessOff / 100));
+    strip.setPixelColor(i, strip.Color(redOff * correctedBrightnessOff / 100, greenOff * correctedBrightnessOff / 100, blueOff * correctedBrightnessOff / 100));
   }
 
   strip.show();  // Update LED strips
@@ -104,10 +138,15 @@ void setBarSpeedCruise(int num) {
     // Set all LEDs except the last one to pink
     setBar(1, num-1, "#cb1bf2", getLedBarBrightness(), "#000000", 0);
     
-    // Set the last LED to red
+    // Set the last LED to red with brightness correction
     int startIndex = 0;
     int lastLEDIndex = startIndex + num - 1;
-    strip.setPixelColor(lastLEDIndex, strip.Color(getLedBarBrightness(), 0, 0));
+    
+    // Apply brightness correction for red color (255, 0, 0)
+    int correctedRedBrightness = calculateBrightnessCorrectedValue(255, 0, 0, getLedBarBrightness());
+    int redValue = 255 * correctedRedBrightness / 100;
+    
+    strip.setPixelColor(lastLEDIndex, strip.Color(redValue, 0, 0));
     strip.show();
 }
 
