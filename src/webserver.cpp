@@ -692,6 +692,10 @@ const char* helloWorldHTML = R"rawliteral(
                             </select>
                         </div>
                         
+                        <div id="sessionDurationInfo" style="color: #4fc3f7; font-weight: bold; font-size: 14px;">
+                            <!-- Session duration will be displayed here -->
+                        </div>
+                        
                         <div id="timeSliderContainer" style="flex: 1; min-width: 200px;">
                             <label for="timeSlider" style="color: #b0b0b0; font-weight: bold; display: block; margin-bottom: 5px;">Time Window Position:</label>
                             <input type="range" id="timeSlider" min="0" max="100" value="100" 
@@ -719,7 +723,7 @@ const char* helloWorldHTML = R"rawliteral(
                         Export Current View as CSV
                     </button>
                     <button class="button" onclick="exportAllSessionsAsZip()" style="background-color: #e67e22;">
-                        Export All Sessions as ZIP
+                        Export All Sessions as CSV
                     </button>
                 </div>
                 
@@ -1434,6 +1438,45 @@ const char* helloWorldHTML = R"rawliteral(
             return Math.ceil((FIXED_TIME_RANGE_MINUTES * 60) / 5);
         }
         
+        // Calculate and display session duration
+        function updateSessionDurationInfo(data) {
+            const durationInfo = document.getElementById('sessionDurationInfo');
+            if (!durationInfo || !data || data.length === 0) return;
+            
+            // Calculate session duration from first to last timestamp
+            const startTime = new Date(data[0].timestamp);
+            const endTime = new Date(data[data.length - 1].timestamp);
+            const durationMs = endTime - startTime;
+            const durationSeconds = Math.floor(durationMs / 1000);
+            
+            // Format duration as minutes and seconds
+            const minutes = Math.floor(durationSeconds / 60);
+            const seconds = durationSeconds % 60;
+            
+            // Get session name for display
+            let sessionName = 'Current Session';
+            if (selectedSession) {
+                const sessionNumber = selectedSession.replace('session_', '').replace('.bin', '');
+                sessionName = `Session ${sessionNumber}`;
+                
+                // Check if it's current session
+                const currentSession = availableSessions.find(s => s.filename === selectedSession && s.isCurrent);
+                if (currentSession) {
+                    sessionName += ' (Current)';
+                }
+            }
+            
+            // Format the display text
+            let durationText = '';
+            if (minutes > 0) {
+                durationText = `${sessionName}: ${minutes} Min. ${seconds} Sek. (${data.length} Datenpunkte)`;
+            } else {
+                durationText = `${sessionName}: ${seconds} Sek. (${data.length} Datenpunkte)`;
+            }
+            
+            durationInfo.textContent = durationText;
+        }
+        
         // Filter data based on time window slider position
         function filterDataByTimeRange(data) {
             // For session data, we don't need session filtering since each session is loaded separately
@@ -1693,8 +1736,14 @@ const char* helloWorldHTML = R"rawliteral(
             console.log('updateCharts called with', data.length, 'data points');
             if (data.length === 0) {
                 console.log('No data to display in charts');
+                // Clear session duration info
+                const durationInfo = document.getElementById('sessionDurationInfo');
+                if (durationInfo) durationInfo.textContent = '';
                 return;
             }
+            
+            // Calculate and display session duration
+            updateSessionDurationInfo(data);
             
             // Filter data based on time range and slider
             const filteredData = filterDataByTimeRange(data);
@@ -2365,25 +2414,23 @@ const char* helloWorldHTML = R"rawliteral(
             exportDataToCSV(filteredData, filename);
         }
         
-        // Export all sessions as ZIP using JSZip
+        // Export all sessions as combined CSV file
         async function exportAllSessionsAsZip() {
+            let button = null;
+            let originalText = '';
+            
             try {
                 // Find the button that was clicked
-                const button = document.querySelector('button[onclick="exportAllSessionsAsZip()"]');
+                button = document.querySelector('button[onclick="exportAllSessionsAsZip()"]');
                 if (!button) {
                     console.error('Export button not found');
                     return;
                 }
                 
                 // Show loading indicator
-                const originalText = button.textContent;
+                originalText = button.textContent;
                 button.textContent = 'Creating Export...';
                 button.disabled = true;
-                
-                // Check if JSZip is available
-                if (typeof JSZip === 'undefined') {
-                    throw new Error('JSZip library not loaded. Please refresh the page.');
-                }
                 
                 // Fetch list of all sessions
                 const sessionsResponse = await fetch('/api/sessions');
@@ -2398,8 +2445,8 @@ const char* helloWorldHTML = R"rawliteral(
                     return;
                 }
                 
-                // Create new ZIP
-                const zip = new JSZip();
+                // Build combined CSV content
+                let combinedCSV = '';
                 let processedSessions = 0;
                 
                 // Process each session
@@ -2421,14 +2468,41 @@ const char* helloWorldHTML = R"rawliteral(
                             continue;
                         }
                         
-                        // Convert to CSV
-                        const csvContent = convertSessionDataToCSV(sessionData);
-                        
-                        // Add to ZIP with descriptive filename
+                        // Add session header
                         const sessionNumber = session.filename.replace('session_', '').replace('.bin', '');
-                        const displayName = session.isCurrent ? `session_${sessionNumber}_current.csv` : `session_${sessionNumber}.csv`;
+                        const sessionTitle = session.isCurrent ? `Session ${sessionNumber} (Current)` : `Session ${sessionNumber}`;
                         
-                        zip.file(displayName, csvContent);
+                        combinedCSV += `\\n=== ${sessionTitle} ===\\n`;
+                        combinedCSV += `File: ${session.filename}\\n`;
+                        combinedCSV += `Data Points: ${sessionData.length}\\n\\n`;
+                        
+                        // Add CSV header (only for first session)
+                        if (processedSessions === 0) {
+                            combinedCSV += 'Timestamp,Motor Temperature (°C),MOSFET Temperature (°C),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (°C),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\\n';
+                        }
+                        
+                        // Add session data
+                        sessionData.forEach(point => {
+                            const row = [
+                                new Date(point.timestamp).toISOString(),
+                                point.tempMotor || 0,
+                                point.tempMosfet || 0,
+                                point.batteryVoltage || 0,
+                                point.current || 0,
+                                point.avgMotorCurrent || 0,
+                                point.rpm || 0,
+                                point.dutyCycle || 0,
+                                point.temperature || 0,
+                                point.humidity || 0,
+                                point.batteryLevel || 0,
+                                point.leakSensorState || 0,
+                                point.ledState || 0,
+                                point.totalUptime || 0
+                            ];
+                            combinedCSV += row.join(',') + '\\n';
+                        });
+                        
+                        combinedCSV += '\\n'; // Empty line between sessions
                         processedSessions++;
                         
                         // Small delay to prevent overwhelming the ESP32
@@ -2444,22 +2518,16 @@ const char* helloWorldHTML = R"rawliteral(
                     throw new Error('No valid session data found');
                 }
                 
-                button.textContent = 'Generating ZIP...';
+                button.textContent = 'Generating File...';
                 
-                // Generate ZIP file
-                const zipBlob = await zip.generateAsync({ 
-                    type: 'blob',
-                    compression: 'DEFLATE',
-                    compressionOptions: { level: 6 }
-                });
-                
-                // Download ZIP file
+                // Create and download CSV file
+                const blob = new Blob([combinedCSV], { type: 'text/csv;charset=utf-8' });
                 const link = document.createElement('a');
-                const url = URL.createObjectURL(zipBlob);
+                const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
                 
                 const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                const filename = `dpv_all_sessions_${timestamp}.zip`;
+                const filename = `dpv_all_sessions_${timestamp}.csv`;
                 link.setAttribute('download', filename);
                 
                 link.style.visibility = 'hidden';
@@ -2473,11 +2541,11 @@ const char* helloWorldHTML = R"rawliteral(
                 alert(`Successfully exported ${processedSessions} sessions to ${filename}`);
                 
             } catch (error) {
-                console.error('Error creating session ZIP:', error);
+                console.error('Error creating session export:', error);
                 alert('Failed to export sessions: ' + error.message);
             } finally {
                 // Restore button
-                if (button) {
+                if (button && originalText) {
                     button.textContent = originalText;
                     button.disabled = false;
                 }
