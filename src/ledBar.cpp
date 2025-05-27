@@ -96,11 +96,11 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
   }
 
-  // Convert the hex color value to RGB color values for the switched off color
-  long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
-  int redOff = numberOff >> 16;
-  int greenOff = (numberOff >> 8) & 0xFF;
-  int blueOff = numberOff & 0xFF;
+    // Convert the hex color value to RGB color values for the switched off color
+    long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
+    int redOff = numberOff >> 16;
+    int greenOff = (numberOff >> 8) & 0xFF;
+    int blueOff = numberOff & 0xFF;
 
   // Apply brightness correction for OFF color
   int correctedBrightnessOff = calculateBrightnessCorrectedValue(redOff, greenOff, blueOff, brightnessOff);
@@ -117,7 +117,16 @@ void setBarStandby() {
     // Reset cache when entering special mode
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
-    setBar(1, getLedBarNum(), "#e38f09", getLedBarBrightnessSecond(), "#000000", 0);
+    lastDisplayedBattery = -1; // Reset battery cache too
+    
+    // Force immediate update with current settings
+    int ledBarNum = getLedBarNum();
+    int brightness = getLedBarBrightnessSecond();
+    setBar(1, ledBarNum, "#e38f09", brightness, "#000000", 0);
+    
+    // Log for debugging
+    String msg = "Standby mode set - LEDs: " + String(ledBarNum) + ", Brightness: " + String(brightness);
+    log(msg.c_str());
 }
 
 void setBarSpeed(int num) {

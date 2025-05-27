@@ -160,7 +160,7 @@ void setLEDState(int state) {
   // Validate state against current settings
   if (state < 0 || state > maxLevels) {
     // Invalid state, use off
-    brightness = 0;
+      brightness = 0;
   } else {
     // Use configured brightness from settings
     brightness = getLampBrightness(state);

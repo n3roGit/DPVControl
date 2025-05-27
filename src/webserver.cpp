@@ -625,32 +625,42 @@ const char* helloWorldHTML = R"rawliteral(
                         return;
                     }
                     
-                    let csv = 'Timestamp,BatteryVoltage,Current,TempMotor,Temperature,Humidity,RPM,DutyCycle,TempMosfet,AvgMotorCurrent,BatteryLevel,LeakSensor\\n';
+                    // Create proper CSV header with correct field names
+                    let csv = 'Timestamp,Motor Temperature (°C),MOSFET Temperature (°C),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (°C),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\\n';
                     
                     data.forEach(item => {
+                        // Format timestamp properly
+                        const timestamp = new Date(item.timestamp).toISOString();
+                        
                         csv += [
-                            item.timestamp,
-                            item.batteryVoltage,
-                            item.current,
-                            item.tempMotor,
-                            item.temperature,
-                            item.humidity,
-                            item.erpm,
-                            item.dutyCycle,
-                            item.tempMosfet,
-                            item.avgMotorCurrent,
-                            item.batteryLevel,
-                            item.leakSensorState
+                            timestamp,
+                            item.tempMotor || 0,
+                            item.tempMosfet || 0,
+                            item.batteryVoltage || 0,
+                            item.current || 0,
+                            item.avgMotorCurrent || 0,
+                            item.erpm || 0,
+                            item.dutyCycle || 0,
+                            item.temperature || 0,
+                            item.humidity || 0,
+                            item.batteryLevel || 0,
+                            item.leakSensorState || 0,
+                            item.ledState || 0,
+                            item.totalUptime || 0
                         ].join(',') + '\\n';
                     });
                     
-                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = filename;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
+                    
+                    console.log('CSV exported: ' + filename + ' with ' + data.length + ' data points');
                 }
             </script>
 </head>
@@ -923,56 +933,54 @@ const char* helloWorldHTML = R"rawliteral(
                 <form id="settingsForm">
                     <!-- Motor and Speed Settings -->
                     <div class="settings-group">
-                        <h3>Motor & Speed Settings</h3>
+                        <h3>Motor and Speed Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="speedSteps">Speed Steps:</label></td>
-                                <td><input type="number" id="speedSteps" min="1" max="20" value="10"></td>
+                                <td><label for="speedSteps">Speed Steps:</label><span class="info-icon" title="Number of speed levels available (2-20). More steps = finer speed control.">?</span></td>
+                                <td><input type="number" id="speedSteps" min="2" max="20" value="10"></td>
                             </tr>
                             <tr>
-                                <td><label for="standbyDelaySeconds">Standby Delay (seconds):</label></td>
-                                <td><input type="number" id="standbyDelaySeconds" min="10" max="600" value="60"></td>
+                                <td><label for="standbyDelaySeconds">Standby Delay (s):</label><span class="info-icon" title="Time in seconds before the system enters standby mode when inactive.">?</span></td>
+                                <td><input type="number" id="standbyDelaySeconds" min="10" max="3600" value="300"></td>
                             </tr>
                             <tr>
-                                <td><label for="batteryPowerMax">Battery Power Max (A):</label></td>
-                                <td><input type="number" id="batteryPowerMax" min="10" max="100" value="40"></td>
+                                <td><label for="batteryPowerMax">Battery Power Max (W):</label><span class="info-icon" title="Maximum power consumption from battery in watts. Used for power calculations and safety limits.">?</span></td>
+                                <td><input type="number" id="batteryPowerMax" min="100" max="5000" value="1000"></td>
                             </tr>
                             <tr>
-                                <td><label for="minSpeedPercent">Min Speed Percent:</label></td>
-                                <td><input type="number" id="minSpeedPercent" min="0.1" max="1.0" step="0.01" value="0.38"></td>
+                                <td><label for="minSpeedPercent">Min Speed Percent:</label><span class="info-icon" title="Minimum speed as percentage (0.01-1.0). Lower values allow slower minimum speeds.">?</span></td>
+                                <td><input type="number" id="minSpeedPercent" min="0.01" max="1.0" step="0.01" value="0.38"></td>
                             </tr>
                             <tr>
-                                <td><label for="maxSpeedRpm">Max Speed eRPM: 
-                                    <span class="info-icon" title="eRPM = electrical RPM. This is the electrical frequency of the motor controller (not mechanical RPM). For VESC controllers, eRPM = mechanical RPM × pole pairs.">ⓘ</span>
-                                </label></td>
+                                <td><label for="maxSpeedRpm">Max Speed eRPM:</label><span class="info-icon" title="Maximum electrical RPM of the motor. Higher values = higher top speed. Typical range: 3000-20000 eRPM.">?</span></td>
                                 <td><input type="number" id="maxSpeedRpm" min="1000" max="50000" value="15800"></td>
                             </tr>
                             <tr>
-                                <td><label for="speedUpTimeMs">Speed Up Time (ms):</label></td>
-                                <td><input type="number" id="speedUpTimeMs" min="100" max="10000" value="3000"></td>
+                                <td><label for="speedUpTimeMs">Speed Up Time (ms):</label><span class="info-icon" title="Time in milliseconds for motor to accelerate between speed steps. Higher = smoother acceleration.">?</span></td>
+                                <td><input type="number" id="speedUpTimeMs" min="100" max="5000" value="1000"></td>
                             </tr>
                             <tr>
-                                <td><label for="speedDownTimeMs">Speed Down Time (ms):</label></td>
-                                <td><input type="number" id="speedDownTimeMs" min="50" max="5000" value="500"></td>
+                                <td><label for="speedDownTimeMs">Speed Down Time (ms):</label><span class="info-icon" title="Time in milliseconds for motor to decelerate between speed steps. Higher = smoother deceleration.">?</span></td>
+                                <td><input type="number" id="speedDownTimeMs" min="100" max="5000" value="1000"></td>
                             </tr>
                             <tr>
-                                <td><label for="maxTimeOverloadedMs">Max Overload Time (ms):</label></td>
+                                <td><label for="maxTimeOverloadedMs">Max Time Overloaded (ms):</label><span class="info-icon" title="Maximum time motor can be overloaded before protection kicks in. Safety feature to prevent damage.">?</span></td>
                                 <td><input type="number" id="maxTimeOverloadedMs" min="1000" max="30000" value="5000"></td>
                             </tr>
                         </table>
                     </div>
                     
-                    <!-- Jam Detection -->
+                    <!-- Jam Detection Settings -->
                     <div class="settings-group">
-                        <h3>Jam Detection</h3>
+                        <h3>Jam Detection Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="jamMin">Jam Min:</label></td>
-                                <td><input type="number" id="jamMin" min="0.05" max="0.5" step="0.01" value="0.2"></td>
+                                <td><label for="jamMin">Jam Min:</label><span class="info-icon" title="Minimum current threshold for jam detection. Lower values = more sensitive jam detection.">?</span></td>
+                                <td><input type="number" id="jamMin" min="0.1" max="10.0" step="0.1" value="0.5"></td>
                             </tr>
                             <tr>
-                                <td><label for="jamDetectionThreshold">Jam Detection Threshold:</label></td>
-                                <td><input type="number" id="jamDetectionThreshold" min="0.1" max="1.0" step="0.01" value="0.5"></td>
+                                <td><label for="jamDetectionThreshold">Jam Detection Threshold:</label><span class="info-icon" title="Current threshold above which jam protection activates. Higher values = less sensitive.">?</span></td>
+                                <td><input type="number" id="jamDetectionThreshold" min="0.5" max="20.0" step="0.1" value="2.0"></td>
                             </tr>
                         </table>
                     </div>
@@ -982,8 +990,8 @@ const char* helloWorldHTML = R"rawliteral(
                         <h3>Battery Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="cellsInSeries">Cells in Series:</label></td>
-                                <td><input type="number" id="cellsInSeries" min="1" max="20" value="13"></td>
+                                <td><label for="cellsInSeries">Cells in Series:</label><span class="info-icon" title="Number of battery cells connected in series. Used for voltage calculations and battery level estimation.">?</span></td>
+                                <td><input type="number" id="cellsInSeries" min="1" max="20" value="6"></td>
                             </tr>
                         </table>
                     </div>
@@ -993,19 +1001,19 @@ const char* helloWorldHTML = R"rawliteral(
                         <h3>LED Bar Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="ledBarNum">LED Bar Number:</label></td>
+                                <td><label for="ledBarNum">LED Bar Number:</label><span class="info-icon" title="Number of LEDs in the status bar (1-50). More LEDs = finer status display resolution.">?</span></td>
                                 <td><input type="number" id="ledBarNum" min="1" max="50" value="10"></td>
                             </tr>
                             <tr>
-                                <td><label for="ledBarBrightness">LED Bar Brightness:</label></td>
+                                <td><label for="ledBarBrightness">LED Bar Brightness:</label><span class="info-icon" title="Main brightness level for LED bar (1-255). Higher values = brighter display.">?</span></td>
                                 <td><input type="number" id="ledBarBrightness" min="1" max="255" value="15"></td>
                             </tr>
                             <tr>
-                                <td><label for="ledBarBrightnessSecond">LED Bar Brightness Second:</label></td>
+                                <td><label for="ledBarBrightnessSecond">LED Bar Brightness Second:</label><span class="info-icon" title="Secondary brightness level for standby/dimmed mode (1-255). Used for low-power indication.">?</span></td>
                                 <td><input type="number" id="ledBarBrightnessSecond" min="1" max="255" value="3"></td>
                             </tr>
                             <tr>
-                                <td><label for="ledFrequency">LED Frequency:</label></td>
+                                <td><label for="ledFrequency">LED Frequency:</label><span class="info-icon" title="PWM frequency for LED control in Hz (100-10000). Higher frequencies reduce flicker.">?</span></td>
                                 <td><input type="number" id="ledFrequency" min="100" max="10000" value="960"></td>
                             </tr>
                         </table>
@@ -1016,7 +1024,7 @@ const char* helloWorldHTML = R"rawliteral(
                         <h3>Front Lamp Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="lampMaxLevels">Number of Lamp Levels:</label></td>
+                                <td><label for="lampMaxLevels">Number of Lamp Levels:</label><span class="info-icon" title="Number of brightness levels for front lamp (2-10). More levels = finer brightness control.">?</span></td>
                                 <td><input type="number" id="lampMaxLevels" min="2" max="10" value="5" onchange="updateLampBrightnessInputs()"></td>
                             </tr>
                         </table>
@@ -1030,11 +1038,11 @@ const char* helloWorldHTML = R"rawliteral(
                         <h3>WiFi Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="wifiSSID">WiFi SSID:</label></td>
+                                <td><label for="wifiSSID">WiFi SSID:</label><span class="info-icon" title="WiFi network name for the DPV access point. Change to customize your network name.">?</span></td>
                                 <td><input type="text" id="wifiSSID" maxlength="31" value="DPVControl"></td>
                             </tr>
                             <tr>
-                                <td><label for="wifiPassword">WiFi Password:</label></td>
+                                <td><label for="wifiPassword">WiFi Password:</label><span class="info-icon" title="WiFi password for the DPV access point. Minimum 8 characters for security.">?</span></td>
                                 <td><input type="password" id="wifiPassword" maxlength="31" value="DPVControl"></td>
                             </tr>
                         </table>
@@ -1045,7 +1053,7 @@ const char* helloWorldHTML = R"rawliteral(
                         <h3>System Settings</h3>
                         <table class="settings-table">
                             <tr>
-                                <td><label for="beeperEnabled">Beeper Enabled:</label></td>
+                                <td><label for="beeperEnabled">Beeper Enabled:</label><span class="info-icon" title="Enable/disable audio feedback beeps for system status and warnings.">?</span></td>
                                 <td><input type="checkbox" id="beeperEnabled" checked></td>
                             </tr>
                             <tr>
@@ -2080,6 +2088,25 @@ const char* helloWorldHTML = R"rawliteral(
                 `;
             }
             container.innerHTML += '</table>';
+            
+            // Update remote control lamp slider after changing levels
+            updateRemoteLampSlider();
+        }
+        
+        // Update remote control lamp slider based on current settings
+        function updateRemoteLampSlider() {
+            const lampSlider = document.getElementById('lampLevelSlider');
+            if (!lampSlider) return;
+            
+            // Get current lamp settings
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels')?.value || 5);
+            
+            // Update slider to work with percentage (0-100%)
+            lampSlider.min = 0;
+            lampSlider.max = 100;
+            lampSlider.step = Math.round(100 / maxLevels); // Dynamic step based on levels
+            
+            console.log('Updated lamp slider: maxLevels=' + maxLevels + ', step=' + lampSlider.step + '%');
         }
         
         // Load DPV settings from API
@@ -2467,40 +2494,198 @@ const char* helloWorldHTML = R"rawliteral(
             });
         }
         
-        // Update lamp level display
+        // Update lamp level display with dynamic level calculation
         function updateLampLevel(value) {
-            currentLampLevel = parseInt(value);
-            document.getElementById('lampLevelValue').textContent = currentLampLevel;
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels')?.value || 5);
+            const levelPercent = parseInt(value);
+            
+            // Calculate actual level based on percentage and max levels
+            let actualLevel = 0;
+            if (levelPercent > 0) {
+                actualLevel = Math.ceil((levelPercent * maxLevels) / 100);
+                if (actualLevel > maxLevels) actualLevel = maxLevels;
+            }
+            
+            document.getElementById('lampLevelValue').textContent = levelPercent;
             
             let statusText;
-            if (currentLampLevel === 0) {
+            if (levelPercent === 0) {
                 statusText = 'OFF';
-            } else if (currentLampLevel === 100) {
+            } else if (levelPercent === 100) {
                 statusText = 'MAX';
             } else {
-                statusText = currentLampLevel + '%';
+                statusText = 'Level ' + actualLevel;
             }
             
             document.getElementById('lampLevelName').textContent = statusText;
+            
+            console.log('Lamp: ' + levelPercent + '% -> Level ' + actualLevel + ' of ' + maxLevels);
         }
         
-        // Set lamp level
+        // Set lamp level with improved percentage to level mapping
         function setLampLevel(value) {
-            currentLampLevel = parseInt(value);
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels')?.value || 5);
+            const levelPercent = parseInt(value);
             updateLampLevel(value);
             
             fetch('/api/lamp', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ level: currentLampLevel })
+                body: JSON.stringify({ level: levelPercent })
             })
             .then(response => response.json())
             .then(data => {
                 console.log('Lamp control response:', data);
+                document.getElementById('remoteLastCommand').textContent = 'Lamp: ' + levelPercent + '%';
+                document.getElementById('remoteLampStatus').textContent = levelPercent === 0 ? 'OFF' : levelPercent + '%';
             })
             .catch(error => {
                 console.error('Error controlling lamp:', error);
             });
+        }
+        
+        // Emergency stop function
+        function emergencyStop() {
+            console.log('Emergency stop initiated');
+            motorRunning = false;
+            currentMotorSpeed = 0;
+            
+            const button = document.getElementById('motorToggle');
+            button.textContent = 'START MOTOR';
+            button.style.backgroundColor = '#4caf50';
+            
+            document.getElementById('motorSpeedSlider').value = 0;
+            updateMotorSpeed(0);
+            
+            // Send emergency stop to API
+            fetch('/api/motor', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: false, speed: 0 })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Emergency stop response:', data);
+                document.getElementById('remoteControlStatus').textContent = 'Emergency stop executed!';
+                document.getElementById('remoteControlStatus').style.color = '#f44336';
+            })
+            .catch(error => {
+                console.error('Error during emergency stop:', error);
+            });
+        }
+        
+        // System reboot function
+        function rebootSystem() {
+            if (confirm('Are you sure you want to reboot the DPV Control System? This will interrupt any active sessions.')) {
+                document.getElementById('settingsStatus').textContent = 'Rebooting system...';
+                
+                fetch('/api/reboot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('settingsStatus').textContent = 'System is rebooting. Please wait 30 seconds and refresh the page.';
+                    
+                    // Show countdown
+                    let countdown = 30;
+                    const countdownInterval = setInterval(() => {
+                        countdown--;
+                        document.getElementById('settingsStatus').textContent = 
+                            'System is rebooting. Refresh page in ' + countdown + ' seconds...';
+                        
+                        if (countdown <= 0) {
+                            clearInterval(countdownInterval);
+                            document.getElementById('settingsStatus').textContent = 'Please refresh the page manually.';
+                        }
+                    }, 1000);
+                })
+                .catch(error => {
+                    console.error('Error rebooting system:', error);
+                    document.getElementById('settingsStatus').textContent = 'Error rebooting system!';
+                });
+            }
+        }
+        
+        // Delete all sessions function
+        function deleteAllSessions() {
+            if (confirm('Are you sure you want to delete ALL session data? This cannot be undone!')) {
+                document.getElementById('sessionDurationInfo').textContent = 'Deleting sessions...';
+                
+                fetch('/api/delete-all-sessions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('sessionDurationInfo').textContent = 
+                            'Deleted ' + (data.deleted || 0) + ' session files';
+                        
+                        // Reload session list
+                        loadSessionList();
+                        
+                        // Clear chart
+                        allDataPoints = [];
+                        updateCharts([]);
+                    } else {
+                        document.getElementById('sessionDurationInfo').textContent = 
+                            'Error deleting sessions: ' + (data.error || 'Unknown error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting sessions:', error);
+                    document.getElementById('sessionDurationInfo').textContent = 'Error deleting sessions!';
+                });
+            }
+        }
+        
+        // Export functions for charts
+        function exportCurrentViewAsCSV() {
+            if (!allDataPoints || allDataPoints.length === 0) {
+                alert('No data available to export');
+                return;
+            }
+            
+            // Filter data by current time window
+            const filteredData = filterDataByTimeRange(allDataPoints);
+            
+            if (filteredData.length === 0) {
+                alert('No data in current view to export');
+                return;
+            }
+            
+            // Generate filename with session and timestamp
+            const sessionName = selectedSession ? selectedSession.replace('.bin', '') : 'current';
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `${sessionName}_view_${timestamp}.csv`;
+            
+            exportToCSV(filteredData, filename);
+        }
+        
+        function exportAllSessionsAsZip() {
+            if (!selectedSession) {
+                alert('No session selected');
+                return;
+            }
+            
+            if (!allDataPoints || allDataPoints.length === 0) {
+                alert('No data available to export');
+                return;
+            }
+            
+            // For now, export current session as CSV (JSZip fallback)
+            const sessionName = selectedSession.replace('.bin', '');
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `${sessionName}_complete_${timestamp}.csv`;
+            
+            exportToCSV(allDataPoints, filename);
+        }
+        
+        // Update lamp slider interface function (for settings compatibility)
+        function updateLampSliderInterface() {
+            // Call the new function name
+            updateRemoteLampSlider();
         }
     </script>
 </body>
