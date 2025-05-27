@@ -194,7 +194,7 @@ bool isDataloggerRunning = false;
 
 unsigned long bootTimeSeconds = 0;  // Boot time when system started
 unsigned long lastSaveTime = 0;
-const unsigned long SAVE_INTERVAL = 30000; // Save every 30 seconds
+const unsigned long SAVE_INTERVAL = 60000; // Save every 60 seconds
 
 /**
  * Load total runtime from file 
@@ -232,7 +232,7 @@ void saveTotalUptime() {
     String saveMsg = "Total runtime saved: " + String(currentTotalRuntime) + " seconds";
     log(saveMsg.c_str());
   } else {
-    log("Failed to save runtime");
+    log("Failed to save runtime - skipping");
   }
 }
 
@@ -1115,7 +1115,7 @@ void dataloggerTask(void *pvParameters) {
       }
     }
     
-    // Save total runtime every 30 seconds (simple approach)
+    // Save total runtime every minute
     if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
       saveTotalUptime();
       lastSaveTime = currentTime;
@@ -1207,8 +1207,6 @@ bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
   // Don't save if no significant changes
   return false;
 }
-
-
 
 /**
  * Interpolate between stored datapoints to create smooth timeline

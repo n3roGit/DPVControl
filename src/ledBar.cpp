@@ -54,14 +54,21 @@ int calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBr
 }
 
 void ledBarSetup(){
-  //Neopixel
+  // Configure LED pin
+  pinMode(PIN_LEDBAR, OUTPUT);
+  digitalWrite(PIN_LEDBAR, LOW);
+  
+  // Initialize Neopixel with correct number of LEDs
+  strip = Adafruit_NeoPixel(getLedBarNum() + LedBar2_Num, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
   strip.begin();
-  strip.show();  // Turn off all LEDs
   
-  // Run Knight Rider startup animation
-  knightRiderStartup();
+  // Ensure all LEDs are off
+  for(int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, 0);
+  }
+  strip.show();
   
-  // Start normal operation
+  // Start normal operation with standby display
   setBarStandby();
 }
 
@@ -197,8 +204,7 @@ void setBarPowerBank(bool status) {
 }
 
 void setBarLED(int num) {
-    int calc = getLedBarNum() - num;
-    setBar(1, calc, "#000000", 0, "#FFFFFF", getLedBarBrightness());
+    setBar(1, num, "#000000", 0, "#FFFFFF", getLedBarBrightness());
 }
 
 void setBarFlasher(bool status) {
@@ -220,106 +226,4 @@ void forceRefreshLedBar() {
   lastDisplayedSpeed = -1;
   lastDisplayedMotorState = -1;
   lastDisplayedBattery = -1;
-}
-
-// Knight Rider startup animation
-void knightRiderStartup() {
-    const int delayTime = 60; // ms between steps
-    const int maxBrightness = 80; // Maximum brightness for the effect
-    const int stripLength = getLedBarNum(); // Length of each strip (usually 10)
-    
-    // Run the effect 2 times
-    for (int cycle = 0; cycle < 2; cycle++) {
-        
-        // Forward sweep (left to right) on both strips simultaneously
-        for (int pos = 0; pos < stripLength; pos++) {
-            // Clear all LEDs
-            for (int i = 0; i < stripLength + LedBar2_Num; i++) {
-                strip.setPixelColor(i, strip.Color(0, 0, 0));
-            }
-            
-            // LOWER STRIP (LEDs 0-9): Create trailing effect with 3 LEDs
-            // Main LED (brightest)
-            strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0));
-            
-            // Trailing LED 1 (medium brightness)
-            if (pos > 0) {
-                strip.setPixelColor(pos - 1, strip.Color(maxBrightness / 3, 0, 0));
-            }
-            
-            // Trailing LED 2 (dim)
-            if (pos > 1) {
-                strip.setPixelColor(pos - 2, strip.Color(maxBrightness / 8, 0, 0));
-            }
-            
-            // UPPER STRIP (LEDs 10-19): Same effect, offset by stripLength
-            int upperPos = stripLength + pos;
-            
-            // Main LED (brightest)
-            strip.setPixelColor(upperPos, strip.Color(maxBrightness, 0, 0));
-            
-            // Trailing LED 1 (medium brightness)
-            if (pos > 0) {
-                strip.setPixelColor(upperPos - 1, strip.Color(maxBrightness / 3, 0, 0));
-            }
-            
-            // Trailing LED 2 (dim)
-            if (pos > 1) {
-                strip.setPixelColor(upperPos - 2, strip.Color(maxBrightness / 8, 0, 0));
-            }
-            
-            strip.show();
-            delay(delayTime);
-        }
-        
-        // Backward sweep (right to left) on both strips simultaneously
-        for (int pos = stripLength - 1; pos >= 0; pos--) {
-            // Clear all LEDs
-            for (int i = 0; i < stripLength + LedBar2_Num; i++) {
-                strip.setPixelColor(i, strip.Color(0, 0, 0));
-            }
-            
-            // LOWER STRIP (LEDs 0-9): Create trailing effect with 3 LEDs
-            // Main LED (brightest)
-            strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0));
-            
-            // Trailing LED 1 (medium brightness)
-            if (pos < stripLength - 1) {
-                strip.setPixelColor(pos + 1, strip.Color(maxBrightness / 3, 0, 0));
-            }
-            
-            // Trailing LED 2 (dim)
-            if (pos < stripLength - 2) {
-                strip.setPixelColor(pos + 2, strip.Color(maxBrightness / 8, 0, 0));
-            }
-            
-            // UPPER STRIP (LEDs 10-19): Same effect, offset by stripLength
-            int upperPos = stripLength + pos;
-            
-            // Main LED (brightest)
-            strip.setPixelColor(upperPos, strip.Color(maxBrightness, 0, 0));
-            
-            // Trailing LED 1 (medium brightness)
-            if (pos < stripLength - 1) {
-                strip.setPixelColor(upperPos + 1, strip.Color(maxBrightness / 3, 0, 0));
-            }
-            
-            // Trailing LED 2 (dim)
-            if (pos < stripLength - 2) {
-                strip.setPixelColor(upperPos + 2, strip.Color(maxBrightness / 8, 0, 0));
-            }
-            
-            strip.show();
-            delay(delayTime);
-        }
-    }
-    
-    // Clear all LEDs after animation
-    for (int i = 0; i < stripLength + LedBar2_Num; i++) {
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
-    }
-    strip.show();
-    
-    // Small pause before starting normal operation
-    delay(200);
 }
