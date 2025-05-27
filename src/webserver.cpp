@@ -121,19 +121,44 @@ String generateSessionDataJson(String sessionFile) {
     }
     
     if (!LittleFS.exists(fullPath)) {
-        return "[]";
+        return "{\"data\":[],\"meta\":{\"error\":\"File not found\"}}";
     }
     
     File file = LittleFS.open(fullPath, "r");
     if (!file) {
-        return "[]";
+        return "{\"data\":[],\"meta\":{\"error\":\"Cannot open file\"}}";
     }
     
     // Get file size and calculate total datapoints
     size_t fileSize = file.size();
     int totalDatapoints = fileSize / sizeof(LogdataRow);
     
-    // Read raw data first (limited to prevent memory issues)
+    // **CALCULATE REAL SESSION DURATION FIRST** - Read only first and last datapoint
+    LogdataRow firstDataPoint, lastDataPoint;
+    long realSessionStartMs = 0;
+    long realSessionEndMs = 0;
+    int realSessionDurationSeconds = 0;
+    
+    if (totalDatapoints > 0) {
+        // Read first datapoint
+        file.seek(0);
+        file.read((uint8_t*)&firstDataPoint, sizeof(LogdataRow));
+        realSessionStartMs = firstDataPoint.timestamp;
+        
+        // Read last datapoint
+        file.seek((totalDatapoints - 1) * sizeof(LogdataRow));
+        file.read((uint8_t*)&lastDataPoint, sizeof(LogdataRow));
+        realSessionEndMs = lastDataPoint.timestamp;
+        
+        realSessionDurationSeconds = (realSessionEndMs - realSessionStartMs) / 1000;
+        
+        String realDurationMsg = "REAL session duration: " + String(realSessionDurationSeconds) + "s (" + 
+                                String(realSessionDurationSeconds / 60) + "min " + String(realSessionDurationSeconds % 60) + "s) " +
+                                "from " + String(totalDatapoints) + " total datapoints";
+        log(realDurationMsg.c_str());
+    }
+    
+    // Read raw data (limited to prevent memory issues)
     const int maxRawDatapoints = 150;
     const int targetInterpolatedPoints = 200; // Target smooth resolution
     
@@ -168,8 +193,18 @@ String generateSessionDataJson(String sessionFile) {
         }
     }
     
-    // Generate JSON from final data
-    String json = "[";
+    // Generate JSON with metadata and chart data separated
+    String json = "{";
+    json += "\"meta\":{";
+    json += "\"realStartTimestamp\":" + String(realSessionStartMs) + ",";
+    json += "\"realEndTimestamp\":" + String(realSessionEndMs) + ",";
+    json += "\"realDurationSeconds\":" + String(realSessionDurationSeconds) + ",";
+    json += "\"totalDatapoints\":" + String(totalDatapoints) + ",";
+    json += "\"chartDatapoints\":" + String(finalCount) + ",";
+    json += "\"skipInterval\":" + String(skipInterval);
+    json += "},";
+    json += "\"data\":[";
+    
     bool firstPoint = true;
     
     for (int i = 0; i < finalCount; i++) {
@@ -201,12 +236,12 @@ String generateSessionDataJson(String sessionFile) {
         }
     }
     
-    json += "]";
+    json += "]}";
     
     // Cleanup
     delete[] rawData;
     
-    String resultMsg = "Generated session JSON: " + String(finalCount) + " points, " + String(json.length()) + " bytes";
+    String resultMsg = "Generated session JSON: " + String(finalCount) + " chart points, " + String(json.length()) + " bytes (real duration: " + String(realSessionDurationSeconds) + "s)";
     log(resultMsg.c_str());
     
     return json;
@@ -1265,6 +1300,7 @@ const char* helloWorldHTML = R"rawliteral(
         let updateInterval = 10000; // Fixed 10 seconds
         let charts = {};
         let allDataPoints = [];
+        let sessionMetadata = null; // Store session metadata (real duration, total datapoints, etc.)
         let timeSliderValue = 100;
         let systemStartTime = null;
         let availableSessions = [];
@@ -1495,9 +1531,53 @@ const char* helloWorldHTML = R"rawliteral(
         // Calculate and display session duration
         function updateSessionDurationInfo(data) {
             const durationInfo = document.getElementById('sessionDurationInfo');
-            if (!durationInfo || !data || data.length === 0) return;
+            if (!durationInfo) return;
             
-            // Calculate session duration from first to last timestamp
+            // Use real session metadata when available (preferred)
+            if (sessionMetadata && sessionMetadata.realDurationSeconds !== undefined) {
+                const realDurationSeconds = sessionMetadata.realDurationSeconds;
+                const totalDatapoints = sessionMetadata.totalDatapoints || data.length;
+                const chartDatapoints = sessionMetadata.chartDatapoints || data.length;
+                
+                // Format duration as minutes and seconds
+                const minutes = Math.floor(realDurationSeconds / 60);
+                const seconds = realDurationSeconds % 60;
+                
+                // Get session name for display
+                let sessionName = 'Current Session';
+                if (selectedSession) {
+                    const sessionNumber = selectedSession.replace('session_', '').replace('.bin', '');
+                    sessionName = `Session ${sessionNumber}`;
+                    
+                    // Check if it's current session
+                    const currentSession = availableSessions.find(s => s.filename === selectedSession && s.isCurrent);
+                    if (currentSession) {
+                        sessionName += ' (Current)';
+                    }
+                }
+                
+                // Format the display text with real duration
+                let durationText = '';
+                if (minutes > 0) {
+                    durationText = `${minutes} Min. ${seconds} Sek. (${totalDatapoints} Datenpunkte, ${chartDatapoints} angezeigt)`;
+                } else {
+                    durationText = `${seconds} Sek. (${totalDatapoints} Datenpunkte, ${chartDatapoints} angezeigt)`;
+                }
+                
+                durationInfo.textContent = durationText;
+                console.log('Using REAL session duration:', realDurationSeconds + 's from metadata');
+                return;
+            }
+            
+            // Fallback: Calculate from chart data (old method) 
+            if (!data || data.length === 0) {
+                durationInfo.textContent = '';
+                return;
+            }
+            
+            console.log('Warning: Using chart data for duration calculation (may be inaccurate due to data reduction)');
+            
+            // Calculate session duration from first to last timestamp in chart data
             const startTime = new Date(data[0].timestamp);
             const endTime = new Date(data[data.length - 1].timestamp);
             const durationMs = endTime - startTime;
@@ -1523,9 +1603,9 @@ const char* helloWorldHTML = R"rawliteral(
             // Format the display text
             let durationText = '';
             if (minutes > 0) {
-                durationText = `${minutes} Min. ${seconds} Sek. (${data.length} Datenpunkte)`;
+                durationText = `~${minutes} Min. ${seconds} Sek. (${data.length} Datenpunkte, evtl. reduziert)`;
             } else {
-                durationText = `${seconds} Sek. (${data.length} Datenpunkte)`;
+                durationText = `~${seconds} Sek. (${data.length} Datenpunkte, evtl. reduziert)`;
             }
             
             durationInfo.textContent = durationText;
@@ -1565,7 +1645,7 @@ const char* helloWorldHTML = R"rawliteral(
             // Calculate window position based on slider (0 = oldest, 100 = newest)
             const windowSize = FIXED_WINDOW_POINTS;
             const maxStartIndex = data.length - windowSize;
-            const startIndex = Math.floor((maxStartIndex * (100 - timeSliderValue)) / 100);
+            const startIndex = Math.floor((maxStartIndex * timeSliderValue) / 100);
             const endIndex = Math.min(startIndex + windowSize, data.length);
             
             return data.slice(startIndex, endIndex);
@@ -1593,7 +1673,7 @@ const char* helloWorldHTML = R"rawliteral(
             // For long sessions, calculate current window based on slider position
             const windowSize = 60;
             const maxStartIndex = data.length - windowSize;
-            const currentStartIndex = Math.floor((maxStartIndex * (100 - timeSliderValue)) / 100);
+            const currentStartIndex = Math.floor((maxStartIndex * timeSliderValue) / 100);
             const currentEndIndex = Math.min(currentStartIndex + windowSize, data.length);
             
             sliderStart.textContent = formatTimeOnly(data[currentStartIndex].timestamp, sessionStart);
@@ -1816,15 +1896,31 @@ const char* helloWorldHTML = R"rawliteral(
                     }
                     return response.json();
                 })
-                .then(data => {
-                    console.log('Chart data received:', data.length, 'points');
-                    allDataPoints = data;
-                    updateCharts(data);
+                .then(jsonResponse => {
+                    // Handle new JSON format with metadata and data
+                    if (jsonResponse.data && jsonResponse.meta) {
+                        // New format with metadata
+                        console.log('Chart data received:', jsonResponse.data.length, 'points, real duration:', jsonResponse.meta.realDurationSeconds + 's');
+                        console.log('Session metadata:', jsonResponse.meta);
+                        
+                        allDataPoints = jsonResponse.data;
+                        sessionMetadata = jsonResponse.meta; // Store metadata globally
+                        updateCharts(jsonResponse.data);
+                    } else if (Array.isArray(jsonResponse)) {
+                        // Legacy format (array only)
+                        console.log('Chart data received (legacy format):', jsonResponse.length, 'points');
+                        allDataPoints = jsonResponse;
+                        sessionMetadata = null; // No metadata available
+                        updateCharts(jsonResponse);
+                    } else {
+                        throw new Error('Invalid response format');
+                    }
                 })
                 .catch(error => {
                     console.error('Error fetching chart data:', error);
                     // Show empty chart on error
                     allDataPoints = [];
+                    sessionMetadata = null;
                     updateCharts([]);
                 });
         }
