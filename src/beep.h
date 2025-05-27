@@ -27,9 +27,4 @@ void beep(const String& sequence);
 void beepLoop();
 void BeepForLeak();
 
-// Beeper settings
-extern bool beeperEnabled;
-void saveBeeperSettings();
-void loadBeeperSettings();
-
 #endif

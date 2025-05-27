@@ -74,49 +74,136 @@ void initializeSettings() {
  * Validate settings for reasonable ranges
  */
 bool validateSettings(const DPVSettings& settings) {
+    log("validateSettings() called - detailed validation");
+    
     // Validate speed steps
-    if (settings.speedSteps < 1 || settings.speedSteps > 20) return false;
+    if (settings.speedSteps < 1 || settings.speedSteps > 20) {
+        String msg = "VALIDATION FAILED: speedSteps " + String(settings.speedSteps) + " not in range 1-20";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate standby delay
-    if (settings.standbyDelaySeconds < 10 || settings.standbyDelaySeconds > 600) return false;
+    if (settings.standbyDelaySeconds < 10 || settings.standbyDelaySeconds > 600) {
+        String msg = "VALIDATION FAILED: standbyDelaySeconds " + String(settings.standbyDelaySeconds) + " not in range 10-600";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate battery power
-    if (settings.batteryPowerMax < 10 || settings.batteryPowerMax > 100) return false;
+    if (settings.batteryPowerMax < 10 || settings.batteryPowerMax > 100) {
+        String msg = "VALIDATION FAILED: batteryPowerMax " + String(settings.batteryPowerMax) + " not in range 10-100";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate speed percent
-    if (settings.minSpeedPercent < 0.1 || settings.minSpeedPercent > 1.0) return false;
+    if (settings.minSpeedPercent < 0.1 || settings.minSpeedPercent > 1.0) {
+        String msg = "VALIDATION FAILED: minSpeedPercent " + String(settings.minSpeedPercent, 3) + " not in range 0.1-1.0";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate max RPM
-    if (settings.maxSpeedRpm < 1000 || settings.maxSpeedRpm > 50000) return false;
+    if (settings.maxSpeedRpm < 1000 || settings.maxSpeedRpm > 50000) {
+        String msg = "VALIDATION FAILED: maxSpeedRpm " + String(settings.maxSpeedRpm, 1) + " not in range 1000-50000";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate timing
-    if (settings.speedUpTimeMs < 100 || settings.speedUpTimeMs > 10000) return false;
-    if (settings.speedDownTimeMs < 50 || settings.speedDownTimeMs > 5000) return false;
-    if (settings.maxTimeOverloadedMs < 1000 || settings.maxTimeOverloadedMs > 30000) return false;
+    if (settings.speedUpTimeMs < 100 || settings.speedUpTimeMs > 10000) {
+        String msg = "VALIDATION FAILED: speedUpTimeMs " + String(settings.speedUpTimeMs) + " not in range 100-10000";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.speedDownTimeMs < 50 || settings.speedDownTimeMs > 5000) {
+        String msg = "VALIDATION FAILED: speedDownTimeMs " + String(settings.speedDownTimeMs) + " not in range 50-5000";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.maxTimeOverloadedMs < 1000 || settings.maxTimeOverloadedMs > 30000) {
+        String msg = "VALIDATION FAILED: maxTimeOverloadedMs " + String(settings.maxTimeOverloadedMs) + " not in range 1000-30000";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate jam detection
-    if (settings.jamMin < 0.05 || settings.jamMin > 0.5) return false;
-    if (settings.jamDetectionThreshold < 0.1 || settings.jamDetectionThreshold > 1.0) return false;
+    if (settings.jamMin < 0.05 || settings.jamMin > 0.5) {
+        String msg = "VALIDATION FAILED: jamMin " + String(settings.jamMin, 3) + " not in range 0.05-0.5";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.jamDetectionThreshold < 0.1 || settings.jamDetectionThreshold > 1.0) {
+        String msg = "VALIDATION FAILED: jamDetectionThreshold " + String(settings.jamDetectionThreshold, 3) + " not in range 0.1-1.0";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate cells in series
-    if (settings.cellsInSeries < 1 || settings.cellsInSeries > 20) return false;
+    if (settings.cellsInSeries < 1 || settings.cellsInSeries > 20) {
+        String msg = "VALIDATION FAILED: cellsInSeries " + String(settings.cellsInSeries) + " not in range 1-20";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate LED settings
-    if (settings.ledBarNum < 1 || settings.ledBarNum > 50) return false;
-    if (settings.ledBarBrightness < 1 || settings.ledBarBrightness > 255) return false;
-    if (settings.ledBarBrightnessSecond < 1 || settings.ledBarBrightnessSecond > 255) return false;
-    if (settings.ledFrequency < 100 || settings.ledFrequency > 10000) return false;
+    if (settings.ledBarNum < 1 || settings.ledBarNum > 50) {
+        String msg = "VALIDATION FAILED: ledBarNum " + String(settings.ledBarNum) + " not in range 1-50";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.ledBarBrightness < 1 || settings.ledBarBrightness > 255) {
+        String msg = "VALIDATION FAILED: ledBarBrightness " + String(settings.ledBarBrightness) + " not in range 1-255";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.ledBarBrightnessSecond < 1 || settings.ledBarBrightnessSecond > 255) {
+        String msg = "VALIDATION FAILED: ledBarBrightnessSecond " + String(settings.ledBarBrightnessSecond) + " not in range 1-255";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.ledFrequency < 100 || settings.ledFrequency > 10000) {
+        String msg = "VALIDATION FAILED: ledFrequency " + String(settings.ledFrequency) + " not in range 100-10000";
+        log(msg.c_str());
+        return false;
+    }
     
     // Validate lamp settings
-    if (settings.lampMaxLevels < 2 || settings.lampMaxLevels > 10) return false;
-    for (int i = 0; i < settings.lampMaxLevels; i++) {
-        if (settings.lampBrightness[i] < 0 || settings.lampBrightness[i] > 255) return false;
+    if (settings.lampMaxLevels < 2 || settings.lampMaxLevels > 10) {
+        String msg = "VALIDATION FAILED: lampMaxLevels " + String(settings.lampMaxLevels) + " not in range 2-10";
+        log(msg.c_str());
+        return false;
+    }
+    
+    // Log lamp brightness values before validation
+    String lampMsg = "Lamp brightness validation - MaxLevels: " + String(settings.lampMaxLevels);
+    for (int i = 0; i <= settings.lampMaxLevels; i++) {
+        lampMsg += ", Level" + String(i) + ":" + String(settings.lampBrightness[i]);
+    }
+    log(lampMsg.c_str());
+    
+    for (int i = 0; i <= settings.lampMaxLevels; i++) {
+        if (settings.lampBrightness[i] < 0 || settings.lampBrightness[i] > 255) {
+            String msg = "VALIDATION FAILED: lampBrightness[" + String(i) + "] = " + String(settings.lampBrightness[i]) + " not in range 0-255";
+            log(msg.c_str());
+            return false;
+        }
     }
     
     // Validate standby blink
-    if (settings.standbyBlinkStartMinutes < 1 || settings.standbyBlinkStartMinutes > 60) return false;
-    if (settings.standbyBlinkDurationSeconds < 1 || settings.standbyBlinkDurationSeconds > 60) return false;
+    if (settings.standbyBlinkStartMinutes < 1 || settings.standbyBlinkStartMinutes > 60) {
+        String msg = "VALIDATION FAILED: standbyBlinkStartMinutes " + String(settings.standbyBlinkStartMinutes) + " not in range 1-60";
+        log(msg.c_str());
+        return false;
+    }
+    if (settings.standbyBlinkDurationSeconds < 1 || settings.standbyBlinkDurationSeconds > 60) {
+        String msg = "VALIDATION FAILED: standbyBlinkDurationSeconds " + String(settings.standbyBlinkDurationSeconds) + " not in range 1-60";
+        log(msg.c_str());
+        return false;
+    }
     
+    log("Settings validation passed successfully");
     return true;
 }
 

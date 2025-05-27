@@ -73,9 +73,6 @@ void setup() {
   // Initialize settings system
   initializeSettings();
   
-  // Load beeper settings after LittleFS is ready (for backward compatibility)
-  loadBeeperSettings();
-  
   // Initialize datalogger (will re-initialize LittleFS if needed)
   datalogSetup();
 

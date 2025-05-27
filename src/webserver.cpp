@@ -3183,12 +3183,40 @@ bool updateSettingsFromJson(const String& jsonString) {
     if (doc.containsKey("ledBarBrightnessSecond")) newSettings.ledBarBrightnessSecond = doc["ledBarBrightnessSecond"];
     if (doc.containsKey("ledFrequency")) newSettings.ledFrequency = doc["ledFrequency"];
     
-    if (doc.containsKey("lampMaxLevels")) newSettings.lampMaxLevels = doc["lampMaxLevels"];
+    if (doc.containsKey("lampMaxLevels")) {
+        int oldVal = newSettings.lampMaxLevels;
+        newSettings.lampMaxLevels = doc["lampMaxLevels"];
+        String msg = "Updated lampMaxLevels: " + String(oldVal) + " -> " + String(newSettings.lampMaxLevels);
+        log(msg.c_str());
+        updatedFields++;
+    }
     if (doc.containsKey("lampBrightness")) {
+        log("Processing lampBrightness array...");
         JsonArray lampArray = doc["lampBrightness"];
-        for (int i = 0; i < 10 && i < lampArray.size(); i++) {
-            newSettings.lampBrightness[i] = lampArray[i];
+        String oldValues = "Old lampBrightness values: ";
+        for (int i = 0; i < 10; i++) {
+            oldValues += String(newSettings.lampBrightness[i]);
+            if (i < 9) oldValues += ",";
         }
+        log(oldValues.c_str());
+        
+        String arrayInfo = "JSON lampBrightness array size: " + String(lampArray.size());
+        log(arrayInfo.c_str());
+        
+        for (int i = 0; i < 10 && i < lampArray.size(); i++) {
+            int oldVal = newSettings.lampBrightness[i];
+            newSettings.lampBrightness[i] = lampArray[i];
+            String msg = "Updated lampBrightness[" + String(i) + "]: " + String(oldVal) + " -> " + String(newSettings.lampBrightness[i]);
+            log(msg.c_str());
+        }
+        
+        String newValues = "New lampBrightness values: ";
+        for (int i = 0; i < 10; i++) {
+            newValues += String(newSettings.lampBrightness[i]);
+            if (i < 9) newValues += ",";
+        }
+        log(newValues.c_str());
+        updatedFields++;
     }
     
     if (doc.containsKey("wifiSSID")) {
@@ -3246,6 +3274,35 @@ bool updateSettingsFromJson(const String& jsonString) {
     
     log("Calling saveSettings()...");
     saveSettings();
+    
+    // Log the new effective lamp settings
+    String lampInfo = "NEW LAMP SETTINGS APPLIED - MaxLevels: " + String(getLampMaxLevels());
+    for (int i = 0; i <= getLampMaxLevels(); i++) {
+        lampInfo += ", L" + String(i) + ":" + String(getLampBrightness(i));
+    }
+    log(lampInfo.c_str());
+    
+    // Log the new effective motor settings
+    String motorInfo = "NEW MOTOR SETTINGS APPLIED - SpeedSteps: " + String(getSpeedSteps()) +
+                      ", StandbyDelay: " + String(getStandbyDelay()) + "s" +
+                      ", BatteryMax: " + String(getBatteryPowerMax()) + "A" +
+                      ", MinSpeed: " + String(getMinSpeedPercent(), 2) +
+                      ", MaxRPM: " + String(getMaxSpeedRpm(), 0);
+    log(motorInfo.c_str());
+    
+    String motorInfo2 = "MOTOR TIMING - SpeedUp: " + String(getSpeedUpTime()) + "ms" +
+                       ", SpeedDown: " + String(getSpeedDownTime()) + "ms" +
+                       ", MaxOverload: " + String(getMaxTimeOverloaded()) + "ms";
+    log(motorInfo2.c_str());
+    
+    String jamInfo = "JAM DETECTION - Min: " + String(getJamMin(), 2) +
+                    ", Threshold: " + String(getJamDetectionThreshold(), 2);
+    log(jamInfo.c_str());
+    
+    String otherInfo = "OTHER SETTINGS - Beeper: " + String(getBeeperEnabled() ? "ON" : "OFF") +
+                      ", Debug: " + String(getDebugLoggingEnabled() ? "ON" : "OFF") +
+                      ", LEDBar: " + String(getLedBarNum()) + " LEDs";
+    log(otherInfo.c_str());
     
     log("Settings updated and saved successfully");
     return true;
@@ -3603,8 +3660,9 @@ void handleClient(WiFiClient client) {
                 wakeUp();
             }
             
-            // Convert speed percentage (0-100) to motor steps (1-10)
-            int targetStep = max(1, min(10, (speed * 10) / 100));
+            // Convert speed percentage (0-100) to motor steps (1-maxSteps)
+            int maxSteps = getSpeedSteps();
+            int targetStep = max(1, min(maxSteps, (speed * maxSteps) / 100));
             currentMotorStep = targetStep;
             motorState = on;
             
@@ -3688,8 +3746,9 @@ void handleClient(WiFiClient client) {
         String controlMsg = "Remote lamp control - Level: " + String(level);
         log(controlMsg.c_str());
         
-        // Validate level range (0-4: LAMP_OFF to LAMP_MAX)
-        if (level >= 0 && level <= 4) {
+        // Validate level range based on current settings
+        int maxLevels = getLampMaxLevels();
+        if (level >= 0 && level <= maxLevels) {
             LED_State = level;
             setLEDState(LED_State);
             setBarLED(LED_State);
@@ -3697,7 +3756,7 @@ void handleClient(WiFiClient client) {
             String levelMsg = "Remote control set lamp to level " + String(level);
             log(levelMsg.c_str());
         } else {
-            String errorMsg = "Invalid lamp level: " + String(level) + " (valid: 0-4)";
+            String errorMsg = "Invalid lamp level: " + String(level) + " (valid: 0-" + String(maxLevels) + ")";
             log(errorMsg.c_str());
             level = LED_State; // Return current level if invalid
         }

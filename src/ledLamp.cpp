@@ -10,6 +10,7 @@
 #include "beep.h"
 #include "Arduino.h"
 #include "button.h"
+#include "settings.h"
 
 /*
 *  CONSTANTS
@@ -45,7 +46,7 @@ extern int currentMotorStep; // Declare external variable
 void setLEDState(int state);
 
 
-void turnLampOn(){setLEDState(LAMP_MAX);}
+void turnLampOn(){setLEDState(getLampMaxLevels());}
 void turnLampOff() {
   // Turn lamp off for blinking without changing LED_State
   setLEDState(LAMP_OFF);
@@ -81,7 +82,7 @@ void ledLampLoop(){
         flashStep = 2;
         break;
       case 2: // Step 2: Flash on max for 1 second  
-        setLEDState(LAMP_MAX);
+        setLEDState(getLampMaxLevels());
         flashStepTime = millis() + 1000;
         flashStep = 3;
         break;
@@ -144,35 +145,25 @@ void flash(){
 
 void toggleLED(){
   LED_State++;
-  if (LED_State > LAMP_MAX) LED_State = LAMP_OFF;
+  if (LED_State > getLampMaxLevels()) LED_State = LAMP_OFF;
   setLEDState(LED_State);
   setBarLED(LED_State);
   log("LED_State", LED_State, true);
 }
 
 void setLEDState(int state) {
-
   int brightness;
-  switch (state) {
-    case LAMP_OFF:
-      brightness = 0;
-      break;
-    case 1:
-      brightness = 20;
-      break;
-    case 2:
-      brightness = 76;
-      break;
-    case 3:
-      brightness = 153;
-      break;
-    case LAMP_MAX:
-      brightness = 255;
-      break;
-    default:
-      // If an invalid state is provided, assume 0% brightness
-      brightness = 0;
-      break;
+  
+  // Get lamp settings from settings system
+  int maxLevels = getLampMaxLevels();
+  
+  // Validate state against current settings
+  if (state < 0 || state > maxLevels) {
+    // Invalid state, use off
+    brightness = 0;
+  } else {
+    // Use configured brightness from settings
+    brightness = getLampBrightness(state);
   }
   /*
   Is it possible to change pwm frequency to advoid led flickering while filming 
@@ -199,7 +190,10 @@ void blinkLED(const String& sequence) {
 
 
 void BlinkForLongStandby() {
-  if (motorState == standby && micros() - lastActionTime >= StandbyBlinkStart && micros() - lastStandbyBlinkTime > standbyBlinkInterval) {
+  unsigned long standbyBlinkStartUs = (unsigned long)getStandbyBlinkStart() * 60UL * 1000UL * 1000UL; // Convert minutes to microseconds
+  unsigned long standbyBlinkIntervalUs = (unsigned long)getStandbyBlinkDuration() * 1000UL * 1000UL; // Convert seconds to microseconds
+  
+  if (motorState == standby && micros() - lastActionTime >= standbyBlinkStartUs && micros() - lastStandbyBlinkTime > standbyBlinkIntervalUs) {
     blinkLED("111222111");  // SOS sequence
     beep("111222111");      // Keep this beep for SOS
     log("sos iam alone", 111222111, true);
@@ -211,16 +205,11 @@ void BlinkForLongStandby() {
 * Return current power consumption in Ampere. 
 */
 float getLedLampPower(){
-  switch (LED_State){
-    case LAMP_MAX:
-      return 3.9;
-    case 3:
-      return 1.73;
-    case 2:
-      return 0.8;
-    case 1:
-      return 0.2;
-    default:
-      return 0;
-  }
+  if (LED_State <= 0) return 0;
+  
+  int brightness = getLampBrightness(LED_State);
+  
+  // Estimate power consumption based on brightness (approximate values)
+  // These are rough estimates - adjust based on your actual LED specs
+  return (brightness / 255.0) * 3.9; // Max power at full brightness
 }

@@ -2,6 +2,7 @@
 #include <Adafruit_NeoPixel.h>
 #include "constants.h"
 #include "motor.h"
+#include "settings.h"
 
 /**
 * Code that controls the two led strips
@@ -17,7 +18,8 @@ const int LEDBar_BrightnessSecond = 3;
 /*
 * GLOBAL VARIABLES 
 */
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(LedBar_Num + LedBar2_Num, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
+// Initialize with maximum possible LEDs - will be configured properly in setup
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(50 + LedBar2_Num, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
 
 // Variables to track last displayed state to prevent unnecessary updates
 static int lastDisplayedSpeed = -1;
@@ -39,10 +41,11 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
   }
 
   // Calculate start index based on stripNumber
-  int startIndex = (stripNumber == 1) ? 0 : LedBar_Num;
+  int ledBarNum = getLedBarNum();
+  int startIndex = (stripNumber == 1) ? 0 : ledBarNum;
 
   // Calculate the end index based on stripNumber
-  int endIndex = (stripNumber == 1) ? LedBar_Num : LedBar_Num + LedBar2_Num;
+  int endIndex = (stripNumber == 1) ? ledBarNum : ledBarNum + LedBar2_Num;
 
   // Convert the hex color value to RGB color values for the switched-on color
   long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
@@ -75,7 +78,7 @@ void setBarStandby() {
     // Reset cache when entering special mode
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
-    setBar(1,10,"#e38f09", LEDBar_BrightnessSecond, "#000000", 0);
+    setBar(1, getLedBarNum(), "#e38f09", getLedBarBrightnessSecond(), "#000000", 0);
 }
 
 void setBarSpeed(int num) {
@@ -87,7 +90,7 @@ void setBarSpeed(int num) {
         if (motorState == cruise) {
             setBarSpeedCruise(num);
         } else {
-            setBar(1,num,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+            setBar(1, num, "#cb1bf2", getLedBarBrightness(), "#000000", 0);
         }
     }
 }
@@ -99,12 +102,12 @@ void setBarSpeedCruise(int num) {
     }
     
     // Set all LEDs except the last one to pink
-    setBar(1,num-1,"#cb1bf2", LEDBar_Brightness, "#000000", 0);
+    setBar(1, num-1, "#cb1bf2", getLedBarBrightness(), "#000000", 0);
     
     // Set the last LED to red
     int startIndex = 0;
     int lastLEDIndex = startIndex + num - 1;
-    strip.setPixelColor(lastLEDIndex, strip.Color(LEDBar_Brightness, 0, 0));
+    strip.setPixelColor(lastLEDIndex, strip.Color(getLedBarBrightness(), 0, 0));
     strip.show();
 }
 
@@ -112,8 +115,8 @@ void setBarBattery(int num) {
   // Only update if battery level has changed
   if (num != lastDisplayedBattery) {
     lastDisplayedBattery = num;
-    int calc = LedBar_Num-num;
-    setBar(2,calc,"#e30b0b", LEDBar_BrightnessSecond, "#0a9e08", LEDBar_Brightness);
+    int calc = getLedBarNum() - num;
+    setBar(2, calc, "#e30b0b", getLedBarBrightnessSecond(), "#0a9e08", getLedBarBrightness());
   }
 }
 
@@ -126,26 +129,27 @@ void setBarLeak() {
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
     if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(1,10,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
+      setBar(1, getLedBarNum(), "#0000FF", getLedBarBrightness(), "#0000FF", 0);
     } else if (backLeakState == LOW) {
-      setBar(1,5,"#0000FF", LEDBar_Brightness, "#0000FF", 0);
+      setBar(1, getLedBarNum()/2, "#0000FF", getLedBarBrightness(), "#0000FF", 0);
     } else if(frontLeakState == LOW) {
-      setBar(1,5,"#0000FF", 0, "#0000FF", LEDBar_Brightness);
+      setBar(1, getLedBarNum()/2, "#0000FF", 0, "#0000FF", getLedBarBrightness());
     }
 }
 
 void setBarPowerBank(bool status) {
+  int numLeds = getLedBarNum() - 1;
   if (status){
-      setBar(1,9,"#000000", 0, "#036ffc", LEDBar_Brightness);
+      setBar(1, numLeds, "#000000", 0, "#036ffc", getLedBarBrightness());
   }
   else {
-      setBar(1,9,"#000000", 0, "#ff0000", LEDBar_Brightness);
+      setBar(1, numLeds, "#000000", 0, "#ff0000", getLedBarBrightness());
   }  
 }
 
 void setBarLED(int num) {
-    int calc = LedBar_Num-num;
-    setBar(1,calc,"#000000", 0, "#FFFFFF", LEDBar_Brightness);
+    int calc = getLedBarNum() - num;
+    setBar(1, calc, "#000000", 0, "#FFFFFF", getLedBarBrightness());
 }
 
 void setBarFlasher(bool status) {
@@ -153,7 +157,7 @@ void setBarFlasher(bool status) {
     // Reset cache when entering special mode
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
-    setBar(1, 10, "#FFFFFF", LEDBar_Brightness, "#000000", 0); // All 10 LEDs white
+    setBar(1, getLedBarNum(), "#FFFFFF", getLedBarBrightness(), "#000000", 0); // All LEDs white
   } else {
     // Reset cache when leaving special mode to force refresh
     lastDisplayedSpeed = -1;
