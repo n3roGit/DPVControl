@@ -2339,7 +2339,6 @@ const char* helloWorldHTML = R"rawliteral(
             fetch('/api/settings')
                 .then(response => response.json())
                 .then(data => {
-                    // Add metadata to the export
                     const exportData = {
                         exportInfo: {
                             version: "1.0",
@@ -2349,7 +2348,6 @@ const char* helloWorldHTML = R"rawliteral(
                         settings: data
                     };
                     
-                    // Create and download file
                     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -2381,94 +2379,45 @@ const char* helloWorldHTML = R"rawliteral(
             const file = event.target.files[0];
             if (!file) return;
             
-            document.getElementById('settingsStatus').textContent = 'Importing settings...';
-            
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const importData = JSON.parse(e.target.result);
+                    let settingsToImport = importData.settings || importData;
                     
-                    // Check if it's a valid DPV settings export
-                    let settingsToImport;
-                    if (importData.exportInfo && importData.settings) {
-                        settingsToImport = importData.settings;
-                        console.log('Importing settings from:', importData.exportInfo);
-                    } else {
-                        // Assume it's raw settings data
-                        settingsToImport = importData;
-                    }
-                    
-                    // Get current settings to compare
-                    fetch('/api/settings')
-                        .then(response => response.json())
-                        .then(currentSettings => {
-                            processSettingsImport(settingsToImport, currentSettings);
-                        })
-                        .catch(error => {
-                            console.error('Error fetching current settings:', error);
+                    fetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(settingsToImport)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('settingsStatus').textContent = 'Settings imported successfully!';
+                            setTimeout(() => loadDPVSettings(), 1000);
+                        } else {
                             document.getElementById('settingsStatus').textContent = 'Error importing settings!';
-                        });
-                        
+                        }
+                    });
                 } catch (error) {
-                    console.error('Error parsing settings file:', error);
-                    document.getElementById('settingsStatus').textContent = 'Error: Invalid settings file format!';
+                    document.getElementById('settingsStatus').textContent = 'Error: Invalid file format!';
                 }
             };
-            
             reader.readAsText(file);
-            
-            // Reset file input
             event.target.value = '';
         }
         
-        // Process settings import with validation
-        function processSettingsImport(importedSettings, currentSettings) {
-            const missingFields = [];
-            const importedData = {};
-            
-            // Check each field in current settings
-            for (const key in currentSettings) {
-                if (importedSettings.hasOwnProperty(key)) {
-                    importedData[key] = importedSettings[key];
-                } else {
-                    missingFields.push(key);
-                    // Keep current value for missing fields
-                    importedData[key] = currentSettings[key];
-                }
-            }
-            
-            // Save the merged settings
-            fetch('/api/settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(importedData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let statusMsg = 'Settings imported successfully!';
-                    
-                    if (missingFields.length > 0) {
-                        statusMsg += ` Note: ${missingFields.length} field(s) not found in import file: ${missingFields.join(', ')}. Using current values for these fields.`;
-                    }
-                    
-                    document.getElementById('settingsStatus').textContent = statusMsg;
-                    
-                    // Reload settings to update UI
-                    setTimeout(() => {
-                        loadDPVSettings();
-                    }, 1000);
-                    
-                } else {
-                    document.getElementById('settingsStatus').textContent = 'Error saving imported settings!';
-                }
-            })
-            .catch(error => {
-                console.error('Error saving imported settings:', error);
-                document.getElementById('settingsStatus').textContent = 'Error saving imported settings!';
+        // Tab Navigation
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
             });
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
         }
         
         // Remote Control Variables
@@ -2476,7 +2425,7 @@ const char* helloWorldHTML = R"rawliteral(
         let currentMotorSpeed = 0;
         let currentLampLevel = 0;
         
-        // Toggle motor on/off
+        // Toggle motor
         function toggleMotor() {
             motorRunning = !motorRunning;
             const button = document.getElementById('motorToggle');
@@ -2484,95 +2433,45 @@ const char* helloWorldHTML = R"rawliteral(
             if (motorRunning) {
                 button.textContent = 'STOP MOTOR';
                 button.style.backgroundColor = '#f44336';
-                setMotorSpeed(currentMotorSpeed);
             } else {
                 button.textContent = 'START MOTOR';
                 button.style.backgroundColor = '#4caf50';
                 setMotorSpeed(0);
             }
-            
-            updateRemoteStatus();
         }
         
-        // Update motor speed display (while dragging)
+        // Update motor speed display
         function updateMotorSpeed(value) {
             currentMotorSpeed = parseInt(value);
             document.getElementById('motorSpeedValue').textContent = currentMotorSpeed;
-            document.getElementById('remoteMotorSpeed').textContent = currentMotorSpeed + '%';
         }
         
-        // Set motor speed (when slider is released)
+        // Set motor speed
         function setMotorSpeed(value) {
             currentMotorSpeed = parseInt(value);
             updateMotorSpeed(value);
             
             const enabled = motorRunning && currentMotorSpeed > 0;
-            const actualSpeed = motorRunning ? currentMotorSpeed : 0;
             
             fetch('/api/motor', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    enabled: enabled,
-                    speed: actualSpeed 
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ enabled: enabled, speed: motorRunning ? currentMotorSpeed : 0 })
             })
             .then(response => response.json())
             .then(data => {
                 console.log('Motor control response:', data);
-                document.getElementById('remoteLastCommand').textContent = 
-                    `Motor ${enabled ? 'ON' : 'OFF'} @ ${actualSpeed}%`;
-                updateRemoteStatus();
             })
             .catch(error => {
                 console.error('Error controlling motor:', error);
-                document.getElementById('remoteControlStatus').textContent = 'Error controlling motor!';
             });
         }
         
-        // Emergency stop
-        function emergencyStop() {
-            motorRunning = false;
-            currentMotorSpeed = 0;
-            
-            // Reset UI
-            document.getElementById('motorToggle').textContent = 'START MOTOR';
-            document.getElementById('motorToggle').style.backgroundColor = '#4caf50';
-            document.getElementById('motorSpeedSlider').value = 0;
-            updateMotorSpeed(0);
-            
-            // Send stop command
-            fetch('/api/motor', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    enabled: false,
-                    speed: 0 
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Emergency stop response:', data);
-                document.getElementById('remoteLastCommand').textContent = 'EMERGENCY STOP';
-                document.getElementById('remoteControlStatus').textContent = 'Emergency stop executed!';
-                updateRemoteStatus();
-            })
-            .catch(error => {
-                console.error('Error with emergency stop:', error);
-                document.getElementById('remoteControlStatus').textContent = 'Error with emergency stop!';
-            });
-        }
-        
-        // Update lamp level display (while dragging)
+        // Update lamp level display
         function updateLampLevel(value) {
             currentLampLevel = parseInt(value);
             document.getElementById('lampLevelValue').textContent = currentLampLevel;
             
-            // Determine status text based on percentage
             let statusText;
             if (currentLampLevel === 0) {
                 statusText = 'OFF';
@@ -2582,423 +2481,27 @@ const char* helloWorldHTML = R"rawliteral(
                 statusText = currentLampLevel + '%';
             }
             
-            // Update both remote status and main label
-            document.getElementById('remoteLampStatus').textContent = statusText;
-            
-            const lampLevelNameEl = document.getElementById('lampLevelName');
-            if (lampLevelNameEl) {
-                lampLevelNameEl.textContent = statusText;
-            }
+            document.getElementById('lampLevelName').textContent = statusText;
         }
         
-        // Set lamp level (when slider is released)
+        // Set lamp level
         function setLampLevel(value) {
             currentLampLevel = parseInt(value);
             updateLampLevel(value);
-            document.getElementById('lampLevelSlider').value = value;
             
             fetch('/api/lamp', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ 
-                    level: currentLampLevel 
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: currentLampLevel })
             })
             .then(response => response.json())
             .then(data => {
                 console.log('Lamp control response:', data);
-                const statusText = currentLampLevel === 0 ? 'OFF' : 
-                                  currentLampLevel === 100 ? 'MAX' : 
-                                  currentLampLevel + '%';
-                document.getElementById('remoteLastCommand').textContent = 
-                    `Lamp set to ${statusText}`;
-                document.getElementById('remoteControlStatus').textContent = 'Lamp level updated!';
             })
             .catch(error => {
                 console.error('Error controlling lamp:', error);
-                document.getElementById('remoteControlStatus').textContent = 'Error controlling lamp!';
             });
         }
-        
-        // Update remote control status display
-        function updateRemoteStatus() {
-            const statusElement = document.getElementById('remoteMotorStatus');
-            if (motorRunning && currentMotorSpeed > 0) {
-                statusElement.textContent = 'RUNNING';
-                statusElement.style.color = '#4caf50';
-            } else if (motorRunning && currentMotorSpeed === 0) {
-                statusElement.textContent = 'STANDBY';
-                statusElement.style.color = '#ff9800';
-            } else {
-                statusElement.textContent = 'STOPPED';
-                statusElement.style.color = '#f44336';
-            }
-        }
-        
-        // Save beeper setting
-        function saveBeeperSetting() {
-            const enabled = document.getElementById('beeperEnabledSetting').checked;
-            
-            fetch('/api/beeper', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ enabled: enabled })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Beeper setting saved:', data);
-                // Update status display immediately
-                document.getElementById('beeperStatus').textContent = enabled ? 'Enabled' : 'Disabled';
-            })
-            .catch(error => {
-                console.error('Error saving beeper setting:', error);
-                alert('Failed to save beeper setting');
-            });
-        }
-        
-        // Export current view as CSV
-        function exportCurrentViewAsCSV() {
-            if (!allDataPoints || allDataPoints.length === 0) {
-                alert('No data available for export');
-                return;
-            }
-            
-            const filteredData = filterDataByTimeRange(allDataPoints);
-            let filename = 'current_view';
-            
-            // Add session info to filename if specific session is selected
-            if (selectedSession) {
-                const sessionNumber = selectedSession.replace('session_', '').replace('.bin', '');
-                filename = `session_${sessionNumber}`;
-            }
-            
-            exportDataToCSV(filteredData, filename);
-        }
-        
-        // Export all sessions as combined CSV file
-        async function exportAllSessionsAsZip() {
-            let button = null;
-            let originalText = '';
-            
-            try {
-                // Find the button that was clicked
-                button = document.querySelector('button[onclick="exportAllSessionsAsZip()"]');
-                if (!button) {
-                    console.error('Export button not found');
-                    return;
-                }
-                
-                // Show loading indicator
-                originalText = button.textContent;
-                button.textContent = 'Creating Export...';
-                button.disabled = true;
-                
-                // Fetch list of all sessions
-                const sessionsResponse = await fetch('/api/sessions');
-                if (!sessionsResponse.ok) {
-                    throw new Error(`Failed to fetch session list: ${sessionsResponse.status}`);
-                }
-                
-                const sessions = await sessionsResponse.json();
-                
-                if (!sessions || sessions.length === 0) {
-                    alert('No sessions available for export');
-                    return;
-                }
-                
-                // Build combined CSV content
-                let combinedCSV = '';
-                let processedSessions = 0;
-                
-                // Process each session
-                for (const session of sessions) {
-                    try {
-                        button.textContent = `Processing ${processedSessions + 1}/${sessions.length}...`;
-                        
-                        // Fetch session data
-                        const sessionResponse = await fetch(`/api/session-data?session=${encodeURIComponent(session.filename)}`);
-                        if (!sessionResponse.ok) {
-                            console.warn(`Failed to fetch session ${session.filename}: ${sessionResponse.status}`);
-                            continue;
-                        }
-                        
-                        const sessionData = await sessionResponse.json();
-                        
-                        // Handle new format with metadata vs legacy format
-                        let actualData;
-                        if (sessionData.data && Array.isArray(sessionData.data)) {
-                            // New format with metadata
-                            actualData = sessionData.data;
-                            console.log(`Session ${session.filename}: using new format, ${actualData.length} chart points`);
-                        } else if (Array.isArray(sessionData)) {
-                            // Legacy format
-                            actualData = sessionData;
-                            console.log(`Session ${session.filename}: using legacy format, ${actualData.length} points`);
-                        } else {
-                            console.warn(`Session ${session.filename} has invalid data format`);
-                            continue;
-                        }
-                        
-                        if (!actualData || actualData.length === 0) {
-                            console.warn(`Session ${session.filename} has no data points`);
-                            continue;
-                        }
-                        
-                        // Add session header
-                        const sessionNumber = session.filename.replace('session_', '').replace('.bin', '');
-                        const sessionTitle = session.isCurrent ? `Session ${sessionNumber} (Current)` : `Session ${sessionNumber}`;
-                        
-                        combinedCSV += `\\n=== ${sessionTitle} ===\\n`;
-                        combinedCSV += `File: ${session.filename}\\n`;
-                        combinedCSV += `Data Points: ${actualData.length}\\n\\n`;
-                        
-                        // Add CSV header (only for first session)
-                        if (processedSessions === 0) {
-                            combinedCSV += 'Timestamp,Motor Temperature (°C),MOSFET Temperature (°C),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (°C),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\\n';
-                        }
-                        
-                        // Add session data
-                        actualData.forEach(point => {
-                            const row = [
-                                new Date(point.timestamp).toISOString(),
-                                point.tempMotor || 0,
-                                point.tempMosfet || 0,
-                                point.batteryVoltage || 0,
-                                point.current || 0,
-                                point.avgMotorCurrent || 0,
-                                point.erpm || 0,
-                                point.dutyCycle || 0,
-                                point.temperature || 0,
-                                point.humidity || 0,
-                                point.batteryLevel || 0,
-                                point.leakSensorState || 0,
-                                point.ledState || 0,
-                                point.totalUptime || 0
-                            ];
-                            combinedCSV += row.join(',') + '\\n';
-                        });
-                        
-                        combinedCSV += '\\n'; // Empty line between sessions
-                        processedSessions++;
-                        
-                        // Small delay to prevent overwhelming the ESP32
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                        
-                    } catch (error) {
-                        console.error(`Error processing session ${session.filename}:`, error);
-                        // Continue with other sessions
-                    }
-                }
-                
-                if (processedSessions === 0) {
-                    throw new Error('No valid session data found');
-                }
-                
-                button.textContent = 'Generating File...';
-                
-                // Create and download CSV file
-                const blob = new Blob([combinedCSV], { type: 'text/csv;charset=utf-8' });
-                const link = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                
-                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                const filename = `dpv_all_sessions_${timestamp}.csv`;
-                link.setAttribute('download', filename);
-                
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                
-                // Cleanup
-                URL.revokeObjectURL(url);
-                
-                alert(`Successfully exported ${processedSessions} sessions to ${filename}`);
-                
-            } catch (error) {
-                console.error('Error creating session export:', error);
-                alert('Failed to export sessions: ' + error.message);
-            } finally {
-                // Restore button
-                if (button && originalText) {
-                    button.textContent = originalText;
-                    button.disabled = false;
-                }
-            }
-        }
-        
-        // Convert session data to CSV format
-        function convertSessionDataToCSV(sessionData) {
-            // CSV header
-            const headers = [
-                'Timestamp',
-                'Motor Temperature (°C)',
-                'MOSFET Temperature (°C)', 
-                'Battery Voltage (V)',
-                'Input Current (A)',
-                'Motor Current (A)',
-                'RPM',
-                'Duty Cycle (%)',
-                'Ambient Temperature (°C)',
-                'Humidity (%)',
-                'Battery Level (%)',
-                'Leak Sensor State',
-                'LED State',
-                'Total Uptime (s)'
-            ];
-            
-            // Build CSV content
-            let csvContent = headers.join(',') + '\n';
-            
-            sessionData.forEach(point => {
-                const row = [
-                    new Date(point.timestamp).toISOString(),
-                    point.tempMotor || 0,
-                    point.tempMosfet || 0,
-                    point.batteryVoltage || 0,
-                    point.current || 0,
-                    point.avgMotorCurrent || 0,
-                    point.erpm || 0,
-                    point.dutyCycle || 0,
-                    point.temperature || 0,
-                    point.humidity || 0,
-                    point.batteryLevel || 0,
-                    point.leakSensorState || 0,
-                    point.ledState || 0,
-                    point.totalUptime || 0
-                ];
-                csvContent += row.join(',') + '\n';
-            });
-            
-            return csvContent;
-        }
-        
-        // Export data to CSV file
-        function exportDataToCSV(dataPoints, filePrefix) {
-            // Create CSV header
-            const headers = [
-                'Timestamp',
-                'Motor Temperature (°C)',
-                'MOSFET Temperature (°C)', 
-                'Battery Voltage (V)',
-                'Input Current (A)',
-                'Motor Current (A)',
-                'RPM',
-                'Duty Cycle (%)',
-                'Ambient Temperature (°C)',
-                'Humidity (%)',
-                'Battery Level (%)',
-                'Leak Sensor State',
-                'LED State',
-                'Total Uptime (s)'
-            ];
-            
-            // Create CSV content
-            let csvContent = headers.join(',') + '\n';
-            
-            dataPoints.forEach(point => {
-                const row = [
-                    new Date(point.timestamp).toISOString(),
-                    point.tempMotor || 0,
-                    point.tempMosfet || 0,
-                    point.batteryVoltage || 0,
-                    point.current || 0,
-                    point.avgMotorCurrent || 0,
-                    point.erpm || 0,
-                    point.dutyCycle || 0,
-                    point.temperature || 0,
-                    point.humidity || 0,
-                    point.batteryLevel || 0,
-                    point.leakSensorState || 0,
-                    point.ledState || 0,
-                    point.totalUptime || 0
-                ];
-                csvContent += row.join(',') + '\n';
-            });
-            
-            // Create and download file
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            
-            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-            const filename = `dpv_${filePrefix}_${timestamp}.csv`;
-            link.setAttribute('download', filename);
-            
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            // Show success message
-            const pointCount = dataPoints.length;
-            alert(`Successfully exported ${pointCount} data points to ${filename}`);
-        }
-        
-        // Delete all sessions with confirmation
-        function deleteAllSessions() {
-            const confirmMessage = 'Are you sure you want to DELETE ALL SESSION FILES?\\n\\n' +
-                                 'This action cannot be undone!\\n\\n' +
-                                 'Type "DELETE ALL" to confirm:';
-            
-            const userInput = prompt(confirmMessage);
-            
-            if (userInput === 'DELETE ALL') {
-                fetch('/api/delete-all-sessions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('All sessions have been deleted successfully!');
-                        // Reload session list
-                        loadSessionList();
-                    } else {
-                        alert('Error deleting sessions: ' + (data.error || 'Unknown error'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting sessions:', error);
-                    alert('Failed to delete sessions: ' + error.message);
-                });
-            } else if (userInput !== null) {
-                alert('Deletion cancelled. You must type "DELETE ALL" exactly to confirm.');
-            }
-        }
-        
-        // Reboot system function
-        function rebootSystem() {
-            if (confirm('Are you sure you want to reboot the DPV Control System? This will restart the device and you will lose the current connection.')) {
-                document.getElementById('settingsStatus').textContent = 'Rebooting system...';
-                
-                // Disable the reboot button to prevent multiple clicks
-                const rebootBtn = document.querySelector('button[onclick="rebootSystem()"]');
-                if (rebootBtn) {
-                    rebootBtn.disabled = true;
-                    rebootBtn.textContent = '🔄 Rebooting...';
-                }
-                
-                fetch('/api/reboot', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => {
-                    if (response.ok) {
-                        document.getElementById('settingsStatus').textContent = 'Reboot command sent. Device will restart in a few seconds...';
-                        
-                        // Show reconnection message after 5 seconds
-                        setTimeout(() => {
     </script>
 </body>
 </html>

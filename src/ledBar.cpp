@@ -57,6 +57,11 @@ void ledBarSetup(){
   //Neopixel
   strip.begin();
   strip.show();  // Turn off all LEDs
+  
+  // Run Knight Rider startup animation
+  knightRiderStartup();
+  
+  // Start normal operation
   setBarStandby();
 }
 
@@ -210,4 +215,74 @@ void forceRefreshLedBar() {
   lastDisplayedSpeed = -1;
   lastDisplayedMotorState = -1;
   lastDisplayedBattery = -1;
+}
+
+// Knight Rider startup animation
+void knightRiderStartup() {
+    const int delayTime = 60; // ms between steps
+    const int maxBrightness = 80; // Maximum brightness for the effect
+    const int totalLEDs = getLedBarNum() + LedBar2_Num; // Both rows
+    
+    // Run the effect 2 times
+    for (int cycle = 0; cycle < 2; cycle++) {
+        
+        // Forward sweep (left to right)
+        for (int pos = 0; pos < totalLEDs; pos++) {
+            // Clear all LEDs
+            for (int i = 0; i < totalLEDs; i++) {
+                strip.setPixelColor(i, strip.Color(0, 0, 0));
+            }
+            
+            // Create trailing effect with 3 LEDs
+            // Main LED (brightest)
+            strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0));
+            
+            // Trailing LED 1 (medium brightness)
+            if (pos > 0) {
+                strip.setPixelColor(pos - 1, strip.Color(maxBrightness / 3, 0, 0));
+            }
+            
+            // Trailing LED 2 (dim)
+            if (pos > 1) {
+                strip.setPixelColor(pos - 2, strip.Color(maxBrightness / 8, 0, 0));
+            }
+            
+            strip.show();
+            delay(delayTime);
+        }
+        
+        // Backward sweep (right to left)
+        for (int pos = totalLEDs - 1; pos >= 0; pos--) {
+            // Clear all LEDs
+            for (int i = 0; i < totalLEDs; i++) {
+                strip.setPixelColor(i, strip.Color(0, 0, 0));
+            }
+            
+            // Create trailing effect with 3 LEDs
+            // Main LED (brightest)
+            strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0));
+            
+            // Trailing LED 1 (medium brightness)
+            if (pos < totalLEDs - 1) {
+                strip.setPixelColor(pos + 1, strip.Color(maxBrightness / 3, 0, 0));
+            }
+            
+            // Trailing LED 2 (dim)
+            if (pos < totalLEDs - 2) {
+                strip.setPixelColor(pos + 2, strip.Color(maxBrightness / 8, 0, 0));
+            }
+            
+            strip.show();
+            delay(delayTime);
+        }
+    }
+    
+    // Clear all LEDs after animation
+    for (int i = 0; i < totalLEDs; i++) {
+        strip.setPixelColor(i, strip.Color(0, 0, 0));
+    }
+    strip.show();
+    
+    // Small pause before starting normal operation
+    delay(200);
 }
