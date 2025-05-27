@@ -352,110 +352,166 @@ const char* helloWorldHTML = R"rawliteral(
     </style>
                 <!-- Local Chart.js and JSZip for offline functionality -->
             <script>
-                // Load Chart.js from local SPIFFS
+                // Use our enhanced fallback as primary chart system
                 let chartJsLoaded = false;
                 let jsZipLoaded = false;
                 
-                // Load Chart.js
-                fetch('/chart.min.js')
-                    .then(response => {
-                        if (!response.ok) throw new Error('Chart.js not found');
-                        return response.text();
-                    })
-                    .then(script => {
-                        const scriptElement = document.createElement('script');
-                        scriptElement.textContent = script;
-                        document.head.appendChild(scriptElement);
-                        chartJsLoaded = true;
-                        console.log('Chart.js loaded successfully from local file');
-                    })
-                    .catch(error => {
-                        console.warn('Chart.js not available locally, using fallback:', error);
-                        // Fallback: Enhanced chart placeholder with basic line drawing
-                        window.Chart = class {
-                            constructor(ctx, config) {
-                                this.ctx = ctx;
-                                this.config = config;
-                                this.data = config.data || { labels: [], datasets: [] };
-                                this.canvas = ctx.canvas;
-                                this.canvas.style.backgroundColor = '#1e1e1e';
-                                this.canvas.width = 800;
-                                this.canvas.height = 400;
-                                this.update();
+                // Initialize our built-in chart system
+                console.log('Initializing built-in DPV Chart system');
+                
+                // Built-in Chart class optimized for DPV data
+                window.Chart = class {
+                    constructor(ctx, config) {
+                        this.ctx = ctx;
+                        this.config = config;
+                        this.data = config.data || { labels: [], datasets: [] };
+                        this.canvas = ctx.canvas;
+                        this.canvas.style.backgroundColor = '#1e1e1e';
+                        this.canvas.width = 800;
+                        this.canvas.height = 400;
+                        this.update();
+                    }
+                    
+                    update() {
+                        const ctx = this.ctx;
+                        const canvas = this.canvas;
+                        
+                        // Clear canvas
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.fillStyle = '#2a2a2a';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Check if we have valid data
+                        if (!this.data.datasets || this.data.datasets.length === 0 || !this.data.labels || this.data.labels.length === 0) {
+                            ctx.fillStyle = '#888';
+                            ctx.font = '16px Arial';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('DPV Chart - No data available', canvas.width / 2, canvas.height / 2 - 20);
+                            ctx.fillText('Waiting for sensor data...', canvas.width / 2, canvas.height / 2 + 20);
+                            return;
+                        }
+                        
+                        const legendWidth = 200;
+                        const margin = 60;
+                        const chartWidth = canvas.width - 2 * margin - legendWidth;
+                        const chartHeight = canvas.height - 2 * margin;
+                        
+                        // Draw axes
+                        ctx.strokeStyle = '#555';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(margin, margin);
+                        ctx.lineTo(margin, canvas.height - margin);
+                        ctx.lineTo(margin + chartWidth, canvas.height - margin);
+                        ctx.stroke();
+                        
+                        // Colors for different datasets
+                        const colors = [
+                            '#4bc0c0', '#ff6384', '#ffce56', '#36a2eb', 
+                            '#9966ff', '#ff9f40', '#c7c7c7', '#ff63ff',
+                            '#63ff84', '#ffce84'
+                        ];
+                        
+                        // Find global min/max for all visible datasets
+                        let globalMin = Infinity;
+                        let globalMax = -Infinity;
+                        
+                        this.data.datasets.forEach(dataset => {
+                            if (dataset.data && dataset.data.length > 0) {
+                                const values = dataset.data.map(d => typeof d === 'object' ? d.y : d);
+                                const min = Math.min(...values);
+                                const max = Math.max(...values);
+                                if (min < globalMin) globalMin = min;
+                                if (max > globalMax) globalMax = max;
                             }
+                        });
+                        
+                        const range = globalMax - globalMin || 1;
+                        
+                        // Draw datasets
+                        this.data.datasets.forEach((dataset, datasetIndex) => {
+                            if (!dataset.data || dataset.data.length === 0) return;
                             
-                            update() {
-                                const ctx = this.ctx;
-                                const canvas = this.canvas;
+                            const color = colors[datasetIndex % colors.length];
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 2;
+                            ctx.beginPath();
+                            
+                            let hasValidPoint = false;
+                            for (let i = 0; i < dataset.data.length; i++) {
+                                const x = margin + (i / (dataset.data.length - 1)) * chartWidth;
+                                const val = typeof dataset.data[i] === 'object' ? dataset.data[i].y : dataset.data[i];
+                                const y = margin + chartHeight - ((val - globalMin) / range) * chartHeight;
                                 
-                                // Clear canvas
-                                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                ctx.fillStyle = '#2a2a2a';
-                                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                                
-                                // Draw basic chart if data exists
-                                if (this.data.datasets && this.data.datasets.length > 0) {
-                                    const dataset = this.data.datasets[0];
-                                    const data = dataset.data || [];
-                                    
-                                    if (data.length > 1) {
-                                        ctx.strokeStyle = dataset.borderColor || '#4fc3f7';
-                                        ctx.lineWidth = 2;
-                                        ctx.beginPath();
-                                        
-                                        const margin = 40;
-                                        const chartWidth = canvas.width - 2 * margin;
-                                        const chartHeight = canvas.height - 2 * margin;
-                                        
-                                        // Find min/max values
-                                        const values = data.map(d => typeof d === 'object' ? d.y : d);
-                                        const minVal = Math.min(...values);
-                                        const maxVal = Math.max(...values);
-                                        const range = maxVal - minVal || 1;
-                                        
-                                        // Draw line
-                                        for (let i = 0; i < data.length; i++) {
-                                            const x = margin + (i / (data.length - 1)) * chartWidth;
-                                            const val = typeof data[i] === 'object' ? data[i].y : data[i];
-                                            const y = margin + chartHeight - ((val - minVal) / range) * chartHeight;
-                                            
-                                            if (i === 0) {
-                                                ctx.moveTo(x, y);
-                                            } else {
-                                                ctx.lineTo(x, y);
-                                            }
-                                        }
-                                        ctx.stroke();
-                                        
-                                        // Draw axes
-                                        ctx.strokeStyle = '#555';
-                                        ctx.lineWidth = 1;
-                                        ctx.beginPath();
-                                        ctx.moveTo(margin, margin);
-                                        ctx.lineTo(margin, canvas.height - margin);
-                                        ctx.lineTo(canvas.width - margin, canvas.height - margin);
-                                        ctx.stroke();
-                                        
-                                        // Labels
-                                        ctx.fillStyle = '#ccc';
-                                        ctx.font = '12px Arial';
-                                        ctx.textAlign = 'center';
-                                        ctx.fillText(dataset.label || 'Data', canvas.width / 2, 20);
-                                        ctx.fillText(`${data.length} points`, canvas.width / 2, canvas.height - 10);
-                                    }
+                                if (i === 0 || !hasValidPoint) {
+                                    ctx.moveTo(x, y);
+                                    hasValidPoint = true;
                                 } else {
-                                    // No data message
-                                    ctx.fillStyle = '#888';
-                                    ctx.font = '16px Arial';
-                                    ctx.textAlign = 'center';
-                                    ctx.fillText('Chart.js offline mode - No data available', canvas.width / 2, canvas.height / 2);
+                                    ctx.lineTo(x, y);
                                 }
                             }
-                            
-                            destroy() {}
-                        };
-                        chartJsLoaded = true;
-                    });
+                            ctx.stroke();
+                        });
+                        
+                        // Draw legend on the right side
+                        ctx.font = '11px Arial';
+                        ctx.textAlign = 'left';
+                        const legendX = margin + chartWidth + 20;
+                        let legendY = margin + 20;
+                        
+                        ctx.fillStyle = '#ccc';
+                        ctx.font = '12px Arial';
+                        ctx.fillText('Parameters:', legendX, legendY);
+                        legendY += 20;
+                        
+                        ctx.font = '10px Arial';
+                        this.data.datasets.forEach((dataset, index) => {
+                            if (dataset.label) {
+                                const color = colors[index % colors.length];
+                                ctx.fillStyle = color;
+                                ctx.fillRect(legendX, legendY - 8, 12, 10);
+                                ctx.fillStyle = '#ccc';
+                                ctx.fillText(dataset.label, legendX + 16, legendY);
+                                legendY += 14;
+                            }
+                        });
+                        
+                        // Draw title
+                        ctx.fillStyle = '#4fc3f7';
+                        ctx.font = 'bold 16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText('DPV Sensor Data Visualization', (margin + chartWidth/2), 20);
+                        
+                        // Draw data point count
+                        ctx.font = '11px Arial';
+                        ctx.fillStyle = '#888';
+                        ctx.fillText(`${this.data.labels.length} data points`, (margin + chartWidth/2), canvas.height - 10);
+                        
+                        // Draw Y-axis labels
+                        ctx.font = '9px Arial';
+                        ctx.textAlign = 'right';
+                        ctx.fillStyle = '#888';
+                        for (let i = 0; i <= 5; i++) {
+                            const y = margin + (i / 5) * chartHeight;
+                            const value = globalMax - (i / 5) * range;
+                            ctx.fillText(value.toFixed(1), margin - 5, y + 3);
+                        }
+                        
+                        // Draw X-axis labels (time)
+                        ctx.textAlign = 'center';
+                        if (this.data.labels.length > 0) {
+                            const labelStep = Math.max(1, Math.floor(this.data.labels.length / 6));
+                            for (let i = 0; i < this.data.labels.length; i += labelStep) {
+                                const x = margin + (i / (this.data.labels.length - 1)) * chartWidth;
+                                ctx.fillText(this.data.labels[i], x, canvas.height - margin + 15);
+                            }
+                        }
+                    }
+                    
+                    destroy() {}
+                };
+                
+                chartJsLoaded = true;
                 
                 // Load JSZip
                 fetch('/jszip.min.js')
@@ -668,7 +724,7 @@ const char* helloWorldHTML = R"rawliteral(
                 </div>
                 
                 <p style="margin-top: 10px; font-size: 12px; color: #888;">
-                    Note: Different parameters use different scales. Time range: 5 minutes, Update interval: 10s. Red vertical lines indicate system restarts.
+                    Note: Time range: 5 minutes, Update interval: 10s.
                 </p>
             </div>
         </div>
@@ -2312,10 +2368,16 @@ const char* helloWorldHTML = R"rawliteral(
         // Export all sessions as ZIP using JSZip
         async function exportAllSessionsAsZip() {
             try {
+                // Find the button that was clicked
+                const button = document.querySelector('button[onclick="exportAllSessionsAsZip()"]');
+                if (!button) {
+                    console.error('Export button not found');
+                    return;
+                }
+                
                 // Show loading indicator
-                const button = event.target;
                 const originalText = button.textContent;
-                button.textContent = 'Creating ZIP...';
+                button.textContent = 'Creating Export...';
                 button.disabled = true;
                 
                 // Check if JSZip is available
@@ -2415,9 +2477,10 @@ const char* helloWorldHTML = R"rawliteral(
                 alert('Failed to export sessions: ' + error.message);
             } finally {
                 // Restore button
-                const button = event.target;
-                button.textContent = originalText;
-                button.disabled = false;
+                if (button) {
+                    button.textContent = originalText;
+                    button.disabled = false;
+                }
             }
         }
         
@@ -3551,11 +3614,11 @@ window.Chart = class {
             }
         });
         
-        // Draw title
+        // Draw title  
         ctx.fillStyle = '#ccc';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('DPV Data Visualization (Fallback Mode)', canvas.width / 2, 20);
+        ctx.fillText('DPV Data Visualization', canvas.width / 2, 20);
         
         // Draw data point count
         ctx.font = '12px Arial';
@@ -3589,9 +3652,43 @@ console.log('Chart.js fallback loaded');
         sendHttpResponse(client, 200, "application/javascript", chartJs.c_str());
         
     } else if (path == "/jszip.min.js") {
-        // Serve JSZip library fallback
+        // Serve JSZip library with enhanced fallback
         log("Serving JSZip fallback");
-        String jszipJs = "window.JSZip=class{constructor(){this.files={}}file(t,e){return e?(this.files[t]=e,this):this.files[t]}generateAsync(){return Promise.resolve('UEsDBAoAAAAAAK6XnVQAAAAAAAAAAAAAAAAJAAAAZGF0YS5qc29uUEsBAhQACgAAAAAArpedVAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAA/4EAAAAAZGF0YS5qc29uUEsFBgAAAAABAAEAOgAAACoAAAAAAA==')}};console.log('JSZip fallback loaded');";
+        String jszipJs = R"js(
+window.JSZip = function() {
+    return {
+        files: {},
+        file: function(name, content) {
+            if (content !== undefined) {
+                this.files[name] = content;
+                return this;
+            }
+            return this.files[name];
+        },
+        generateAsync: function(options) {
+            // Create a simple CSV export instead of ZIP
+            let csvContent = '';
+            let fileCount = 0;
+            
+            for (let filename in this.files) {
+                fileCount++;
+                csvContent += '=== ' + filename + ' ===\n';
+                csvContent += this.files[filename];
+                csvContent += '\n\n';
+            }
+            
+            if (fileCount === 0) {
+                csvContent = 'No data available for export';
+            }
+            
+            // Return a proper Blob
+            const blob = new Blob([csvContent], { type: 'text/plain;charset=utf-8' });
+            return Promise.resolve(blob);
+        }
+    };
+};
+console.log('JSZip fallback loaded');
+)js";
         sendHttpResponse(client, 200, "application/javascript", jszipJs.c_str());
         
     } else if (path == "/api/beeper" && method == "POST") {
