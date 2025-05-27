@@ -1739,7 +1739,7 @@ const char* helloWorldHTML = R"rawliteral(
                         if (motorCurrent) motorCurrent.textContent = (latest.avgMotorCurrent || 0).toFixed(2) + ' A';
                         
                         const rpm = document.getElementById('rpm');
-                        if (rpm) rpm.textContent = (latest.erpm || 0).toFixed(0) + ' RPM';
+                        if (rpm) rpm.textContent = (latest.erpm || 0).toFixed(0) + ' eRPM';
                         
                         const dutyCycle = document.getElementById('dutyCycle');
                         if (dutyCycle) dutyCycle.textContent = (latest.dutyCycle || 0).toFixed(1) + ' %';
@@ -1983,6 +1983,9 @@ const char* helloWorldHTML = R"rawliteral(
                 `;
             }
             container.innerHTML += '</table>';
+            
+            // Also update the remote control slider interface
+            updateLampSliderInterface();
         }
         
         // Load DPV settings from API
@@ -2085,6 +2088,9 @@ const char* helloWorldHTML = R"rawliteral(
                     const settingsStatusEl = document.getElementById('settingsStatus');
                     if (settingsStatusEl) settingsStatusEl.textContent = 'Settings loaded successfully';
                     console.log('Settings loaded and applied to form successfully');
+                    
+                    // Update remote control lamp slider interface after all settings are loaded
+                    updateLampSliderInterface();
                 })
                 .catch(error => {
                     console.error('Error loading settings:', error);
@@ -2183,6 +2189,9 @@ const char* helloWorldHTML = R"rawliteral(
                     if (data.success) {
                         settingsStatusEl.textContent = 'Settings saved successfully!';
                         console.log('Settings saved successfully on server');
+                        
+                        // Update remote control lamp slider interface after successful save
+                        updateLampSliderInterface();
                     } else {
                         settingsStatusEl.textContent = 'Error saving settings!';
                         console.error('Server reported error saving settings');
@@ -2467,9 +2476,59 @@ const char* helloWorldHTML = R"rawliteral(
         // Update lamp level display (while dragging)
         function updateLampLevel(value) {
             currentLampLevel = parseInt(value);
-            const levelNames = ['OFF', 'Level 1', 'Level 2', 'Level 3', 'MAX'];
+            const maxLevels = getCurrentLampMaxLevels();
+            const levelNames = generateLevelNames(maxLevels);
             document.getElementById('lampLevelValue').textContent = currentLampLevel;
             document.getElementById('remoteLampStatus').textContent = levelNames[currentLampLevel] || 'OFF';
+        }
+        
+        // Get current lamp max levels from settings
+        function getCurrentLampMaxLevels() {
+            const lampMaxLevelsEl = document.getElementById('lampMaxLevels');
+            return lampMaxLevelsEl ? parseInt(lampMaxLevelsEl.value) || 5 : 5;
+        }
+        
+        // Generate level names based on max levels
+        function generateLevelNames(maxLevels) {
+            const names = ['OFF'];
+            for (let i = 1; i <= maxLevels; i++) {
+                if (i === maxLevels) {
+                    names.push('MAX');
+                } else {
+                    names.push(`Level ${i}`);
+                }
+            }
+            return names;
+        }
+        
+        // Update lamp slider interface based on current settings
+        function updateLampSliderInterface() {
+            const maxLevels = getCurrentLampMaxLevels();
+            const slider = document.getElementById('lampLevelSlider');
+            const labelContainer = slider.nextElementSibling;
+            
+            // Update slider max value
+            slider.max = maxLevels;
+            
+            // Ensure current value doesn't exceed new max
+            if (parseInt(slider.value) > maxLevels) {
+                slider.value = maxLevels;
+                currentLampLevel = maxLevels;
+                updateLampLevel(maxLevels);
+            }
+            
+            // Generate new labels
+            const levelNames = generateLevelNames(maxLevels);
+            labelContainer.innerHTML = '';
+            
+            // Create label spans
+            levelNames.forEach(name => {
+                const span = document.createElement('span');
+                span.textContent = name;
+                labelContainer.appendChild(span);
+            });
+            
+            console.log(`Updated lamp slider interface: max=${maxLevels}, levels=[${levelNames.join(', ')}]`);
         }
         
         // Set lamp level (when slider is released)
@@ -2490,7 +2549,8 @@ const char* helloWorldHTML = R"rawliteral(
             .then(response => response.json())
             .then(data => {
                 console.log('Lamp control response:', data);
-                const levelNames = ['OFF', 'Level 1', 'Level 2', 'Level 3', 'MAX'];
+                const maxLevels = getCurrentLampMaxLevels();
+                const levelNames = generateLevelNames(maxLevels);
                 document.getElementById('remoteLastCommand').textContent = 
                     `Lamp set to ${levelNames[currentLampLevel]}`;
                 document.getElementById('remoteControlStatus').textContent = 'Lamp level updated!';
