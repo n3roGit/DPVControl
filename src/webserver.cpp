@@ -16,6 +16,13 @@ extern int LED_State; // From ledLamp.cpp
 extern int currentMotorStep; // From motor.cpp
 extern MotorState motorState; // From motor.cpp
 extern unsigned long lastActionTime; // From main.cpp
+extern bool beeperEnabled; // From beep.cpp
+
+// External function declarations
+extern void wakeUp(); // From motor.cpp
+extern void setBarSpeed(int speed); // From ledBar.cpp
+extern void setLEDState(int state); // From ledLamp.cpp
+extern void setBarLED(int level); // From ledBar.cpp
 
 // Task handle for the webserver task
 TaskHandle_t webserverTaskHandle = NULL;
@@ -1159,21 +1166,34 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize charts
-            initCharts();
+            // Wait for Chart.js and JSZip to load before initializing
+            function waitForLibraries() {
+                if (typeof Chart !== 'undefined' && typeof JSZip !== 'undefined') {
+                    console.log('All libraries loaded, initializing application');
+                    
+                    // Initialize charts
+                    initCharts();
+                    
+                    // First data load
+                    loadData();
+                    
+                    // Set up periodic updates with enhanced live session support
+                    setInterval(loadDataWithLiveSession, FIXED_UPDATE_INTERVAL_MS);
+                    
+                    // Initialize settings tab
+                    updateLampBrightnessInputs();
+                    loadDPVSettings();
+                    
+                    // Load available sessions
+                    loadSessionList();
+                } else {
+                    console.log('Waiting for libraries to load... Chart:', typeof Chart, 'JSZip:', typeof JSZip);
+                    setTimeout(waitForLibraries, 200);
+                }
+            }
             
-            // First data load
-            loadData();
-            
-            // Set up periodic updates with enhanced live session support
-            setInterval(loadDataWithLiveSession, FIXED_UPDATE_INTERVAL_MS);
-            
-            // Initialize settings tab
-            updateLampBrightnessInputs();
-            loadDPVSettings();
-            
-            // Load available sessions
-            loadSessionList();
+            // Start waiting for libraries
+            setTimeout(waitForLibraries, 500); // Give initial load time
         });
         
         // Initialize Charts
@@ -3034,7 +3054,7 @@ void handleClient(WiFiClient client) {
         jsonStatus += "\"leftButton\":" + String(digitalRead(PIN_LEFT_BUTTON) == LOW ? "true" : "false") + ",";
         jsonStatus += "\"rightButton\":" + String(digitalRead(PIN_RIGHT_BUTTON) == LOW ? "true" : "false") + ",";
         jsonStatus += "\"lampLevel\":" + String(LED_State) + ",";
-        jsonStatus += "\"beeperEnabled\":" + String(beeperEnabled ? "true" : "false");
+        jsonStatus += "\"beeperEnabled\":" + String(currentSettings.beeperEnabled ? "true" : "false");
         jsonStatus += "}";
         
         String statusMsg = "Status response: " + jsonStatus;
@@ -3412,6 +3432,26 @@ void handleClient(WiFiClient client) {
         
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
+    } else if (path == "/info.html") {
+        // Serve info page
+        if (loadFromSPIFFS(client, "/info.html")) {
+            log("Served info.html from SPIFFS");
+        } else {
+            sendHttpResponse(client, 404, "text/plain", "Info page not found");
+        }
+        
+    } else if (path == "/chart.min.js") {
+        // Serve Chart.js library
+        log("Serving Chart.js fallback");
+        String chartJs = "window.Chart=class{constructor(t,e){this.ctx=t,this.config=e,this.data=e.data||{labels:[],datasets:[]},this.canvas=t.canvas,this.canvas.style.backgroundColor='#1e1e1e',this.canvas.width=600,this.canvas.height=300,this.update()}update(){const t=this.ctx;t.clearRect(0,0,this.canvas.width,this.canvas.height),t.fillStyle='#333',t.fillRect(0,0,this.canvas.width,this.canvas.height),t.fillStyle='#fff',t.font='16px Arial',t.fillText('Chart.js not loaded - using fallback',50,50),t.fillText('Data points: '+this.data.labels.length,50,80)}destroy(){}};console.log('Chart.js fallback loaded');";
+        sendHttpResponse(client, 200, "application/javascript", chartJs.c_str());
+        
+    } else if (path == "/jszip.min.js") {
+        // Serve JSZip library fallback
+        log("Serving JSZip fallback");
+        String jszipJs = "window.JSZip=class{constructor(){this.files={}}file(t,e){return e?(this.files[t]=e,this):this.files[t]}generateAsync(){return Promise.resolve('UEsDBAoAAAAAAK6XnVQAAAAAAAAAAAAAAAAJAAAAZGF0YS5qc29uUEsBAhQACgAAAAAArpedVAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAA/4EAAAAAZGF0YS5qc29uUEsFBgAAAAABAAEAOgAAACoAAAAAAA==')}};console.log('JSZip fallback loaded');";
+        sendHttpResponse(client, 200, "application/javascript", jszipJs.c_str());
+        
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings (legacy compatibility)
         log("API /api/beeper called");
@@ -3425,9 +3465,11 @@ void handleClient(WiFiClient client) {
         // Simple JSON parsing for {"enabled": true/false}
         bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
         
-        // Update beeper setting
+        // Update beeper setting in both old and new systems
         beeperEnabled = newBeeperState;
+        currentSettings.beeperEnabled = newBeeperState;
         saveBeeperSettings();
+        saveSettings(); // Also save to new settings system
         
         String response = "{\"success\":true,\"enabled\":" + String(beeperEnabled ? "true" : "false") + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());

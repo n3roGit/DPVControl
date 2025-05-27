@@ -10,7 +10,9 @@
 */ 
 
 // Use settings-based debug logging instead of hardcoded constant
-#define EnableDebugLog getDebugLoggingEnabled()
+// Temporarily hardcoded for troubleshooting
+#define EnableDebugLog true
+// #define EnableDebugLog getDebugLoggingEnabled()
 
 void log(const char* label, int value, bool doLog);
 void log(const char* label, int value);
