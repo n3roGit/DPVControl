@@ -54,19 +54,28 @@ int calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBr
 }
 
 void ledBarSetup(){
-  // Configure LED pin
+  // First turn off the LED pin completely
   pinMode(PIN_LEDBAR, OUTPUT);
   digitalWrite(PIN_LEDBAR, LOW);
+  delay(50);  // Longer delay to ensure pin is stable
   
   // Initialize Neopixel with correct number of LEDs
   strip = Adafruit_NeoPixel(getLedBarNum() + LedBar2_Num, PIN_LEDBAR, NEO_GRB + NEO_KHZ800);
   strip.begin();
   
-  // Ensure all LEDs are off
-  for(int i = 0; i < strip.numPixels(); i++) {
-    strip.setPixelColor(i, 0);
+  // Multiple clear cycles with longer delays to ensure all LEDs are off
+  for(int cycle = 0; cycle < 5; cycle++) {
+    for(int i = 0; i < strip.numPixels(); i++) {
+      strip.setPixelColor(i, 0);
+    }
+    strip.show();
+    delay(20);  // Longer delay between cycles
   }
-  strip.show();
+  
+  // Reset all state tracking variables
+  lastDisplayedSpeed = -1;
+  lastDisplayedMotorState = -1;
+  lastDisplayedBattery = -1;
   
   // Start normal operation with standby display
   setBarStandby();

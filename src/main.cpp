@@ -38,6 +38,16 @@ void setup() {
 
   Serial.println("Booting started...!");
 
+  // Initialize LittleFS first for settings
+  if (!LittleFS.begin(true)) {
+    Serial.println("LittleFS initialization failed!");
+  } else {
+    Serial.println("LittleFS initialized for settings");
+  }
+  
+  // Initialize settings system BEFORE hardware that depends on settings
+  initializeSettings();
+
   // Initialize button control system
   buttonSetup();
 
@@ -57,21 +67,11 @@ void setup() {
   }
   Serial.println("---");
 
-  // Initialize hardware subsystems
+  // Initialize hardware subsystems (now with settings available)
   motorSetup();     // Motor control and VESC communication
   ledLampSetup();   // Main LED lamp PWM control
-  ledBarSetup();    // LED status bar
+  ledBarSetup();    // LED status bar (now with proper settings)
   batterySetup();   // Battery monitoring
-  
-  // Initialize LittleFS first for settings
-  if (!LittleFS.begin(true)) {
-    Serial.println("LittleFS initialization failed!");
-  } else {
-    Serial.println("LittleFS initialized for settings");
-  }
-  
-  // Initialize settings system
-  initializeSettings();
   
   // Initialize datalogger (will re-initialize LittleFS if needed)
   datalogSetup();
