@@ -26,7 +26,7 @@ struct LogdataRow {
   float batteryVoltage;
   float current;
   float avgMotorCurrent;
-  float rpm;
+  float erpm;
   float dutyCycle;
   float temperature;
   float humidity;
@@ -40,7 +40,7 @@ struct LogdataRow {
 #define TEMP_THRESHOLD 0.5f        // Temperature change threshold in °C
 #define VOLTAGE_THRESHOLD 0.1f     // Voltage change threshold in V
 #define CURRENT_THRESHOLD 0.2f     // Current change threshold in A
-#define RPM_THRESHOLD 50.0f        // RPM change threshold
+#define RPM_THRESHOLD 50.0f        // eRPM change threshold
 #define DUTY_THRESHOLD 1.0f        // Duty cycle threshold in %
 #define HUMIDITY_THRESHOLD 2.0f    // Humidity threshold in %
 

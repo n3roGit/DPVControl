@@ -158,16 +158,16 @@ String* listSessionFiles(int* count) {
 * CONSTANTS
 */ 
 
-const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,rpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,total_uptime";
+const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,erpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,total_uptime";
 const String DATALOG_DIR = "/datalog";
 
 // Multi-interval logging for better storage efficiency
-const unsigned long DATALOG_INTERVAL_FAST = 5000;   // Fast sensors: 5s (RPM, current, voltage, temps)
+const unsigned long DATALOG_INTERVAL_FAST = 5000;   // Fast sensors: 5s (eRPM, current, voltage, temps)
 const unsigned long DATALOG_INTERVAL_SLOW = 30000;  // Slow sensors: 30s (battery level, environment)
 const unsigned long DATALOG_INTERVAL = DATALOG_INTERVAL_FAST; // Main interval
 
 const int MAX_LOG_FILES = 10; // Maximum number of log files
-const double MAX_SPEED_RPM = 15800; // Maximum speed in rpm. Speed of 100%, copied from motor.cpp
+const double MAX_SPEED_RPM = 15800; // Maximum speed in eRPM. Speed of 100%, copied from motor.cpp
 
 /*
 * GLOBAL VARIABLES
@@ -429,7 +429,7 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
     dp.tempMosfet = getVescUart().data.tempMosfet;
     dp.current = getVescUart().data.avgInputCurrent;
     dp.avgMotorCurrent = getVescUart().data.avgMotorCurrent;
-    dp.rpm = getVescUart().data.rpm;
+    dp.erpm = getVescUart().data.rpm;
     dp.dutyCycle = getVescUart().data.dutyCycleNow;
   } else {
     // Fallback values if no motor
@@ -437,7 +437,7 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
     dp.tempMosfet = 30.0;
     dp.current = 0.0;
     dp.avgMotorCurrent = 0.0;
-    dp.rpm = 0.0;
+    dp.erpm = 0.0;
     dp.dutyCycle = 0.0;
   }
   
@@ -491,7 +491,7 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(",");
   file.print(datapoint.avgMotorCurrent);
   file.print(",");
-  file.print(datapoint.rpm);
+  file.print(datapoint.erpm);
   file.print(",");
   file.print(datapoint.dutyCycle);
   file.print(",");
@@ -1050,7 +1050,7 @@ void dataloggerTask(void *pvParameters) {
   testData.batteryVoltage = 12.5;
   testData.current = 1.0;
   testData.avgMotorCurrent = 0.8;
-  testData.rpm = 500.0;
+  testData.erpm = 500.0;
   testData.dutyCycle = 10.0;
   testData.temperature = 22.0;
   testData.humidity = 45.0;
@@ -1194,7 +1194,7 @@ bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
   if (abs(newData.batteryVoltage - lastData.batteryVoltage) > VOLTAGE_THRESHOLD) return true;
   if (abs(newData.current - lastData.current) > CURRENT_THRESHOLD) return true;
   if (abs(newData.avgMotorCurrent - lastData.avgMotorCurrent) > CURRENT_THRESHOLD) return true;
-  if (abs(newData.rpm - lastData.rpm) > RPM_THRESHOLD) return true;
+  if (abs(newData.erpm - lastData.erpm) > RPM_THRESHOLD) return true;
   if (abs(newData.dutyCycle - lastData.dutyCycle) > DUTY_THRESHOLD) return true;
   if (abs(newData.temperature - lastData.temperature) > TEMP_THRESHOLD) return true;
   if (abs(newData.humidity - lastData.humidity) > HUMIDITY_THRESHOLD) return true;
@@ -1247,7 +1247,7 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
       interpolatedData[i].timestamp = before.timestamp + (long)((after.timestamp - before.timestamp) * ratio);
       interpolatedData[i].batteryVoltage = before.batteryVoltage + (after.batteryVoltage - before.batteryVoltage) * ratio;
       interpolatedData[i].current = before.current + (after.current - before.current) * ratio;
-      interpolatedData[i].rpm = before.rpm + (after.rpm - before.rpm) * ratio;
+      interpolatedData[i].erpm = before.erpm + (after.erpm - before.erpm) * ratio;
       
       // Copy other values from closest point
       if (ratio < 0.5f) {

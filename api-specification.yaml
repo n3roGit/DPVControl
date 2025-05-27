@@ -71,7 +71,7 @@ paths:
       summary: Get sensor data points
       description: |
         Retrieve recent sensor data points with optional filtering by count and time range.
-        Data includes battery voltage, temperatures, currents, RPM, and other sensor readings.
+        Data includes battery voltage, temperatures, currents, eRPM, and other sensor readings.
       parameters:
         - name: count
           in: query
@@ -106,7 +106,7 @@ paths:
                   batteryVoltage: 52.5
                   current: 0.0
                   avgMotorCurrent: 0.0
-                  rpm: 0
+                  eRPM: 0
                   dutyCycle: 0.0
                   temperature: 22.5
                   humidity: 65.2
@@ -506,10 +506,10 @@ components:
           format: float
           description: Average motor current in Amperes
           example: 0.0
-        rpm:
+        eRPM:
           type: number
           format: float
-          description: Motor RPM (revolutions per minute)
+          description: Motor eRPM (revolutions per minute)
           example: 0
         dutyCycle:
           type: number
@@ -577,7 +577,7 @@ components:
         maxSpeedRpm:
           type: number
           format: float
-          description: Maximum speed in RPM (1000-50000)
+          description: Maximum speed in eRPM (1000-50000)
           minimum: 1000
           maximum: 50000
           example: 15800

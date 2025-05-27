@@ -32,7 +32,7 @@ void logVehicleState() {
     Serial.print("bat lvl: ");
     Serial.println(batteryLevel);  // test battery level
     Serial.println("up " + uptime_formatter::getUptime());
-    Serial.print("RPM: ");
+    Serial.print("eRPM: ");
     Serial.println(getVescUart().data.rpm);
     Serial.print("inpVoltage: ");
     Serial.println(getVescUart().data.inpVoltage);

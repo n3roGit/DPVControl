@@ -326,7 +326,7 @@ bool initializeFileSystem() {
                     data: {
                         labels: [],
                         datasets: [{
-                            label: 'RPM',
+                            label: 'eRPM',
                             data: [],
                             borderColor: '#2ecc71',
                             fill: false

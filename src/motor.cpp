@@ -159,7 +159,7 @@ void setSoftMotorSpeed() {
   currentMotorTime = micros();
 
   if(EnableDebugLog && abs(currentMotorSpeed - lastPrintedMotorSpeed) >= 0.01){
-    Serial.printf("%5.0f RPM (%2.0f%%)",effectiveSpeed, currentMotorSpeed*100);
+    Serial.printf("%5.0f eRPM (%2.0f%%)",effectiveSpeed, currentMotorSpeed*100);
     Serial.println();
     lastPrintedMotorSpeed = currentMotorSpeed;
   }

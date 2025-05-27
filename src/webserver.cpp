@@ -16,7 +16,7 @@ extern int LED_State; // From ledLamp.cpp
 extern int currentMotorStep; // From motor.cpp
 extern MotorState motorState; // From motor.cpp
 extern unsigned long lastActionTime; // From main.cpp
-extern bool beeperEnabled; // From beep.cpp
+// extern bool beeperEnabled; // Removed - using unified settings system
 
 // External function declarations
 extern void wakeUp(); // From motor.cpp
@@ -183,7 +183,7 @@ String generateSessionDataJson(String sessionFile) {
         json += "\"batteryVoltage\":" + String(finalData[i].batteryVoltage) + ",";
         json += "\"current\":" + String(finalData[i].current) + ",";
         json += "\"avgMotorCurrent\":" + String(finalData[i].avgMotorCurrent) + ",";
-        json += "\"rpm\":" + String(finalData[i].rpm) + ",";
+        json += "\"rpm\":" + String(finalData[i].erpm) + ",";
         json += "\"dutyCycle\":" + String(finalData[i].dutyCycle) + ",";
         json += "\"temperature\":" + String(finalData[i].temperature) + ",";
         json += "\"humidity\":" + String(finalData[i].humidity) + ",";
@@ -369,6 +369,26 @@ const char* helloWorldHTML = R"rawliteral(
             border-radius: 50%;
             cursor: pointer;
             border: none;
+        }
+        
+        /* Info icon styling */
+        .info-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: #2196f3;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 5px;
+            line-height: 16px;
+        }
+        
+        .info-icon:hover {
+            background-color: #1976d2;
         }
     </style>
                 <!-- Local Chart.js and JSZip for offline functionality -->
@@ -580,7 +600,7 @@ const char* helloWorldHTML = R"rawliteral(
                             item.tempMotor,
                             item.temperature,
                             item.humidity,
-                            item.rpm,
+                            item.erpm,
                             item.dutyCycle,
                             item.tempMosfet,
                             item.avgMotorCurrent,
@@ -886,7 +906,9 @@ const char* helloWorldHTML = R"rawliteral(
                                 <td><input type="number" id="minSpeedPercent" min="0.1" max="1.0" step="0.01" value="0.38"></td>
                             </tr>
                             <tr>
-                                <td><label for="maxSpeedRpm">Max Speed RPM:</label></td>
+                                <td><label for="maxSpeedRpm">Max Speed eRPM: 
+                                    <span class="info-icon" title="eRPM = electrical RPM. This is the electrical frequency of the motor controller (not mechanical RPM). For VESC controllers, eRPM = mechanical RPM × pole pairs.">ⓘ</span>
+                                </label></td>
                                 <td><input type="number" id="maxSpeedRpm" min="1000" max="50000" value="15800"></td>
                             </tr>
                             <tr>
@@ -1717,7 +1739,7 @@ const char* helloWorldHTML = R"rawliteral(
                         if (motorCurrent) motorCurrent.textContent = (latest.avgMotorCurrent || 0).toFixed(2) + ' A';
                         
                         const rpm = document.getElementById('rpm');
-                        if (rpm) rpm.textContent = (latest.rpm || 0).toFixed(0) + ' RPM';
+                        if (rpm) rpm.textContent = (latest.erpm || 0).toFixed(0) + ' RPM';
                         
                         const dutyCycle = document.getElementById('dutyCycle');
                         if (dutyCycle) dutyCycle.textContent = (latest.dutyCycle || 0).toFixed(1) + ' %';
@@ -1864,7 +1886,7 @@ const char* helloWorldHTML = R"rawliteral(
             charts.combinedChart.data.datasets[2].data = filteredData.map(item => item.tempMotor);
             charts.combinedChart.data.datasets[3].data = filteredData.map(item => item.temperature);
             charts.combinedChart.data.datasets[4].data = filteredData.map(item => item.humidity);
-            charts.combinedChart.data.datasets[5].data = filteredData.map(item => item.rpm / 100);
+            charts.combinedChart.data.datasets[5].data = filteredData.map(item => item.erpm / 100);
             charts.combinedChart.data.datasets[6].data = filteredData.map(item => item.dutyCycle);
             charts.combinedChart.data.datasets[7].data = filteredData.map(item => item.tempMosfet);
             charts.combinedChart.data.datasets[8].data = filteredData.map(item => item.avgMotorCurrent);
@@ -1926,7 +1948,7 @@ const char* helloWorldHTML = R"rawliteral(
                 html += '<td style="border: 1px solid #ddd; padding: 8px;">' + item.tempMosfet.toFixed(1) + '</td>';
                 html += '<td style="border: 1px solid #ddd; padding: 8px;">' + item.temperature.toFixed(1) + '</td>';
                 html += '<td style="border: 1px solid #ddd; padding: 8px;">' + item.humidity.toFixed(1) + '</td>';
-                html += '<td style="border: 1px solid #ddd; padding: 8px;">' + item.rpm.toFixed(0) + '</td>';
+                html += '<td style="border: 1px solid #ddd; padding: 8px;">' + item.erpm.toFixed(0) + '</td>';
                 html += '<td style="border: 1px solid #ddd; padding: 8px;">' + item.dutyCycle.toFixed(1) + '</td>';
                 html += '<td style="border: 1px solid #ddd; padding: 8px;">' + (item.leakSensorState === 1 ? 'LEAK!' : 'OK') + '</td>';
                 html += '</tr>';
@@ -2612,7 +2634,7 @@ const char* helloWorldHTML = R"rawliteral(
                                 point.batteryVoltage || 0,
                                 point.current || 0,
                                 point.avgMotorCurrent || 0,
-                                point.rpm || 0,
+                                point.erpm || 0,
                                 point.dutyCycle || 0,
                                 point.temperature || 0,
                                 point.humidity || 0,
@@ -2705,7 +2727,7 @@ const char* helloWorldHTML = R"rawliteral(
                     point.batteryVoltage || 0,
                     point.current || 0,
                     point.avgMotorCurrent || 0,
-                    point.rpm || 0,
+                    point.erpm || 0,
                     point.dutyCycle || 0,
                     point.temperature || 0,
                     point.humidity || 0,
@@ -2751,7 +2773,7 @@ const char* helloWorldHTML = R"rawliteral(
                     point.batteryVoltage || 0,
                     point.current || 0,
                     point.avgMotorCurrent || 0,
-                    point.rpm || 0,
+                    point.erpm || 0,
                     point.dutyCycle || 0,
                     point.temperature || 0,
                     point.humidity || 0,
@@ -2923,7 +2945,7 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "\"batteryVoltage\":" + String(dataPoints[i].batteryVoltage) + ",";
         json += "\"current\":" + String(dataPoints[i].current) + ",";
         json += "\"avgMotorCurrent\":" + String(dataPoints[i].avgMotorCurrent) + ",";
-        json += "\"rpm\":" + String(dataPoints[i].rpm) + ",";
+        json += "\"rpm\":" + String(dataPoints[i].erpm) + ",";
         json += "\"dutyCycle\":" + String(dataPoints[i].dutyCycle) + ",";
         json += "\"temperature\":" + String(dataPoints[i].temperature) + ",";
         json += "\"humidity\":" + String(dataPoints[i].humidity) + ",";
@@ -3002,7 +3024,7 @@ String generateFullTripLogJson() {
         json += "\"batteryVoltage\":" + String(dataPoint.batteryVoltage) + ",";
         json += "\"current\":" + String(dataPoint.current) + ",";
         json += "\"avgMotorCurrent\":" + String(dataPoint.avgMotorCurrent) + ",";
-        json += "\"rpm\":" + String(dataPoint.rpm) + ",";
+        json += "\"rpm\":" + String(dataPoint.erpm) + ",";
         json += "\"dutyCycle\":" + String(dataPoint.dutyCycle) + ",";
         json += "\"temperature\":" + String(dataPoint.temperature) + ",";
         json += "\"humidity\":" + String(dataPoint.humidity) + ",";
@@ -4045,15 +4067,13 @@ console.log('JSZip fallback loaded');
         bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
         
         // Update beeper setting in both old and new systems
-        beeperEnabled = newBeeperState;
         currentSettings.beeperEnabled = newBeeperState;
-        saveBeeperSettings();
-        saveSettings(); // Also save to new settings system
+        saveSettings(); // Save to unified settings system
         
-        String response = "{\"success\":true,\"enabled\":" + String(beeperEnabled ? "true" : "false") + "}";
+        String response = "{\"success\":true,\"enabled\":" + String(getBeeperEnabled() ? "true" : "false") + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
-        String beeperMsg = "Beeper setting updated: " + String(beeperEnabled ? "enabled" : "disabled");
+        String beeperMsg = "Beeper setting updated: " + String(getBeeperEnabled() ? "enabled" : "disabled");
         log(beeperMsg.c_str());
         
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
