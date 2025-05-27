@@ -3057,7 +3057,7 @@ String generateFullTripLogJson() {
 String generateSettingsJson() {
     log("generateSettingsJson called");
     
-    DynamicJsonDocument doc(2048);
+    JsonDocument doc;
     
     // Motor and speed settings
     doc["speedSteps"] = currentSettings.speedSteps;
@@ -3084,7 +3084,7 @@ String generateSettingsJson() {
     
     // Lamp settings
     doc["lampMaxLevels"] = currentSettings.lampMaxLevels;
-    JsonArray lampBrightness = doc.createNestedArray("lampBrightness");
+    JsonArray lampBrightness = doc["lampBrightness"].to<JsonArray>();
     for (int i = 0; i < 10; i++) {
         lampBrightness.add(currentSettings.lampBrightness[i]);
     }
@@ -3116,7 +3116,7 @@ bool updateSettingsFromJson(const String& jsonString) {
     String logMsg = "JSON length: " + String(jsonString.length());
     log(logMsg.c_str());
     
-    DynamicJsonDocument doc(2048);
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, jsonString);
     
     if (error) {
@@ -3138,56 +3138,56 @@ bool updateSettingsFromJson(const String& jsonString) {
     
     // Update settings from JSON with detailed logging
     int updatedFields = 0;
-    if (doc.containsKey("speedSteps")) {
+    if (doc["speedSteps"].is<int>()) {
         int oldVal = newSettings.speedSteps;
         newSettings.speedSteps = doc["speedSteps"];
         String msg = "Updated speedSteps: " + String(oldVal) + " -> " + String(newSettings.speedSteps);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("standbyDelaySeconds")) {
+    if (doc["standbyDelaySeconds"].is<int>()) {
         int oldVal = newSettings.standbyDelaySeconds;
         newSettings.standbyDelaySeconds = doc["standbyDelaySeconds"];
         String msg = "Updated standbyDelaySeconds: " + String(oldVal) + " -> " + String(newSettings.standbyDelaySeconds);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("batteryPowerMax")) {
+    if (doc["batteryPowerMax"].is<int>()) {
         int oldVal = newSettings.batteryPowerMax;
         newSettings.batteryPowerMax = doc["batteryPowerMax"];
         String msg = "Updated batteryPowerMax: " + String(oldVal) + " -> " + String(newSettings.batteryPowerMax);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("minSpeedPercent")) {
+    if (doc["minSpeedPercent"].is<float>()) {
         float oldVal = newSettings.minSpeedPercent;
         newSettings.minSpeedPercent = doc["minSpeedPercent"];
         String msg = "Updated minSpeedPercent: " + String(oldVal, 3) + " -> " + String(newSettings.minSpeedPercent, 3);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("maxSpeedRpm")) {
+    if (doc["maxSpeedRpm"].is<float>()) {
         float oldVal = newSettings.maxSpeedRpm;
         newSettings.maxSpeedRpm = doc["maxSpeedRpm"];
         String msg = "Updated maxSpeedRpm: " + String(oldVal, 1) + " -> " + String(newSettings.maxSpeedRpm, 1);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("speedUpTimeMs")) {
+    if (doc["speedUpTimeMs"].is<int>()) {
         int oldVal = newSettings.speedUpTimeMs;
         newSettings.speedUpTimeMs = doc["speedUpTimeMs"];
         String msg = "Updated speedUpTimeMs: " + String(oldVal) + " -> " + String(newSettings.speedUpTimeMs);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("speedDownTimeMs")) {
+    if (doc["speedDownTimeMs"].is<int>()) {
         int oldVal = newSettings.speedDownTimeMs;
         newSettings.speedDownTimeMs = doc["speedDownTimeMs"];
         String msg = "Updated speedDownTimeMs: " + String(oldVal) + " -> " + String(newSettings.speedDownTimeMs);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("maxTimeOverloadedMs")) {
+    if (doc["maxTimeOverloadedMs"].is<long>()) {
         long oldVal = newSettings.maxTimeOverloadedMs;
         newSettings.maxTimeOverloadedMs = doc["maxTimeOverloadedMs"];
         String msg = "Updated maxTimeOverloadedMs: " + String(oldVal) + " -> " + String(newSettings.maxTimeOverloadedMs);
@@ -3195,24 +3195,24 @@ bool updateSettingsFromJson(const String& jsonString) {
         updatedFields++;
     }
     
-    if (doc.containsKey("jamMin")) newSettings.jamMin = doc["jamMin"];
-    if (doc.containsKey("jamDetectionThreshold")) newSettings.jamDetectionThreshold = doc["jamDetectionThreshold"];
+    if (doc["jamMin"].is<float>()) newSettings.jamMin = doc["jamMin"];
+    if (doc["jamDetectionThreshold"].is<float>()) newSettings.jamDetectionThreshold = doc["jamDetectionThreshold"];
     
-    if (doc.containsKey("cellsInSeries")) newSettings.cellsInSeries = doc["cellsInSeries"];
+    if (doc["cellsInSeries"].is<int>()) newSettings.cellsInSeries = doc["cellsInSeries"];
     
-    if (doc.containsKey("ledBarNum")) newSettings.ledBarNum = doc["ledBarNum"];
-    if (doc.containsKey("ledBarBrightness")) newSettings.ledBarBrightness = doc["ledBarBrightness"];
-    if (doc.containsKey("ledBarBrightnessSecond")) newSettings.ledBarBrightnessSecond = doc["ledBarBrightnessSecond"];
-    if (doc.containsKey("ledFrequency")) newSettings.ledFrequency = doc["ledFrequency"];
+    if (doc["ledBarNum"].is<int>()) newSettings.ledBarNum = doc["ledBarNum"];
+    if (doc["ledBarBrightness"].is<int>()) newSettings.ledBarBrightness = doc["ledBarBrightness"];
+    if (doc["ledBarBrightnessSecond"].is<int>()) newSettings.ledBarBrightnessSecond = doc["ledBarBrightnessSecond"];
+    if (doc["ledFrequency"].is<int>()) newSettings.ledFrequency = doc["ledFrequency"];
     
-    if (doc.containsKey("lampMaxLevels")) {
+    if (doc["lampMaxLevels"].is<int>()) {
         int oldVal = newSettings.lampMaxLevels;
         newSettings.lampMaxLevels = doc["lampMaxLevels"];
         String msg = "Updated lampMaxLevels: " + String(oldVal) + " -> " + String(newSettings.lampMaxLevels);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("lampBrightness")) {
+    if (doc["lampBrightness"].is<JsonArray>()) {
         log("Processing lampBrightness array...");
         JsonArray lampArray = doc["lampBrightness"];
         String oldValues = "Old lampBrightness values: ";
@@ -3241,37 +3241,37 @@ bool updateSettingsFromJson(const String& jsonString) {
         updatedFields++;
     }
     
-    if (doc.containsKey("wifiSSID")) {
+    if (doc["wifiSSID"].is<const char*>()) {
         strncpy(newSettings.wifiSSID, doc["wifiSSID"], sizeof(newSettings.wifiSSID) - 1);
         newSettings.wifiSSID[sizeof(newSettings.wifiSSID) - 1] = '\0';
     }
-    if (doc.containsKey("wifiPassword")) {
+    if (doc["wifiPassword"].is<const char*>()) {
         strncpy(newSettings.wifiPassword, doc["wifiPassword"], sizeof(newSettings.wifiPassword) - 1);
         newSettings.wifiPassword[sizeof(newSettings.wifiPassword) - 1] = '\0';
     }
     
-    if (doc.containsKey("beeperEnabled")) {
+    if (doc["beeperEnabled"].is<bool>()) {
         bool oldVal = newSettings.beeperEnabled;
         newSettings.beeperEnabled = doc["beeperEnabled"];
         String msg = "Updated beeperEnabled: " + String(oldVal ? "true" : "false") + " -> " + String(newSettings.beeperEnabled ? "true" : "false");
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("debugLoggingEnabled")) {
+    if (doc["debugLoggingEnabled"].is<bool>()) {
         bool oldVal = newSettings.debugLoggingEnabled;
         newSettings.debugLoggingEnabled = doc["debugLoggingEnabled"];
         String msg = "Updated debugLoggingEnabled: " + String(oldVal ? "true" : "false") + " -> " + String(newSettings.debugLoggingEnabled ? "true" : "false");
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("standbyBlinkStartMinutes")) {
+    if (doc["standbyBlinkStartMinutes"].is<int>()) {
         int oldVal = newSettings.standbyBlinkStartMinutes;
         newSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"];
         String msg = "Updated standbyBlinkStartMinutes: " + String(oldVal) + " -> " + String(newSettings.standbyBlinkStartMinutes);
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc.containsKey("standbyBlinkDurationSeconds")) {
+    if (doc["standbyBlinkDurationSeconds"].is<int>()) {
         int oldVal = newSettings.standbyBlinkDurationSeconds;
         newSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"];
         String msg = "Updated standbyBlinkDurationSeconds: " + String(oldVal) + " -> " + String(newSettings.standbyBlinkDurationSeconds);
