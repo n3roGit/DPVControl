@@ -734,15 +734,15 @@ void appendToTripLog(LogdataRow datapoint) {
  * Fügt einen Datenpunkt zum Recent-Buffer hinzu UND speichert ihn persistent
  */
 void addToRecentData(LogdataRow datapoint) {
-  // Add to RAM buffer for live display
+  // Add to RAM buffer for live display (always keep full resolution in RAM)
   recentData[recentIndex] = datapoint;
   recentIndex = (recentIndex + 1) % MAX_RECENT_POINTS;
   if (totalRecentPoints < MAX_RECENT_POINTS) {
     totalRecentPoints++;
   }
   
-  // Immediately append to persistent trip log
-  appendToTripLog(datapoint);
+  // Use delta compression for persistent storage
+  appendToTripLogCompressed(datapoint);
 }
 
 /**
@@ -1171,4 +1171,138 @@ void datalogSetup() {
 void datalogLoop() {
   // The actual datalogger runs in a separate task,
   // nothing to do here.
+}
+
+/**
+ * DELTA COMPRESSION SYSTEM
+ * Only saves datapoints when significant changes occur
+ */
+
+// Global variables for delta compression
+LogdataRow lastSavedData;
+bool hasLastSavedData = false;
+
+/**
+ * Check if a datapoint should be saved based on delta thresholds
+ */
+bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
+  if (!hasLastSavedData) return true; // Always save first datapoint
+  
+  // Check each parameter against its threshold
+  if (abs(newData.tempMotor - lastData.tempMotor) > TEMP_THRESHOLD) return true;
+  if (abs(newData.tempMosfet - lastData.tempMosfet) > TEMP_THRESHOLD) return true;
+  if (abs(newData.batteryVoltage - lastData.batteryVoltage) > VOLTAGE_THRESHOLD) return true;
+  if (abs(newData.current - lastData.current) > CURRENT_THRESHOLD) return true;
+  if (abs(newData.avgMotorCurrent - lastData.avgMotorCurrent) > CURRENT_THRESHOLD) return true;
+  if (abs(newData.rpm - lastData.rpm) > RPM_THRESHOLD) return true;
+  if (abs(newData.dutyCycle - lastData.dutyCycle) > DUTY_THRESHOLD) return true;
+  if (abs(newData.temperature - lastData.temperature) > TEMP_THRESHOLD) return true;
+  if (abs(newData.humidity - lastData.humidity) > HUMIDITY_THRESHOLD) return true;
+  
+  // Check discrete values
+  if (newData.batteryLevel != lastData.batteryLevel) return true;
+  if (newData.leakSensorState != lastData.leakSensorState) return true;
+  if (newData.ledState != lastData.ledState) return true;
+  
+  // Don't save if no significant changes
+  return false;
+}
+
+
+
+/**
+ * Interpolate between stored datapoints to create smooth timeline
+ * Simplified for memory efficiency
+ */
+LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) {
+  if (!rawData || rawCount == 0 || targetCount == 0) return NULL;
+  
+  // Reduced buffer size to save memory
+  static LogdataRow interpolatedData[200]; 
+  if (targetCount > 200) targetCount = 200; // Reduced safety limit
+  
+  if (rawCount >= targetCount) {
+    // If we have enough raw data, just copy it
+    for (int i = 0; i < targetCount; i++) {
+      interpolatedData[i] = rawData[i];
+    }
+    return interpolatedData;
+  }
+  
+  // Simple linear interpolation
+  float step = (float)(rawCount - 1) / (targetCount - 1);
+  
+  for (int i = 0; i < targetCount; i++) {
+    float exactIndex = i * step;
+    int baseIndex = (int)exactIndex;
+    float ratio = exactIndex - baseIndex;
+    
+    if (baseIndex >= rawCount - 1) {
+      interpolatedData[i] = rawData[rawCount - 1];
+    } else {
+      LogdataRow& before = rawData[baseIndex];
+      LogdataRow& after = rawData[baseIndex + 1];
+      
+      // Simple interpolation for key values only
+      interpolatedData[i].timestamp = before.timestamp + (long)((after.timestamp - before.timestamp) * ratio);
+      interpolatedData[i].batteryVoltage = before.batteryVoltage + (after.batteryVoltage - before.batteryVoltage) * ratio;
+      interpolatedData[i].current = before.current + (after.current - before.current) * ratio;
+      interpolatedData[i].rpm = before.rpm + (after.rpm - before.rpm) * ratio;
+      
+      // Copy other values from closest point
+      if (ratio < 0.5f) {
+        interpolatedData[i].tempMotor = before.tempMotor;
+        interpolatedData[i].tempMosfet = before.tempMosfet;
+        interpolatedData[i].avgMotorCurrent = before.avgMotorCurrent;
+        interpolatedData[i].dutyCycle = before.dutyCycle;
+        interpolatedData[i].temperature = before.temperature;
+        interpolatedData[i].humidity = before.humidity;
+        interpolatedData[i].batteryLevel = before.batteryLevel;
+        interpolatedData[i].leakSensorState = before.leakSensorState;
+        interpolatedData[i].ledState = before.ledState;
+        interpolatedData[i].totalUptime = before.totalUptime;
+      } else {
+        interpolatedData[i].tempMotor = after.tempMotor;
+        interpolatedData[i].tempMosfet = after.tempMosfet;
+        interpolatedData[i].avgMotorCurrent = after.avgMotorCurrent;
+        interpolatedData[i].dutyCycle = after.dutyCycle;
+        interpolatedData[i].temperature = after.temperature;
+        interpolatedData[i].humidity = after.humidity;
+        interpolatedData[i].batteryLevel = after.batteryLevel;
+        interpolatedData[i].leakSensorState = after.leakSensorState;
+        interpolatedData[i].ledState = after.ledState;
+        interpolatedData[i].totalUptime = after.totalUptime;
+      }
+    }
+  }
+  
+  return interpolatedData;
+}
+
+/**
+ * Simple delta compression - only save when values change significantly
+ */
+void appendToTripLogCompressed(LogdataRow datapoint) {
+  // Check if we should save this datapoint
+  if (!shouldSaveDatapoint(datapoint, lastSavedData)) {
+    // Skip saving if no significant changes
+    static int skipCount = 0;
+    skipCount++;
+    if (skipCount % 50 == 0) {
+      String skipMsg = "Delta compression: Skipped " + String(skipCount) + " unchanged datapoints (saving ~" + String((skipCount * 100) / (skipCount + 1)) + "% storage)";
+      log(skipMsg.c_str());
+    }
+    return;
+  }
+  
+  // Save this datapoint and update last saved data
+  appendToTripLog(datapoint);
+  lastSavedData = datapoint;
+  hasLastSavedData = true;
+  
+  static int saveCount = 0;
+  saveCount++;
+  if (saveCount % 10 == 0) {
+    log("Delta compression: Saved significant change");
+  }
 }

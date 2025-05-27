@@ -36,6 +36,14 @@ struct LogdataRow {
   unsigned long totalUptime;
 };
 
+// Delta compression thresholds for simplified system
+#define TEMP_THRESHOLD 0.5f        // Temperature change threshold in °C
+#define VOLTAGE_THRESHOLD 0.1f     // Voltage change threshold in V
+#define CURRENT_THRESHOLD 0.2f     // Current change threshold in A
+#define RPM_THRESHOLD 50.0f        // RPM change threshold
+#define DUTY_THRESHOLD 1.0f        // Duty cycle threshold in %
+#define HUMIDITY_THRESHOLD 2.0f    // Humidity threshold in %
+
 // Optimized logging system with longer sessions
 #define MAX_RECENT_POINTS 300     // RAM buffer for live display - 25 minutes @ 5s intervals
 // All data is immediately written to LittleFS for persistence
@@ -67,6 +75,11 @@ LogdataRow* getRecentData(int count);
 LogdataRow* getHourlyData(int count);
 LogdataRow* getHistoricalData(int count);
 int getTotalDataPoints(String timeRange = "recent");
+
+// Delta compression functions (simplified)
+bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData);
+LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount);
+void appendToTripLogCompressed(LogdataRow datapoint);
 
 // Optimized logging functions with multi-interval support
 LogdataRow createOptimizedDatapoint(unsigned long currentTime);

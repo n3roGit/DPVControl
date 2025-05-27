@@ -111,7 +111,7 @@ String generateSessionListJson() {
 }
 
 /**
- * Generate JSON data for a specific session
+ * Generate JSON data for a specific session with delta compression support and interpolation
  */
 String generateSessionDataJson(String sessionFile) {
     // Ensure we have the full path
@@ -133,59 +133,80 @@ String generateSessionDataJson(String sessionFile) {
     size_t fileSize = file.size();
     int totalDatapoints = fileSize / sizeof(LogdataRow);
     
-    // Limit to max 500 datapoints to prevent memory issues (ESP32 optimization)
-    const int maxDatapoints = 500;
-    int startSkip = 0;
+    // Read raw data first (limited to prevent memory issues)
+    const int maxRawDatapoints = 150;
+    const int targetInterpolatedPoints = 200; // Target smooth resolution
     
-    if (totalDatapoints > maxDatapoints) {
-        // Skip to the last maxDatapoints 
-        startSkip = totalDatapoints - maxDatapoints;
-        file.seek(startSkip * sizeof(LogdataRow));
+    LogdataRow* rawData = new LogdataRow[maxRawDatapoints];
+    int rawCount = 0;
+    
+    // Read datapoints (skip some if too many)
+    int skipInterval = totalDatapoints > maxRawDatapoints ? totalDatapoints / maxRawDatapoints : 1;
+    
+    for (int i = 0; i < totalDatapoints && rawCount < maxRawDatapoints; i += skipInterval) {
+        file.seek(i * sizeof(LogdataRow));
+        size_t bytesRead = file.read((uint8_t*)&rawData[rawCount], sizeof(LogdataRow));
+        if (bytesRead == sizeof(LogdataRow)) {
+            rawCount++;
+        }
     }
     
-    String json = "[";
-    LogdataRow dataPoint;
-    bool firstPoint = true;
-    int pointsRead = 0;
+    file.close();
     
-    while (file.available() && pointsRead < maxDatapoints) {
-        size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
-        if (bytesRead != sizeof(LogdataRow)) break;
-        
+    // If we have sparse data (due to delta compression), interpolate to smooth resolution
+    LogdataRow* finalData = rawData;
+    int finalCount = rawCount;
+    
+    // Only interpolate if we have significantly fewer points than target
+    if (rawCount > 2 && rawCount < (targetInterpolatedPoints * 0.8)) {
+        LogdataRow* interpolated = interpolateData(rawData, rawCount, targetInterpolatedPoints);
+        if (interpolated) {
+            finalData = interpolated;
+            finalCount = targetInterpolatedPoints;
+            String interpolationMsg = "Interpolated from " + String(rawCount) + " to " + String(finalCount) + " points";
+            log(interpolationMsg.c_str());
+        }
+    }
+    
+    // Generate JSON from final data
+    String json = "[";
+    bool firstPoint = true;
+    
+    for (int i = 0; i < finalCount; i++) {
         if (!firstPoint) json += ",";
         firstPoint = false;
         
         json += "{";
-        json += "\"timestamp\":" + String(dataPoint.timestamp) + ",";
-        json += "\"tempMotor\":" + String(dataPoint.tempMotor) + ",";
-        json += "\"tempMosfet\":" + String(dataPoint.tempMosfet) + ",";
-        json += "\"batteryVoltage\":" + String(dataPoint.batteryVoltage) + ",";
-        json += "\"current\":" + String(dataPoint.current) + ",";
-        json += "\"avgMotorCurrent\":" + String(dataPoint.avgMotorCurrent) + ",";
-        json += "\"rpm\":" + String(dataPoint.rpm) + ",";
-        json += "\"dutyCycle\":" + String(dataPoint.dutyCycle) + ",";
-        json += "\"temperature\":" + String(dataPoint.temperature) + ",";
-        json += "\"humidity\":" + String(dataPoint.humidity) + ",";
-        json += "\"batteryLevel\":" + String(dataPoint.batteryLevel) + ",";
-        json += "\"leakSensorState\":" + String(dataPoint.leakSensorState) + ",";
-        json += "\"ledState\":" + String(dataPoint.ledState) + ",";
-        json += "\"totalUptime\":" + String(dataPoint.totalUptime);
+        json += "\"timestamp\":" + String(finalData[i].timestamp) + ",";
+        json += "\"tempMotor\":" + String(finalData[i].tempMotor) + ",";
+        json += "\"tempMosfet\":" + String(finalData[i].tempMosfet) + ",";
+        json += "\"batteryVoltage\":" + String(finalData[i].batteryVoltage) + ",";
+        json += "\"current\":" + String(finalData[i].current) + ",";
+        json += "\"avgMotorCurrent\":" + String(finalData[i].avgMotorCurrent) + ",";
+        json += "\"rpm\":" + String(finalData[i].rpm) + ",";
+        json += "\"dutyCycle\":" + String(finalData[i].dutyCycle) + ",";
+        json += "\"temperature\":" + String(finalData[i].temperature) + ",";
+        json += "\"humidity\":" + String(finalData[i].humidity) + ",";
+        json += "\"batteryLevel\":" + String(finalData[i].batteryLevel) + ",";
+        json += "\"leakSensorState\":" + String(finalData[i].leakSensorState) + ",";
+        json += "\"ledState\":" + String(finalData[i].ledState) + ",";
+        json += "\"totalUptime\":" + String(finalData[i].totalUptime);
         json += "}";
         
-        pointsRead++;
-        
-        // Emergency break if JSON gets too large (>30KB)
-        if (json.length() > 30720) {
-            String limitMsg = "Session data truncated at " + String(pointsRead) + " points to prevent memory issues";
+        // Emergency break if JSON gets too large (>40KB)
+        if (json.length() > 40960) {
+            String limitMsg = "Session data truncated at " + String(i+1) + " points to prevent memory issues";
             log(limitMsg.c_str());
             break;
         }
     }
     
     json += "]";
-    file.close();
     
-    String resultMsg = "Generated session JSON: " + String(pointsRead) + " points, " + String(json.length()) + " bytes";
+    // Cleanup
+    delete[] rawData;
+    
+    String resultMsg = "Generated session JSON: " + String(finalCount) + " points, " + String(json.length()) + " bytes";
     log(resultMsg.c_str());
     
     return json;
