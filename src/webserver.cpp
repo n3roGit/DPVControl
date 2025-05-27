@@ -697,12 +697,14 @@ const char* helloWorldHTML = R"rawliteral(
                         </div>
                         
                         <div id="timeSliderContainer" style="flex: 1; min-width: 200px;">
-                            <label for="timeSlider" style="color: #b0b0b0; font-weight: bold; display: block; margin-bottom: 5px;">Time Window Position:</label>
+                            <label for="timeSlider" style="color: #b0b0b0; font-weight: bold; display: block; margin-bottom: 5px;">
+                                Time Window Position:
+                            </label>
                             <input type="range" id="timeSlider" min="0" max="100" value="100" 
-                                   style="width: 100%;" onchange="updateTimeWindow()">
+                                   style="width: 100%;" onchange="updateTimeWindow()" oninput="updateTimeWindow()">
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 3px;">
-                                <span id="sliderStart">Oldest</span>
-                                <span id="sliderEnd">Newest</span>
+                                <span id="sliderStart">Älteste</span>
+                                <span id="sliderEnd">Neueste</span>
                             </div>
                         </div>
                         
@@ -1424,7 +1426,12 @@ const char* helloWorldHTML = R"rawliteral(
         // Update time window based on slider
         function updateTimeWindow() {
             timeSliderValue = parseInt(document.getElementById('timeSlider').value);
-            refreshChart();
+            console.log('Time slider moved to:', timeSliderValue, '%');
+            
+            // Directly update the chart without reloading data
+            if (allDataPoints && allDataPoints.length > 0) {
+                updateCharts(allDataPoints);
+            }
         }
         
         // Refresh chart with current settings
@@ -1469,9 +1476,9 @@ const char* helloWorldHTML = R"rawliteral(
             // Format the display text
             let durationText = '';
             if (minutes > 0) {
-                durationText = `${sessionName}: ${minutes} Min. ${seconds} Sek. (${data.length} Datenpunkte)`;
+                durationText = `${minutes} Min. ${seconds} Sek. (${data.length} Datenpunkte)`;
             } else {
-                durationText = `${sessionName}: ${seconds} Sek. (${data.length} Datenpunkte)`;
+                durationText = `${seconds} Sek. (${data.length} Datenpunkte)`;
             }
             
             durationInfo.textContent = durationText;
@@ -1479,32 +1486,101 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Filter data based on time window slider position
         function filterDataByTimeRange(data) {
-            // For session data, we don't need session filtering since each session is loaded separately
-            // Just apply the time window based on slider position
+            // For sessions longer than 5 minutes, allow sliding through the data
+            // For shorter sessions, show all data
             
-            const pointsNeeded = getDataPointsForTimeRange();
-            if (data.length <= pointsNeeded) {
+            if (data.length === 0) {
                 return data;
             }
             
-            // Calculate window position based on slider
-            const maxStart = data.length - pointsNeeded;
-            const startIndex = Math.floor((maxStart * (100 - timeSliderValue)) / 100);
-            const endIndex = startIndex + pointsNeeded;
+            // Update slider labels first
+            updateSliderLabels(data);
             
-            // Update slider labels
-            if (data.length > 0) {
-                const startTime = new Date(data[startIndex].timestamp).toLocaleTimeString();
-                const endTime = new Date(data[Math.min(endIndex - 1, data.length - 1)].timestamp).toLocaleTimeString();
-                
-                const sliderStart = document.getElementById('sliderStart');
-                if (sliderStart) sliderStart.textContent = startTime;
-                
-                const sliderEnd = document.getElementById('sliderEnd');
-                if (sliderEnd) sliderEnd.textContent = endTime;
+            // If session is short enough, show all data
+            const FIXED_WINDOW_POINTS = 60; // 5 minutes at 5-second intervals
+            if (data.length <= FIXED_WINDOW_POINTS) {
+                // Disable slider for short sessions
+                const slider = document.getElementById('timeSlider');
+                if (slider) {
+                    slider.disabled = true;
+                    slider.style.opacity = '0.5';
+                }
+                return data;
             }
             
+            // Enable slider for long sessions
+            const slider = document.getElementById('timeSlider');
+            if (slider) {
+                slider.disabled = false;
+                slider.style.opacity = '1.0';
+            }
+            
+            // Calculate window position based on slider (0 = oldest, 100 = newest)
+            const windowSize = FIXED_WINDOW_POINTS;
+            const maxStartIndex = data.length - windowSize;
+            const startIndex = Math.floor((maxStartIndex * (100 - timeSliderValue)) / 100);
+            const endIndex = Math.min(startIndex + windowSize, data.length);
+            
             return data.slice(startIndex, endIndex);
+        }
+        
+        // Update slider labels with proper time formatting
+        function updateSliderLabels(data) {
+            if (!data || data.length === 0) return;
+            
+            const sliderStart = document.getElementById('sliderStart');
+            const sliderEnd = document.getElementById('sliderEnd');
+            
+            if (!sliderStart || !sliderEnd) return;
+            
+            // Use first timestamp as session start reference
+            const sessionStart = data[0].timestamp;
+            
+            // For short sessions, show relative times from start and disable slider
+            if (data.length <= 60) {
+                sliderStart.textContent = formatTimeOnly(data[0].timestamp, sessionStart);
+                sliderEnd.textContent = formatTimeOnly(data[data.length - 1].timestamp, sessionStart);
+                return;
+            }
+            
+            // For long sessions, calculate current window based on slider position
+            const windowSize = 60;
+            const maxStartIndex = data.length - windowSize;
+            const currentStartIndex = Math.floor((maxStartIndex * (100 - timeSliderValue)) / 100);
+            const currentEndIndex = Math.min(currentStartIndex + windowSize, data.length);
+            
+            sliderStart.textContent = formatTimeOnly(data[currentStartIndex].timestamp, sessionStart);
+            sliderEnd.textContent = formatTimeOnly(data[currentEndIndex - 1].timestamp, sessionStart);
+        }
+        
+        // Format time as MM:SS relative to session start
+        function formatTimeOnly(timestamp, sessionStartTimestamp) {
+            // If we have a session start reference, show relative time
+            if (sessionStartTimestamp) {
+                const relativeMs = timestamp - sessionStartTimestamp;
+                const totalSeconds = Math.floor(relativeMs / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                
+                return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+            }
+            
+            // Fallback: try to parse as date
+            const date = new Date(timestamp);
+            if (isNaN(date.getTime())) {
+                // If timestamp is not a valid date, treat as relative milliseconds
+                const totalSeconds = Math.floor(timestamp / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                
+                return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+            }
+            
+            return date.toLocaleTimeString('de-DE', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
         }
         
         // Format duration in human readable format
@@ -1749,12 +1825,12 @@ const char* helloWorldHTML = R"rawliteral(
             const filteredData = filterDataByTimeRange(data);
             console.log('Filtered data:', filteredData.length, 'points');
             
-            // Prepare labels (timestamps)
+            // Prepare labels (timestamps) using relative time from session start
+            const sessionStart = allDataPoints.length > 0 ? allDataPoints[0].timestamp : filteredData[0].timestamp;
             const labels = filteredData.map(item => {
-                const date = new Date(item.timestamp);
-                return date.toLocaleTimeString();
+                return formatTimeOnly(item.timestamp, sessionStart);
             });
-            console.log('Generated', labels.length, 'labels');
+            console.log('Generated', labels.length, 'relative time labels');
             
             // Update Combined Chart
             charts.combinedChart.data.labels = labels;
