@@ -124,30 +124,46 @@ bool validateSettings(const DPVSettings& settings) {
  * Load settings from LittleFS
  */
 void loadSettings() {
+    log("loadSettings() called");
+    
     if (!LittleFS.exists("/dpv_settings.json")) {
-        log("No settings file found, using defaults");
+        log("No settings file found at /dpv_settings.json, using defaults");
         currentSettings = defaultSettings;
+        String defaultMsg = "Default settings loaded - speedSteps: " + String(defaultSettings.speedSteps) + 
+                           ", standbyDelay: " + String(defaultSettings.standbyDelaySeconds) +
+                           ", beeperEnabled: " + String(defaultSettings.beeperEnabled ? "true" : "false");
+        log(defaultMsg.c_str());
         return;
     }
+    log("Settings file found at /dpv_settings.json");
     
     File file = LittleFS.open("/dpv_settings.json", "r");
     if (!file) {
-        log("Failed to open settings file, using defaults");
+        log("ERROR: Failed to open settings file, using defaults");
         currentSettings = defaultSettings;
         return;
     }
     
+    size_t fileSize = file.size();
+    String fileSizeMsg = "Settings file size: " + String(fileSize) + " bytes";
+    log(fileSizeMsg.c_str());
+    
     String jsonString = file.readString();
     file.close();
+    
+    String jsonLengthMsg = "Read JSON string length: " + String(jsonString.length());
+    log(jsonLengthMsg.c_str());
     
     DynamicJsonDocument doc(2048);
     DeserializationError error = deserializeJson(doc, jsonString);
     
     if (error) {
-        log("Failed to parse settings JSON, using defaults");
+        String errorMsg = "ERROR: Failed to parse settings JSON: " + String(error.c_str()) + ", using defaults";
+        log(errorMsg.c_str());
         currentSettings = defaultSettings;
         return;
     }
+    log("JSON parsed successfully");
     
     // Load settings from JSON
     currentSettings.speedSteps = doc["speedSteps"] | defaultSettings.speedSteps;
@@ -184,23 +200,42 @@ void loadSettings() {
     currentSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"] | defaultSettings.standbyBlinkDurationSeconds;
     
     // Validate loaded settings
+    log("Validating loaded settings...");
     if (!validateSettings(currentSettings)) {
-        log("Loaded settings invalid, using defaults");
+        log("ERROR: Loaded settings invalid, using defaults");
         currentSettings = defaultSettings;
         return;
     }
+    log("Settings validation passed");
     
-    log("Settings loaded successfully");
+    // Log final loaded values
+    String loadedValues = "Settings loaded - speedSteps: " + String(currentSettings.speedSteps) + 
+                         ", standbyDelay: " + String(currentSettings.standbyDelaySeconds) +
+                         ", beeperEnabled: " + String(currentSettings.beeperEnabled ? "true" : "false") +
+                         ", debugLogging: " + String(currentSettings.debugLoggingEnabled ? "true" : "false");
+    log(loadedValues.c_str());
+    
+    log("Settings loaded successfully from /dpv_settings.json");
 }
 
 /**
  * Save settings to LittleFS
  */
 void saveSettings() {
+    log("saveSettings() called");
+    
+    // Log current settings values
+    String currentValues = "Current settings - speedSteps: " + String(currentSettings.speedSteps) + 
+                          ", standbyDelay: " + String(currentSettings.standbyDelaySeconds) +
+                          ", beeperEnabled: " + String(currentSettings.beeperEnabled ? "true" : "false") +
+                          ", debugLogging: " + String(currentSettings.debugLoggingEnabled ? "true" : "false");
+    log(currentValues.c_str());
+    
     if (!validateSettings(currentSettings)) {
-        log("Cannot save invalid settings");
+        log("ERROR: Cannot save invalid settings - validation failed");
         return;
     }
+    log("Settings validation passed");
     
     DynamicJsonDocument doc(2048);
     
@@ -238,16 +273,42 @@ void saveSettings() {
     doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
     doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
     
+    // Calculate JSON size
+    String jsonString;
+    serializeJson(doc, jsonString);
+    String jsonSizeMsg = "JSON document size: " + String(jsonString.length()) + " bytes";
+    log(jsonSizeMsg.c_str());
+    
+    log("Opening settings file for writing...");
     File file = LittleFS.open("/dpv_settings.json", "w");
     if (!file) {
-        log("Failed to open settings file for writing");
+        log("ERROR: Failed to open /dpv_settings.json for writing");
         return;
     }
+    log("Settings file opened successfully");
     
-    serializeJson(doc, file);
+    size_t bytesWritten = serializeJson(doc, file);
     file.close();
     
-    log("Settings saved successfully");
+    String writeMsg = "Settings file written - " + String(bytesWritten) + " bytes";
+    log(writeMsg.c_str());
+    
+    // Verify the file was written correctly
+    if (LittleFS.exists("/dpv_settings.json")) {
+        File verifyFile = LittleFS.open("/dpv_settings.json", "r");
+        if (verifyFile) {
+            size_t fileSize = verifyFile.size();
+            verifyFile.close();
+            String verifyMsg = "Settings file verified - size: " + String(fileSize) + " bytes";
+            log(verifyMsg.c_str());
+        } else {
+            log("ERROR: Could not open settings file for verification");
+        }
+    } else {
+        log("ERROR: Settings file does not exist after writing");
+    }
+    
+    log("Settings saved successfully to /dpv_settings.json");
 }
 
 /**

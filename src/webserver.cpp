@@ -1026,7 +1026,11 @@ const char* helloWorldHTML = R"rawliteral(
                                 margin-bottom: 15px;
                                 max-width: 200px;
                                 margin: 0 auto 15px auto;">
-                        DPV<br>CONTROL
+                        <img
+
+          alt="DPV-Bild"
+          style="max-width:100%; height:auto;"
+        >
                     </div>
                     <h3 style="margin: 0; color: #4fc3f7;">DPV Control System</h3>
                     <p style="margin: 5px 0; color: #b0b0b0;">Diver Propulsion Vehicle Control Unit</p>
@@ -1961,11 +1965,19 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Load DPV settings from API
         function loadDPVSettings() {
+            console.log('loadDPVSettings() called');
             document.getElementById('settingsStatus').textContent = 'Loading settings...';
             
             fetch('/api/settings')
-                .then(response => response.json())
+                .then(response => {
+                    console.log('Settings API response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('Settings data received:', data);
                     // Motor and speed settings
                     const speedStepsEl = document.getElementById('speedSteps');
                     if (speedStepsEl) speedStepsEl.value = data.speedSteps || 10;
@@ -2050,15 +2062,17 @@ const char* helloWorldHTML = R"rawliteral(
                     
                     const settingsStatusEl = document.getElementById('settingsStatus');
                     if (settingsStatusEl) settingsStatusEl.textContent = 'Settings loaded successfully';
+                    console.log('Settings loaded and applied to form successfully');
                 })
                 .catch(error => {
                     console.error('Error loading settings:', error);
-                    document.getElementById('settingsStatus').textContent = 'Error loading settings';
+                    document.getElementById('settingsStatus').textContent = 'Error loading settings: ' + error.message;
                 });
         }
         
         // Save DPV settings to API
         function saveDPVSettings() {
+            console.log('saveDPVSettings() called');
             const settingsStatusEl = document.getElementById('settingsStatus');
             if (settingsStatusEl) settingsStatusEl.textContent = 'Saving settings...';
             
@@ -2124,6 +2138,8 @@ const char* helloWorldHTML = R"rawliteral(
                 standbyBlinkDurationSeconds: standbyBlinkDurationEl ? parseInt(standbyBlinkDurationEl.value) || 10 : 10
             };
             
+            console.log('Settings data to be sent:', settingsData);
+            
             fetch('/api/settings', {
                 method: 'POST',
                 headers: {
@@ -2131,14 +2147,23 @@ const char* helloWorldHTML = R"rawliteral(
                 },
                 body: JSON.stringify(settingsData)
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('Save settings response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.status);
+                }
+                return response.json();
+            })
             .then(data => {
+                console.log('Save settings response data:', data);
                 const settingsStatusEl = document.getElementById('settingsStatus');
                 if (settingsStatusEl) {
                     if (data.success) {
                         settingsStatusEl.textContent = 'Settings saved successfully!';
+                        console.log('Settings saved successfully on server');
                     } else {
                         settingsStatusEl.textContent = 'Error saving settings!';
+                        console.error('Server reported error saving settings');
                     }
                 }
             })
@@ -2146,7 +2171,7 @@ const char* helloWorldHTML = R"rawliteral(
                 console.error('Error saving settings:', error);
                 const settingsStatusEl = document.getElementById('settingsStatus');
                 if (settingsStatusEl) {
-                    settingsStatusEl.textContent = 'Error saving settings!';
+                    settingsStatusEl.textContent = 'Error saving settings: ' + error.message;
                 }
             });
         }
@@ -3066,6 +3091,8 @@ String generateSettingsJson() {
  */
 bool updateSettingsFromJson(const String& jsonString) {
     log("updateSettingsFromJson called");
+    String logMsg = "JSON length: " + String(jsonString.length());
+    log(logMsg.c_str());
     
     DynamicJsonDocument doc(2048);
     DeserializationError error = deserializeJson(doc, jsonString);
@@ -3076,18 +3103,75 @@ bool updateSettingsFromJson(const String& jsonString) {
         return false;
     }
     
+    log("JSON parsed successfully");
+    
     // Create temporary settings structure
     DPVSettings newSettings = currentSettings;
     
-    // Update settings from JSON
-    if (doc.containsKey("speedSteps")) newSettings.speedSteps = doc["speedSteps"];
-    if (doc.containsKey("standbyDelaySeconds")) newSettings.standbyDelaySeconds = doc["standbyDelaySeconds"];
-    if (doc.containsKey("batteryPowerMax")) newSettings.batteryPowerMax = doc["batteryPowerMax"];
-    if (doc.containsKey("minSpeedPercent")) newSettings.minSpeedPercent = doc["minSpeedPercent"];
-    if (doc.containsKey("maxSpeedRpm")) newSettings.maxSpeedRpm = doc["maxSpeedRpm"];
-    if (doc.containsKey("speedUpTimeMs")) newSettings.speedUpTimeMs = doc["speedUpTimeMs"];
-    if (doc.containsKey("speedDownTimeMs")) newSettings.speedDownTimeMs = doc["speedDownTimeMs"];
-    if (doc.containsKey("maxTimeOverloadedMs")) newSettings.maxTimeOverloadedMs = doc["maxTimeOverloadedMs"];
+    // Log current values before update
+    String currentMsg = "Current speedSteps: " + String(currentSettings.speedSteps) + 
+                       ", standbyDelay: " + String(currentSettings.standbyDelaySeconds) +
+                       ", beeperEnabled: " + String(currentSettings.beeperEnabled ? "true" : "false");
+    log(currentMsg.c_str());
+    
+    // Update settings from JSON with detailed logging
+    int updatedFields = 0;
+    if (doc.containsKey("speedSteps")) {
+        int oldVal = newSettings.speedSteps;
+        newSettings.speedSteps = doc["speedSteps"];
+        String msg = "Updated speedSteps: " + String(oldVal) + " -> " + String(newSettings.speedSteps);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("standbyDelaySeconds")) {
+        int oldVal = newSettings.standbyDelaySeconds;
+        newSettings.standbyDelaySeconds = doc["standbyDelaySeconds"];
+        String msg = "Updated standbyDelaySeconds: " + String(oldVal) + " -> " + String(newSettings.standbyDelaySeconds);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("batteryPowerMax")) {
+        int oldVal = newSettings.batteryPowerMax;
+        newSettings.batteryPowerMax = doc["batteryPowerMax"];
+        String msg = "Updated batteryPowerMax: " + String(oldVal) + " -> " + String(newSettings.batteryPowerMax);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("minSpeedPercent")) {
+        float oldVal = newSettings.minSpeedPercent;
+        newSettings.minSpeedPercent = doc["minSpeedPercent"];
+        String msg = "Updated minSpeedPercent: " + String(oldVal, 3) + " -> " + String(newSettings.minSpeedPercent, 3);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("maxSpeedRpm")) {
+        float oldVal = newSettings.maxSpeedRpm;
+        newSettings.maxSpeedRpm = doc["maxSpeedRpm"];
+        String msg = "Updated maxSpeedRpm: " + String(oldVal, 1) + " -> " + String(newSettings.maxSpeedRpm, 1);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("speedUpTimeMs")) {
+        int oldVal = newSettings.speedUpTimeMs;
+        newSettings.speedUpTimeMs = doc["speedUpTimeMs"];
+        String msg = "Updated speedUpTimeMs: " + String(oldVal) + " -> " + String(newSettings.speedUpTimeMs);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("speedDownTimeMs")) {
+        int oldVal = newSettings.speedDownTimeMs;
+        newSettings.speedDownTimeMs = doc["speedDownTimeMs"];
+        String msg = "Updated speedDownTimeMs: " + String(oldVal) + " -> " + String(newSettings.speedDownTimeMs);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("maxTimeOverloadedMs")) {
+        long oldVal = newSettings.maxTimeOverloadedMs;
+        newSettings.maxTimeOverloadedMs = doc["maxTimeOverloadedMs"];
+        String msg = "Updated maxTimeOverloadedMs: " + String(oldVal) + " -> " + String(newSettings.maxTimeOverloadedMs);
+        log(msg.c_str());
+        updatedFields++;
+    }
     
     if (doc.containsKey("jamMin")) newSettings.jamMin = doc["jamMin"];
     if (doc.containsKey("jamDetectionThreshold")) newSettings.jamDetectionThreshold = doc["jamDetectionThreshold"];
@@ -3116,22 +3200,54 @@ bool updateSettingsFromJson(const String& jsonString) {
         newSettings.wifiPassword[sizeof(newSettings.wifiPassword) - 1] = '\0';
     }
     
-    if (doc.containsKey("beeperEnabled")) newSettings.beeperEnabled = doc["beeperEnabled"];
-    if (doc.containsKey("debugLoggingEnabled")) newSettings.debugLoggingEnabled = doc["debugLoggingEnabled"];
-    if (doc.containsKey("standbyBlinkStartMinutes")) newSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"];
-    if (doc.containsKey("standbyBlinkDurationSeconds")) newSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"];
-    
-    // Validate new settings
-    if (!validateSettings(newSettings)) {
-        log("New settings failed validation");
-        return false;
+    if (doc.containsKey("beeperEnabled")) {
+        bool oldVal = newSettings.beeperEnabled;
+        newSettings.beeperEnabled = doc["beeperEnabled"];
+        String msg = "Updated beeperEnabled: " + String(oldVal ? "true" : "false") + " -> " + String(newSettings.beeperEnabled ? "true" : "false");
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("debugLoggingEnabled")) {
+        bool oldVal = newSettings.debugLoggingEnabled;
+        newSettings.debugLoggingEnabled = doc["debugLoggingEnabled"];
+        String msg = "Updated debugLoggingEnabled: " + String(oldVal ? "true" : "false") + " -> " + String(newSettings.debugLoggingEnabled ? "true" : "false");
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("standbyBlinkStartMinutes")) {
+        int oldVal = newSettings.standbyBlinkStartMinutes;
+        newSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"];
+        String msg = "Updated standbyBlinkStartMinutes: " + String(oldVal) + " -> " + String(newSettings.standbyBlinkStartMinutes);
+        log(msg.c_str());
+        updatedFields++;
+    }
+    if (doc.containsKey("standbyBlinkDurationSeconds")) {
+        int oldVal = newSettings.standbyBlinkDurationSeconds;
+        newSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"];
+        String msg = "Updated standbyBlinkDurationSeconds: " + String(oldVal) + " -> " + String(newSettings.standbyBlinkDurationSeconds);
+        log(msg.c_str());
+        updatedFields++;
     }
     
+    String summaryMsg = "Total fields updated from JSON: " + String(updatedFields);
+    log(summaryMsg.c_str());
+    
+    // Validate new settings
+    log("Validating new settings...");
+    if (!validateSettings(newSettings)) {
+        log("ERROR: New settings failed validation!");
+        return false;
+    }
+    log("Settings validation passed");
+    
     // Apply new settings
+    log("Applying new settings to currentSettings...");
     currentSettings = newSettings;
+    
+    log("Calling saveSettings()...");
     saveSettings();
     
-    log("Settings updated successfully");
+    log("Settings updated and saved successfully");
     return true;
 }
 
