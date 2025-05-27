@@ -221,19 +221,19 @@ void forceRefreshLedBar() {
 void knightRiderStartup() {
     const int delayTime = 60; // ms between steps
     const int maxBrightness = 80; // Maximum brightness for the effect
-    const int totalLEDs = getLedBarNum() + LedBar2_Num; // Both rows
+    const int stripLength = getLedBarNum(); // Length of each strip (usually 10)
     
     // Run the effect 2 times
     for (int cycle = 0; cycle < 2; cycle++) {
         
-        // Forward sweep (left to right)
-        for (int pos = 0; pos < totalLEDs; pos++) {
+        // Forward sweep (left to right) on both strips simultaneously
+        for (int pos = 0; pos < stripLength; pos++) {
             // Clear all LEDs
-            for (int i = 0; i < totalLEDs; i++) {
+            for (int i = 0; i < stripLength + LedBar2_Num; i++) {
                 strip.setPixelColor(i, strip.Color(0, 0, 0));
             }
             
-            // Create trailing effect with 3 LEDs
+            // LOWER STRIP (LEDs 0-9): Create trailing effect with 3 LEDs
             // Main LED (brightest)
             strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0));
             
@@ -247,29 +247,61 @@ void knightRiderStartup() {
                 strip.setPixelColor(pos - 2, strip.Color(maxBrightness / 8, 0, 0));
             }
             
+            // UPPER STRIP (LEDs 10-19): Same effect, offset by stripLength
+            int upperPos = stripLength + pos;
+            
+            // Main LED (brightest)
+            strip.setPixelColor(upperPos, strip.Color(maxBrightness, 0, 0));
+            
+            // Trailing LED 1 (medium brightness)
+            if (pos > 0) {
+                strip.setPixelColor(upperPos - 1, strip.Color(maxBrightness / 3, 0, 0));
+            }
+            
+            // Trailing LED 2 (dim)
+            if (pos > 1) {
+                strip.setPixelColor(upperPos - 2, strip.Color(maxBrightness / 8, 0, 0));
+            }
+            
             strip.show();
             delay(delayTime);
         }
         
-        // Backward sweep (right to left)
-        for (int pos = totalLEDs - 1; pos >= 0; pos--) {
+        // Backward sweep (right to left) on both strips simultaneously
+        for (int pos = stripLength - 1; pos >= 0; pos--) {
             // Clear all LEDs
-            for (int i = 0; i < totalLEDs; i++) {
+            for (int i = 0; i < stripLength + LedBar2_Num; i++) {
                 strip.setPixelColor(i, strip.Color(0, 0, 0));
             }
             
-            // Create trailing effect with 3 LEDs
+            // LOWER STRIP (LEDs 0-9): Create trailing effect with 3 LEDs
             // Main LED (brightest)
             strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0));
             
             // Trailing LED 1 (medium brightness)
-            if (pos < totalLEDs - 1) {
+            if (pos < stripLength - 1) {
                 strip.setPixelColor(pos + 1, strip.Color(maxBrightness / 3, 0, 0));
             }
             
             // Trailing LED 2 (dim)
-            if (pos < totalLEDs - 2) {
+            if (pos < stripLength - 2) {
                 strip.setPixelColor(pos + 2, strip.Color(maxBrightness / 8, 0, 0));
+            }
+            
+            // UPPER STRIP (LEDs 10-19): Same effect, offset by stripLength
+            int upperPos = stripLength + pos;
+            
+            // Main LED (brightest)
+            strip.setPixelColor(upperPos, strip.Color(maxBrightness, 0, 0));
+            
+            // Trailing LED 1 (medium brightness)
+            if (pos < stripLength - 1) {
+                strip.setPixelColor(upperPos + 1, strip.Color(maxBrightness / 3, 0, 0));
+            }
+            
+            // Trailing LED 2 (dim)
+            if (pos < stripLength - 2) {
+                strip.setPixelColor(upperPos + 2, strip.Color(maxBrightness / 8, 0, 0));
             }
             
             strip.show();
@@ -278,7 +310,7 @@ void knightRiderStartup() {
     }
     
     // Clear all LEDs after animation
-    for (int i = 0; i < totalLEDs; i++) {
+    for (int i = 0; i < stripLength + LedBar2_Num; i++) {
         strip.setPixelColor(i, strip.Color(0, 0, 0));
     }
     strip.show();
