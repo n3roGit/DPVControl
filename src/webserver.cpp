@@ -3441,9 +3441,151 @@ void handleClient(WiFiClient client) {
         }
         
     } else if (path == "/chart.min.js") {
-        // Serve Chart.js library
+        // Serve Chart.js library with enhanced fallback
         log("Serving Chart.js fallback");
-        String chartJs = "window.Chart=class{constructor(t,e){this.ctx=t,this.config=e,this.data=e.data||{labels:[],datasets:[]},this.canvas=t.canvas,this.canvas.style.backgroundColor='#1e1e1e',this.canvas.width=600,this.canvas.height=300,this.update()}update(){const t=this.ctx;t.clearRect(0,0,this.canvas.width,this.canvas.height),t.fillStyle='#333',t.fillRect(0,0,this.canvas.width,this.canvas.height),t.fillStyle='#fff',t.font='16px Arial',t.fillText('Chart.js not loaded - using fallback',50,50),t.fillText('Data points: '+this.data.labels.length,50,80)}destroy(){}};console.log('Chart.js fallback loaded');";
+        String chartJs = R"js(
+window.Chart = class {
+    constructor(ctx, config) {
+        this.ctx = ctx;
+        this.config = config;
+        this.data = config.data || { labels: [], datasets: [] };
+        this.canvas = ctx.canvas;
+        this.canvas.style.backgroundColor = '#1e1e1e';
+        this.canvas.width = 800;
+        this.canvas.height = 400;
+        this.update();
+    }
+    
+    update() {
+        const ctx = this.ctx;
+        const canvas = this.canvas;
+        
+        // Clear canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#2a2a2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Check if we have valid data
+        if (!this.data.datasets || this.data.datasets.length === 0 || !this.data.labels || this.data.labels.length === 0) {
+            ctx.fillStyle = '#888';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Chart.js not loaded - using fallback', canvas.width / 2, canvas.height / 2 - 20);
+            ctx.fillText('Data points: 0', canvas.width / 2, canvas.height / 2 + 20);
+            return;
+        }
+        
+        const margin = 60;
+        const chartWidth = canvas.width - 2 * margin;
+        const chartHeight = canvas.height - 2 * margin;
+        
+        // Draw axes
+        ctx.strokeStyle = '#555';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margin, margin);
+        ctx.lineTo(margin, canvas.height - margin);
+        ctx.lineTo(canvas.width - margin, canvas.height - margin);
+        ctx.stroke();
+        
+        // Colors for different datasets
+        const colors = [
+            '#4bc0c0', '#ff6384', '#ffce56', '#36a2eb', 
+            '#9966ff', '#ff9f40', '#c7c7c7', '#ff63ff',
+            '#63ff84', '#ffce84'
+        ];
+        
+        // Find global min/max for all visible datasets
+        let globalMin = Infinity;
+        let globalMax = -Infinity;
+        
+        this.data.datasets.forEach(dataset => {
+            if (dataset.data && dataset.data.length > 0) {
+                const values = dataset.data.map(d => typeof d === 'object' ? d.y : d);
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                if (min < globalMin) globalMin = min;
+                if (max > globalMax) globalMax = max;
+            }
+        });
+        
+        const range = globalMax - globalMin || 1;
+        
+        // Draw datasets
+        this.data.datasets.forEach((dataset, datasetIndex) => {
+            if (!dataset.data || dataset.data.length === 0) return;
+            
+            const color = colors[datasetIndex % colors.length];
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            let hasValidPoint = false;
+            for (let i = 0; i < dataset.data.length; i++) {
+                const x = margin + (i / (dataset.data.length - 1)) * chartWidth;
+                const val = typeof dataset.data[i] === 'object' ? dataset.data[i].y : dataset.data[i];
+                const y = margin + chartHeight - ((val - globalMin) / range) * chartHeight;
+                
+                if (i === 0 || !hasValidPoint) {
+                    ctx.moveTo(x, y);
+                    hasValidPoint = true;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        });
+        
+        // Draw legend
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'left';
+        let legendY = 20;
+        this.data.datasets.forEach((dataset, index) => {
+            if (dataset.label) {
+                const color = colors[index % colors.length];
+                ctx.fillStyle = color;
+                ctx.fillRect(10, legendY - 8, 15, 10);
+                ctx.fillStyle = '#ccc';
+                ctx.fillText(dataset.label, 30, legendY);
+                legendY += 15;
+            }
+        });
+        
+        // Draw title
+        ctx.fillStyle = '#ccc';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('DPV Data Visualization (Fallback Mode)', canvas.width / 2, 20);
+        
+        // Draw data point count
+        ctx.font = '12px Arial';
+        ctx.fillText(`${this.data.labels.length} data points`, canvas.width / 2, canvas.height - 10);
+        
+        // Draw Y-axis labels
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#888';
+        for (let i = 0; i <= 5; i++) {
+            const y = margin + (i / 5) * chartHeight;
+            const value = globalMax - (i / 5) * range;
+            ctx.fillText(value.toFixed(1), margin - 5, y + 3);
+        }
+        
+        // Draw X-axis labels (time)
+        ctx.textAlign = 'center';
+        if (this.data.labels.length > 0) {
+            const labelStep = Math.max(1, Math.floor(this.data.labels.length / 5));
+            for (let i = 0; i < this.data.labels.length; i += labelStep) {
+                const x = margin + (i / (this.data.labels.length - 1)) * chartWidth;
+                ctx.fillText(this.data.labels[i], x, canvas.height - margin + 15);
+            }
+        }
+    }
+    
+    destroy() {}
+};
+console.log('Chart.js fallback loaded');
+)js";
         sendHttpResponse(client, 200, "application/javascript", chartJs.c_str());
         
     } else if (path == "/jszip.min.js") {
