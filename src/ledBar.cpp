@@ -123,10 +123,6 @@ void setBarStandby() {
     int ledBarNum = getLedBarNum();
     int brightness = getLedBarBrightnessSecond();
     setBar(1, ledBarNum, "#e38f09", brightness, "#000000", 0);
-    
-    // Log for debugging
-    String msg = "Standby mode set - LEDs: " + String(ledBarNum) + ", Brightness: " + String(brightness);
-    log(msg.c_str());
 }
 
 void setBarSpeed(int num) {
