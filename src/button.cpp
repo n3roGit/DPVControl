@@ -3,6 +3,7 @@
 #include <ClickButton.h>
 #include "constants.h"
 #include "ledLamp.h"
+#include "ledBar.h"
 #include "battery.h"
 #include "log.h"
 
@@ -59,6 +60,9 @@ void buttonSetup(){
   rightButton.debounceTime = DEBOUNCE_TIME;     
   rightButton.multiclickTime = MULTICLICK_TIME; 
   rightButton.longClickTime = LONGCLICK_TIME;
+  
+  // Initialize lastActionTime to current time to prevent immediate standby during boot
+  lastActionTime = micros();
 }
 
 void buttonLoop(){
@@ -142,7 +146,13 @@ void performActions(){
       enterCruiseMode(); 
     }else if (!remoteControlActive) {
       // Only turn off motor if not under remote control
-      motorState = off;
+      // If transitioning from standby to off, update LED bar to show speed
+      if (motorState == standby) {
+        motorState = off;
+        setBarSpeed(currentMotorStep); // Update LED bar when leaving standby
+      } else {
+        motorState = off;
+      }
     }
   
     if (leftButtonState == PRESSED || rightButtonState == PRESSED) {
