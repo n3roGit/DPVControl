@@ -62,9 +62,9 @@ void motorSetup(){
   getVescUart().setSerialPort(&Serial1);
   delay(500);
   if (getVescUart().getVescValues()) {
-    Serial.println("Connected to VESC.");
+    log("Connected to VESC.");
   } else {
-    Serial.println("Failed to connect to VESC.");
+    log("Failed to connect to VESC.");
   }
 }
 
@@ -159,8 +159,7 @@ void setSoftMotorSpeed() {
   currentMotorTime = micros();
 
   if(EnableDebugLog && abs(currentMotorSpeed - lastPrintedMotorSpeed) >= 0.01){
-    Serial.printf("%5.0f eRPM (%2.0f%%)",effectiveSpeed, currentMotorSpeed*100);
-    Serial.println();
+    log("eRPM: " + String(effectiveSpeed, 0) + " (" + String(currentMotorSpeed*100, 0) + "%)");
     lastPrintedMotorSpeed = currentMotorSpeed;
   }
 }
@@ -176,12 +175,10 @@ void controlMotor() {
   } else if (motorState == turbo) {
     targetMotorSpeed = 1.0;
   } else{
-    Serial.print("Unhandled motorstate: ");
-    Serial.println(motorState);
+    log("Unhandled motorstate: " + String(motorState));
   }
   if(EnableDebugLog && abs(lastTargetMotorSpeed - targetMotorSpeed) >= 0.01){
-    Serial.print("targetMotorSpeed: ");
-    Serial.println(targetMotorSpeed);
+    log("targetMotorSpeed: " + String(targetMotorSpeed));
   }
   setSoftMotorSpeed();
   lastTargetMotorSpeed = targetMotorSpeed;
@@ -206,10 +203,8 @@ void preventOverload(){
   if (overloaded){
     if (overLoadedSince == NEVER){
       if (EnableDebugLog){
-        Serial.print("Overloaded! getMotorPower(): ");
-        Serial.println(getMotorPower());
-        Serial.print("maxAvailablePowerForMotor(): ");
-        Serial.println(maxAvailablePowerForMotor());        
+        log("Overloaded! getMotorPower(): " + String(getMotorPower()));
+        log("maxAvailablePowerForMotor(): " + String(maxAvailablePowerForMotor()));
       }
       overLoadedSince = millis();
     }else if(millis() > overLoadedSince + getMaxTimeOverloaded()){

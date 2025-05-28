@@ -174,8 +174,7 @@ void updateBatteryLevel(float voltage) {
 void testBattery(){
   for(int i = 0;i<40;i++){
     float voltage = 35.0+i*0.5;
-    Serial.print(voltage);Serial.print("V ");
     int soc = calculateStateOfCharge(voltage);
-    Serial.print(soc);Serial.println("% SOC");
+    log(String(voltage) + "V " + String(soc) + "% SOC");
   }
 }

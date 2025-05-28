@@ -36,13 +36,14 @@ void setup() {
   // Initialize serial communication
   Serial.begin(115200);
 
+  // Keep essential startup messages unconditional for debugging
   Serial.println("Booting started...!");
 
   // Initialize LittleFS first for settings
   if (!LittleFS.begin(true)) {
     Serial.println("LittleFS initialization failed!");
   } else {
-    Serial.println("LittleFS initialized for settings");
+    log("LittleFS initialized for settings");
   }
   
   // Initialize settings system BEFORE hardware that depends on settings
@@ -52,20 +53,20 @@ void setup() {
   buttonSetup();
 
   // Setup DHT22 sensor with error handling
-  Serial.println("Initializing DHT22 sensor...");
+  log("Initializing DHT22 sensor...");
   dhtSensor.setup(PIN_DHT, DHTesp::DHT22);
   delay(2000); // Give DHT sensor time to stabilize
   
   TempAndHumidity data = dhtSensor.getTempAndHumidity();
   if (isnan(data.temperature) || isnan(data.humidity)) {
-    Serial.println("DHT22 sensor not ready, using default values");
-    Serial.println("Temp: 20.0°C (default)");
-    Serial.println("Humidity: 50.0% (default)");
+    log("DHT22 sensor not ready, using default values");
+    log("Temp: 20.0°C (default)");
+    log("Humidity: 50.0% (default)");
   } else {
-    Serial.println("Temp: " + String(data.temperature, 2) + "°C");
-    Serial.println("Humidity: " + String(data.humidity, 1) + "%");
+    log("Temp: " + String(data.temperature, 2) + "°C");
+    log("Humidity: " + String(data.humidity, 1) + "%");
   }
-  Serial.println("---");
+  log("---");
 
   // Initialize hardware subsystems (now with settings available)
   motorSetup();     // Motor control and VESC communication
@@ -79,7 +80,7 @@ void setup() {
   // Initialize webserver on Core 0
   setupWebserver();
 
-  // Booting finished
+  // Booting finished - keep unconditional for debugging
   Serial.println("Booting finished!");
   beep("1");
 }

@@ -9,14 +9,13 @@
 *
 */ 
 
-// Use settings-based debug logging instead of hardcoded constant
-// Temporarily hardcoded for troubleshooting
-#define EnableDebugLog true
-// #define EnableDebugLog getDebugLoggingEnabled()
+// Use settings-based debug logging
+#define EnableDebugLog getDebugLoggingEnabled()
 
 void log(const char* label, int value, bool doLog);
 void log(const char* label, int value);
 void log(const char* label);
+void log(const String& message);  // Add String support
 void logVehicleState();
 
 #endif
