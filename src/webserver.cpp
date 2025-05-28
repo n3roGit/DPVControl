@@ -2466,7 +2466,6 @@ const char* helloWorldHTML = R"rawliteral(
         // Remote Control Variables
         let motorRunning = false;
         let currentMotorSpeed = 0;
-        let currentLampLevel = 0;
         
         // Toggle motor
         function toggleMotor() {
