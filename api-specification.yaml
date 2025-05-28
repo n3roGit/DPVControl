@@ -186,6 +186,31 @@ paths:
               example:
                 success: true
 
+  /api/reboot:
+    post:
+      tags:
+        - Control
+      summary: Reboot the system
+      description: |
+        Initiate a system reboot. This will restart the ESP32 controller.
+        All active sessions will be terminated and the device will be unavailable for about 30 seconds.
+      responses:
+        '200':
+          description: Reboot initiation result
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        description: Confirmation message
+              example:
+                success: true
+                message: "Reboot initiated"
+
   /api/beeper:
     post:
       tags:
@@ -286,8 +311,8 @@ paths:
         - Control
       summary: Control motor operation
       description: |
-        Send motor control commands including speed adjustments and emergency stop.
-        Commands are processed immediately and affect the motor state.
+        Control motor operation with enable/disable functionality and speed percentage.
+        The enabled parameter controls whether the motor is active, and speed sets the power level.
       requestBody:
         required: true
         content:
@@ -295,19 +320,24 @@ paths:
             schema:
               type: object
               properties:
-                action:
-                  type: string
-                  enum: [speed_up, speed_down, stop, emergency_stop]
-                  description: Motor control action to perform
+                enabled:
+                  type: boolean
+                  description: Whether the motor should be enabled
+                  default: false
                 speed:
                   type: integer
                   minimum: 0
-                  maximum: 20
-                  description: Target speed step (0-20, optional for direct speed setting)
+                  maximum: 100
+                  description: Motor speed percentage (0% = minimum, 100% = maximum power)
+                action:
+                  type: string
+                  enum: [speed_up, speed_down, stop, emergency_stop]
+                  description: Motor control action to perform (legacy compatibility)
               required:
-                - action
+                - enabled
               example:
-                action: "speed_up"
+                enabled: true
+                speed: 50
       responses:
         '200':
           description: Motor control result
@@ -318,16 +348,26 @@ paths:
                   - $ref: '#/components/schemas/ApiResponse'
                   - type: object
                     properties:
+                      enabled:
+                        type: boolean
+                        description: Whether the motor is enabled
+                      speed:
+                        type: integer
+                        description: Current motor speed percentage
+                      motorStep:
+                        type: integer
+                        description: Current motor speed step (internal)
                       currentSpeed:
                         type: integer
-                        description: Current motor speed step
+                        description: Current motor speed step (legacy)
                       motorState:
                         type: string
                         description: Current motor state
               example:
                 success: true
-                currentSpeed: 3
-                motorState: "running"
+                enabled: true
+                speed: 50
+                motorStep: 5
 
   /api/lamp:
     post:
@@ -335,8 +375,9 @@ paths:
         - Control
       summary: Control front lamp
       description: |
-        Adjust the brightness level of the front LED lamp.
-        Level 0 turns the lamp off, higher levels increase brightness.
+        Adjust the brightness of the front LED lamp using percentage values.
+        0% turns the lamp off, 100% sets maximum brightness.
+        The percentage is automatically mapped to the available brightness levels (typically 0-4).
       requestBody:
         required: true
         content:
@@ -344,15 +385,20 @@ paths:
             schema:
               type: object
               properties:
+                enabled:
+                  type: boolean
+                  description: Whether the lamp should be enabled
+                  default: true
                 level:
                   type: integer
                   minimum: 0
-                  maximum: 10
-                  description: Lamp brightness level (0 = off, 1-10 = brightness levels)
+                  maximum: 100
+                  description: Lamp brightness percentage (0% = off, 100% = maximum brightness)
               required:
                 - level
               example:
-                level: 5
+                enabled: true
+                level: 75
       responses:
         '200':
           description: Lamp control result
@@ -363,12 +409,24 @@ paths:
                   - $ref: '#/components/schemas/ApiResponse'
                   - type: object
                     properties:
+                      enabled:
+                        type: boolean
+                        description: Whether the lamp is enabled
                       level:
                         type: integer
-                        description: Current lamp level
+                        description: Current lamp level percentage (0-100%)
+                      percentage:
+                        type: integer
+                        description: Current lamp percentage (same as level)
+                      actualLevel:
+                        type: integer
+                        description: Internal brightness level used by hardware (0 to maxLevels-1)
               example:
                 success: true
-                level: 5
+                enabled: true
+                level: 75
+                percentage: 75
+                actualLevel: 3
 
   /api/version:
     get:
@@ -465,9 +523,9 @@ components:
           example: false
         lampLevel:
           type: integer
-          description: Current front lamp brightness level (0 = off)
+          description: Current front lamp brightness percentage (0% = off, 100% = maximum)
           minimum: 0
-          maximum: 10
+          maximum: 100
           example: 0
         beeperEnabled:
           type: boolean
