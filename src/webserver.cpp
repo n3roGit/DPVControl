@@ -28,8 +28,8 @@ extern void setBarLED(int level); // From ledBar.cpp
 TaskHandle_t webserverTaskHandle = NULL;
 
 // WiFi Credentials
-const char* ssid = "DPVControl";
-const char* password = "DPVControl";
+// const char* ssid = "DPVControl";
+// const char* password = "DPVControl";
 
 // DNS Server for captive portal
 const byte DNS_PORT = 53;
@@ -4304,7 +4304,7 @@ void webserverTask(void *pvParameters) {
     // Setup WiFi Access Point
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(ssid, password);
+    WiFi.softAP(getWifiSSID(), getWifiPassword());
     
     // Log IP address - convert to String and then to char*
     String ipString = "IP: " + WiFi.softAPIP().toString();
