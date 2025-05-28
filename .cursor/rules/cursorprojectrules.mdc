@@ -14,3 +14,4 @@ Tasks:
 - Remember to update the API documentation every time you do something on the webserver!
 - If you install serial logging, make sure you use the existing function for this!
 - Always compile independently for major changes
+- The code and comments are always in English!
