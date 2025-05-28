@@ -241,7 +241,7 @@ void loadSettings() {
     String jsonLengthMsg = "Read JSON string length: " + String(jsonString.length());
     log(jsonLengthMsg.c_str());
     
-    DynamicJsonDocument doc(2048);
+    JsonDocument doc;
     DeserializationError error = deserializeJson(doc, jsonString);
     
     if (error) {
@@ -324,7 +324,7 @@ void saveSettings() {
     }
     log("Settings validation passed");
     
-    DynamicJsonDocument doc(2048);
+    JsonDocument doc;
     
     // Save all settings to JSON
     doc["speedSteps"] = currentSettings.speedSteps;
