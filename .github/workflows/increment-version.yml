@@ -48,18 +48,9 @@ jobs:
       - name: Determine version
         id: version
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/production_repo" ]]; then
-            CURRENT_VERSION=$(cat DPVController/version.txt || echo "0.0.0")
-            NEW_VERSION=$(python3 -c "v='$CURRENT_VERSION'.split('.'); v[2]=str(int(v[2])+1); print('.'.join(v))")
-            echo $NEW_VERSION > DPVController/version.txt
-            echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
-            echo "TAG_NAME=v$NEW_VERSION" >> $GITHUB_ENV
-          else
-            BRANCH_NAME=${GITHUB_REF#refs/heads/}
-            COMMIT_ID=$(git rev-parse --short HEAD)
-            echo "VERSION=$BRANCH_NAME-$COMMIT_ID" >> $GITHUB_ENV
-            echo "TAG_NAME=$BRANCH_NAME-$COMMIT_ID" >> $GITHUB_ENV
-          fi
+          VERSION=$(cat DPVController/version.txt || echo "0.0.0")
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=v$VERSION" >> $GITHUB_ENV
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
@@ -68,6 +59,6 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           name: Release ${{ env.VERSION }}
           files: |
-            .pio/build/**/*
+            .pio/build/*/*.bin
           draft: false
           prerelease: false
