@@ -23,15 +23,17 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
         with:
-          node-version: '20'
+          dotnet-version: '8.0.x'
 
       - name: Build project
         run: |
           cd DPVController
-          dotnet build -c Release
+          dotnet restore
+          dotnet build -c Release --no-restore
+          dotnet publish -c Release --no-build -o ./publish
 
       - name: Determine version
         id: version
@@ -56,8 +58,7 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           name: Release ${{ env.VERSION }}
           files: |
-            DPVController/bin/Release/**/*.dll
-            DPVController/bin/Release/**/*.exe
+            DPVController/publish/**/*
           draft: false
           prerelease: false
 
