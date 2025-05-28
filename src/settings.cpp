@@ -35,12 +35,14 @@ void initializeDefaultSettings() {
     defaultSettings.ledFrequency = 960;
     
     // Lamp settings (front light) - Level 0 must always be OFF
-    defaultSettings.lampMaxLevels = 3; // OFF + 2 brightness levels
+    defaultSettings.lampMaxLevels = 5; // OFF + 4 brightness levels
     defaultSettings.lampBrightness[0] = 0;   // Level 0: OFF
-    defaultSettings.lampBrightness[1] = 50;  // Level 1: First brightness
-    defaultSettings.lampBrightness[2] = 200; // Level 2: Second brightness (MAX)
+    defaultSettings.lampBrightness[1] = 60;  // Level 1: Low brightness
+    defaultSettings.lampBrightness[2] = 120; // Level 2: Medium brightness
+    defaultSettings.lampBrightness[3] = 180; // Level 3: High brightness
+    defaultSettings.lampBrightness[4] = 255; // Level 4: Maximum brightness
     // Initialize remaining levels to 0
-    for (int i = 3; i < 10; i++) {
+    for (int i = 5; i < 10; i++) {
         defaultSettings.lampBrightness[i] = 0;
     }
     

@@ -863,26 +863,42 @@ const char* helloWorldHTML = R"rawliteral(
                 <!-- Lamp Control -->
                 <div class="settings-group">
                     <h3>Front Lamp Control</h3>
-                    <div style="margin-bottom: 20px;">
-                        <label for="lampLevelSlider" style="display: block; margin-bottom: 10px; font-weight: bold;">
-                            Lamp Level: <span id="lampLevelValue">0</span>% (<span id="lampLevelName">OFF</span>)
-                        </label>
-                        <input type="range" id="lampLevelSlider" min="0" max="100" value="0" 
-                               style="width: 100%; height: 6px;" 
-                               oninput="updateLampLevel(this.value)" onchange="setLampLevel(this.value)">
-                        <div style="display: flex; justify-content: space-between; font-size: 12px; color: #b0b0b0; margin-top: 5px;">
-                            <span>OFF</span>
-                            <span>25%</span>
-                            <span>50%</span>
-                            <span>75%</span>
-                            <span>MAX</span>
-                        </div>
+                    
+                    <!-- ON/OFF Toggle -->
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <button id="lampToggleBtn" class="button" onclick="toggleLamp()" 
+                                style="background-color: #666; font-size: 18px; padding: 15px 30px;">
+                            💡 LAMP OFF
+                        </button>
                     </div>
                     
-                    <div style="text-align: center;">
-                        <button class="button" onclick="setLampLevel(0)" style="background-color: #666;">
-                            💡 Turn OFF
-                        </button>
+                    <!-- Brightness Level Selection -->
+                    <div id="lampLevelsContainer" style="margin-bottom: 20px; opacity: 0.5;">
+                        <label style="display: block; margin-bottom: 15px; font-weight: bold; text-align: center;">
+                            Brightness Level:
+                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="radio" name="lampLevel" value="1" style="margin-right: 10px;" 
+                                       onchange="setLampLevelFromRadio(this.value)" disabled>
+                                <span>Level 1 - Low</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="radio" name="lampLevel" value="2" style="margin-right: 10px;" 
+                                       onchange="setLampLevelFromRadio(this.value)" disabled>
+                                <span>Level 2 - Medium</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="radio" name="lampLevel" value="3" style="margin-right: 10px;" 
+                                       onchange="setLampLevelFromRadio(this.value)" disabled>
+                                <span>Level 3 - High</span>
+                            </label>
+                            <label style="display: flex; align-items: center; cursor: pointer;">
+                                <input type="radio" name="lampLevel" value="4" style="margin-right: 10px;" 
+                                       onchange="setLampLevelFromRadio(this.value)" disabled>
+                                <span>Level 4 - Maximum</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -2505,10 +2521,10 @@ const char* helloWorldHTML = R"rawliteral(
                 // Map 1-100% to levels 1 through (maxLevels-1) dynamically
                 // For example: 3 levels (OFF + 2 brightness): 1-50% -> level 1, 51-100% -> level 2
                 // For example: 5 levels (OFF + 4 brightness): 1-25% -> level 1, 26-50% -> level 2, etc.
-                int activeLevels = maxLevels - 1; // Exclude level 0 (OFF)
+                const activeLevels = maxLevels - 1; // Exclude level 0 (OFF)
                 if (activeLevels > 0) {
                     // Calculate which level based on percentage
-                    actualLevel = ((levelPercent - 1) * activeLevels) / 100 + 1;
+                    actualLevel = Math.floor(((levelPercent - 1) * activeLevels) / 100) + 1;
                     if (actualLevel < 1) actualLevel = 1;
                     if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
                 } else {
@@ -2696,6 +2712,125 @@ const char* helloWorldHTML = R"rawliteral(
         function updateLampSliderInterface() {
             // Call the new function name
             updateRemoteLampSlider();
+        }
+        
+        // Lamp control state
+        let lampIsOn = false;
+        let currentLampLevel = 1; // Default to level 1 when turning on
+        
+        // Toggle lamp ON/OFF
+        function toggleLamp() {
+            const button = document.getElementById('lampToggleBtn');
+            const container = document.getElementById('lampLevelsContainer');
+            const radioButtons = document.querySelectorAll('input[name="lampLevel"]');
+            
+            if (!lampIsOn) {
+                // Turn lamp ON
+                lampIsOn = true;
+                button.textContent = '💡 LAMP ON';
+                button.style.backgroundColor = '#4caf50';
+                container.style.opacity = '1';
+                
+                // Enable radio buttons
+                radioButtons.forEach(radio => {
+                    radio.disabled = false;
+                });
+                
+                // Select the current level radio button
+                const currentRadio = document.querySelector(`input[name="lampLevel"][value="${currentLampLevel}"]`);
+                if (currentRadio) {
+                    currentRadio.checked = true;
+                }
+                
+                // Set lamp to current level
+                setLampLevelDirect(currentLampLevel);
+            } else {
+                // Turn lamp OFF
+                lampIsOn = false;
+                button.textContent = '💡 LAMP OFF';
+                button.style.backgroundColor = '#666';
+                container.style.opacity = '0.5';
+                
+                // Disable radio buttons and uncheck all
+                radioButtons.forEach(radio => {
+                    radio.disabled = true;
+                    radio.checked = false;
+                });
+                
+                // Turn off lamp
+                setLampLevelDirect(0);
+            }
+        }
+        
+        // Set lamp level from radio button selection
+        function setLampLevelFromRadio(level) {
+            currentLampLevel = parseInt(level);
+            setLampLevelDirect(currentLampLevel);
+        }
+        
+        // Direct lamp level control (internal function)
+        function setLampLevelDirect(level) {
+            fetch('/api/lamp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ level: level })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Lamp control response:', data);
+                const levelText = level === 0 ? 'OFF' : `Level ${level}`;
+                document.getElementById('remoteLastCommand').textContent = `Lamp: ${levelText}`;
+                document.getElementById('remoteLampStatus').textContent = levelText;
+            })
+            .catch(error => {
+                console.error('Error controlling lamp:', error);
+            });
+        }
+        
+        // Update remote lamp controls based on current settings (replaces slider interface)
+        function updateRemoteLampSlider() {
+            // Update the radio button labels based on settings
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels')?.value || 5);
+            console.log('Updated lamp controls for maxLevels=' + maxLevels);
+            
+            // Reset lamp state to safe defaults
+            lampIsOn = false;
+            currentLampLevel = 1;
+            
+            const button = document.getElementById('lampToggleBtn');
+            const container = document.getElementById('lampLevelsContainer');
+            if (button && container) {
+                button.textContent = '💡 LAMP OFF';
+                button.style.backgroundColor = '#666';
+                container.style.opacity = '0.5';
+                
+                // Disable all radio buttons initially
+                const radioButtons = document.querySelectorAll('input[name="lampLevel"]');
+                radioButtons.forEach(radio => {
+                    radio.disabled = true;
+                    radio.checked = false;
+                });
+            }
+        }
+        
+        // Legacy function for backward compatibility
+        function updateLampLevel(value) {
+            console.log('Legacy updateLampLevel called with value:', value);
+            // Convert old percentage-based calls to new level-based system
+            if (value == 0) {
+                if (lampIsOn) toggleLamp(); // Turn off if currently on
+            } else {
+                // Calculate level from percentage
+                const level = Math.ceil((parseInt(value) / 100) * 4); // Map to levels 1-4
+                currentLampLevel = Math.max(1, Math.min(4, level));
+                if (!lampIsOn) toggleLamp(); // Turn on if currently off
+                else setLampLevelFromRadio(currentLampLevel); // Update level
+            }
+        }
+        
+        // Legacy function for backward compatibility  
+        function setLampLevel(value) {
+            updateLampLevel(value);
         }
     </script>
 </body>
@@ -3629,8 +3764,8 @@ void handleClient(WiFiClient client) {
         String bodyMsg = "Lamp control body: " + body;
         log(bodyMsg.c_str());
         
-        // Extract level value (now in percentage 0-100)
-        int levelPercent = 0;
+        // Extract level value (now direct level 0-maxLevels)
+        int requestedLevel = 0;
         int levelIndex = body.indexOf("\"level\":");
         if (levelIndex != -1) {
             String levelStr = body.substring(levelIndex + 8);
@@ -3638,50 +3773,31 @@ void handleClient(WiFiClient client) {
             if (endIndex == -1) endIndex = levelStr.indexOf('}');
             if (endIndex != -1) {
                 levelStr = levelStr.substring(0, endIndex);
-                levelPercent = levelStr.toInt();
+                requestedLevel = levelStr.toInt();
             }
         }
         
-        // Convert percentage (0-100) to actual LED level (0-maxLevels)
+        // Validate level against current settings
         int maxLevels = getLampMaxLevels();
-        int actualLevel = 0;
-        if (levelPercent == 0) {
-            // 0% should always be OFF (level 0)
-            actualLevel = 0;
-        } else {
-            // Map 1-100% to levels 1 through (maxLevels-1) dynamically
-            // For example: 3 levels (OFF + 2 brightness): 1-50% -> level 1, 51-100% -> level 2
-            // For example: 5 levels (OFF + 4 brightness): 1-25% -> level 1, 26-50% -> level 2, etc.
-            int activeLevels = maxLevels - 1; // Exclude level 0 (OFF)
-            if (activeLevels > 0) {
-                // Calculate which level based on percentage
-                actualLevel = ((levelPercent - 1) * activeLevels) / 100 + 1;
-                if (actualLevel < 1) actualLevel = 1;
-                if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
-            } else {
-                actualLevel = 1; // Fallback to level 1 if no active levels configured
-            }
-        }
+        int actualLevel = requestedLevel;
+        
+        // Validate level range
+        if (actualLevel < 0) actualLevel = 0;
+        if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
         
         // Integrate with actual LED lamp functions
-        String controlMsg = "Remote lamp control - Percentage: " + String(levelPercent) + "%, Level: " + String(actualLevel);
+        String controlMsg = "Remote lamp control - Requested Level: " + String(requestedLevel) + ", Actual Level: " + String(actualLevel);
         log(controlMsg.c_str());
         
-        // Validate and set level
-        if (levelPercent >= 0 && levelPercent <= 100) {
-            LED_State = actualLevel;
-            setLEDState(LED_State);
-            setBarLED(LED_State);
-            
-            String levelMsg = "Remote control set lamp to " + String(levelPercent) + "% (level " + String(actualLevel) + ")";
-            log(levelMsg.c_str());
-        } else {
-            String errorMsg = "Invalid lamp percentage: " + String(levelPercent) + "% (valid: 0-100)";
-            log(errorMsg.c_str());
-            levelPercent = (LED_State * 100) / maxLevels; // Return current percentage if invalid
-        }
+        // Set level
+        LED_State = actualLevel;
+        setLEDState(LED_State);
+        setBarLED(LED_State);
         
-        String response = "{\"success\":true,\"percentage\":" + String(levelPercent) + ",\"level\":" + String(actualLevel) + ",\"actualLevel\":" + String(LED_State) + "}";
+        String levelMsg = "Remote control set lamp to level " + String(actualLevel) + " (max: " + String(maxLevels - 1) + ")";
+        log(levelMsg.c_str());
+        
+        String response = "{\"success\":true,\"level\":" + String(actualLevel) + ",\"maxLevels\":" + String(maxLevels) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/version") {
