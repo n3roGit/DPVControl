@@ -66,14 +66,17 @@ void ledBarSetup(){
   // Force refresh to clear any cached states
   forceRefreshLedBar();
   
-  // Initialize battery display first with current battery level
-  // Convert battery level to LED steps for display
+  // Set standby state on Strip 1 first
+  setBarStandby();
+  
+  // Then initialize battery display on Strip 2 (this must come after setBarStandby)
+  // Force battery display update by getting current level and setting it
   int steps = (batteryLevel + 5) / LedBar2_Num;
   steps = constrain(steps, 0, LedBar2_Num);
-  setBarBattery(steps);
   
-  // Then set standby state on Strip 1 (this will not affect Strip 2)
-  setBarStandby();
+  // Reset battery cache to force update
+  lastDisplayedBattery = -1;
+  setBarBattery(steps);
   
   // Small delay to ensure display is stable
   delay(100);
@@ -129,10 +132,10 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
 }
 
 void setBarStandby() {
-    // Reset cache when entering special mode
+    // Reset cache when entering special mode (only for Strip 1)
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
-    lastDisplayedBattery = -1; // Reset battery cache too
+    // Don't reset lastDisplayedBattery as it's for Strip 2 and should not be affected
     
     // Force immediate update with current settings
     int ledBarNum = getLedBarNum();

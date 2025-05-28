@@ -133,116 +133,80 @@ String generateSessionDataJson(String sessionFile) {
     size_t fileSize = file.size();
     int totalDatapoints = fileSize / sizeof(LogdataRow);
     
-    // **CALCULATE REAL SESSION DURATION FIRST** - Read only first and last datapoint
+    // Read first and last datapoint for metadata
     LogdataRow firstDataPoint, lastDataPoint;
     long realSessionStartMs = 0;
     long realSessionEndMs = 0;
     int realSessionDurationSeconds = 0;
     
     if (totalDatapoints > 0) {
-        // Read first datapoint
         file.seek(0);
         file.read((uint8_t*)&firstDataPoint, sizeof(LogdataRow));
         realSessionStartMs = firstDataPoint.timestamp;
         
-        // Read last datapoint
         file.seek((totalDatapoints - 1) * sizeof(LogdataRow));
         file.read((uint8_t*)&lastDataPoint, sizeof(LogdataRow));
         realSessionEndMs = lastDataPoint.timestamp;
         
         realSessionDurationSeconds = (realSessionEndMs - realSessionStartMs) / 1000;
-        
-        String realDurationMsg = "REAL session duration: " + String(realSessionDurationSeconds) + "s (" + 
-                                String(realSessionDurationSeconds / 60) + "min " + String(realSessionDurationSeconds % 60) + "s) " +
-                                "from " + String(totalDatapoints) + " total datapoints";
-        log(realDurationMsg.c_str());
     }
     
-    // Read raw data (limited to prevent memory issues)
-    const int maxRawDatapoints = 150;
-    const int targetInterpolatedPoints = 200; // Target smooth resolution
+    // Calculate optimal number of points based on duration
+    const int maxPoints = 100; // Maximum points to prevent memory issues
+    int targetPoints = maxPoints;
     
-    LogdataRow* rawData = new LogdataRow[maxRawDatapoints];
-    int rawCount = 0;
+    if (realSessionDurationSeconds > 0) {
+        // One point per 5 seconds for longer sessions
+        targetPoints = min(maxPoints, realSessionDurationSeconds / 5);
+        targetPoints = max(10, targetPoints); // At least 10 points
+    }
     
-    // Read datapoints (skip some if too many)
-    int skipInterval = totalDatapoints > maxRawDatapoints ? totalDatapoints / maxRawDatapoints : 1;
+    // Calculate skip interval
+    int skipInterval = totalDatapoints > targetPoints ? totalDatapoints / targetPoints : 1;
     
-    for (int i = 0; i < totalDatapoints && rawCount < maxRawDatapoints; i += skipInterval) {
+    // Create JSON document with fixed size
+    JsonDocument doc;
+    
+    // Add metadata
+    JsonObject meta = doc["meta"].to<JsonObject>();
+    meta["realStartTimestamp"] = realSessionStartMs;
+    meta["realEndTimestamp"] = realSessionEndMs;
+    meta["realDurationSeconds"] = realSessionDurationSeconds;
+    meta["totalDatapoints"] = totalDatapoints;
+    meta["chartDatapoints"] = targetPoints;
+    meta["skipInterval"] = skipInterval;
+    
+    // Add data array
+    JsonArray data = doc["data"].to<JsonArray>();
+    
+    // Read and add datapoints
+    for (int i = 0; i < totalDatapoints && data.size() < targetPoints; i += skipInterval) {
+        LogdataRow row;
         file.seek(i * sizeof(LogdataRow));
-        size_t bytesRead = file.read((uint8_t*)&rawData[rawCount], sizeof(LogdataRow));
-        if (bytesRead == sizeof(LogdataRow)) {
-            rawCount++;
+        if (file.read((uint8_t*)&row, sizeof(LogdataRow)) == sizeof(LogdataRow)) {
+            JsonObject point = data.add<JsonObject>();
+            point["timestamp"] = row.timestamp;
+            point["tempMotor"] = row.tempMotor;
+            point["tempMosfet"] = row.tempMosfet;
+            point["batteryVoltage"] = row.batteryVoltage;
+            point["current"] = row.current;
+            point["avgMotorCurrent"] = row.avgMotorCurrent;
+            point["rpm"] = row.erpm;
+            point["dutyCycle"] = row.dutyCycle;
+            point["temperature"] = row.temperature;
+            point["humidity"] = row.humidity;
+            point["batteryLevel"] = row.batteryLevel;
+            point["leakSensorState"] = row.leakSensorState;
+            point["ledState"] = row.ledState;
+            point["totalUptime"] = row.totalUptime;
         }
     }
     
     file.close();
     
-    // If we have sparse data (due to delta compression), interpolate to smooth resolution
-    LogdataRow* finalData = rawData;
-    int finalCount = rawCount;
-    
-    // Only interpolate if we have significantly fewer points than target
-    if (rawCount > 2 && rawCount < (targetInterpolatedPoints * 0.8)) {
-        LogdataRow* interpolated = interpolateData(rawData, rawCount, targetInterpolatedPoints);
-        if (interpolated) {
-            finalData = interpolated;
-            finalCount = targetInterpolatedPoints;
-            String interpolationMsg = "Interpolated from " + String(rawCount) + " to " + String(finalCount) + " points";
-            log(interpolationMsg.c_str());
-        }
-    }
-    
-    // Generate JSON with metadata and chart data separated
-    String json = "{";
-    json += "\"meta\":{";
-    json += "\"realStartTimestamp\":" + String(realSessionStartMs) + ",";
-    json += "\"realEndTimestamp\":" + String(realSessionEndMs) + ",";
-    json += "\"realDurationSeconds\":" + String(realSessionDurationSeconds) + ",";
-    json += "\"totalDatapoints\":" + String(totalDatapoints) + ",";
-    json += "\"chartDatapoints\":" + String(finalCount) + ",";
-    json += "\"skipInterval\":" + String(skipInterval);
-    json += "},";
-    json += "\"data\":[";
-    
-    bool firstPoint = true;
-    
-    for (int i = 0; i < finalCount; i++) {
-        if (!firstPoint) json += ",";
-        firstPoint = false;
-        
-        json += "{";
-        json += "\"timestamp\":" + String(finalData[i].timestamp) + ",";
-        json += "\"tempMotor\":" + String(finalData[i].tempMotor) + ",";
-        json += "\"tempMosfet\":" + String(finalData[i].tempMosfet) + ",";
-        json += "\"batteryVoltage\":" + String(finalData[i].batteryVoltage) + ",";
-        json += "\"current\":" + String(finalData[i].current) + ",";
-        json += "\"avgMotorCurrent\":" + String(finalData[i].avgMotorCurrent) + ",";
-        json += "\"rpm\":" + String(finalData[i].erpm) + ",";
-        json += "\"dutyCycle\":" + String(finalData[i].dutyCycle) + ",";
-        json += "\"temperature\":" + String(finalData[i].temperature) + ",";
-        json += "\"humidity\":" + String(finalData[i].humidity) + ",";
-        json += "\"batteryLevel\":" + String(finalData[i].batteryLevel) + ",";
-        json += "\"leakSensorState\":" + String(finalData[i].leakSensorState) + ",";
-        json += "\"ledState\":" + String(finalData[i].ledState) + ",";
-        json += "\"totalUptime\":" + String(finalData[i].totalUptime);
-        json += "}";
-        
-        // Emergency break if JSON gets too large (>40KB)
-        if (json.length() > 40960) {
-            String limitMsg = "Session data truncated at " + String(i+1) + " points to prevent memory issues";
-            log(limitMsg.c_str());
-            break;
-        }
-    }
-    
-    json += "]}";
-    
-    // Cleanup
-    delete[] rawData;
-    
-    String resultMsg = "Generated session JSON: " + String(finalCount) + " chart points, " + String(json.length()) + " bytes (real duration: " + String(realSessionDurationSeconds) + "s)";
-    log(resultMsg.c_str());
+    // Serialize to string
+    String json;
+    serializeJson(doc, json);
     
     return json;
 }
