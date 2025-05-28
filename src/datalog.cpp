@@ -194,45 +194,148 @@ bool isDataloggerRunning = false;
 
 unsigned long bootTimeSeconds = 0;  // Boot time when system started
 unsigned long lastSaveTime = 0;
-const unsigned long SAVE_INTERVAL = 60000; // Save every 60 seconds
+const unsigned long SAVE_INTERVAL = 60000; // Back to 60 seconds for performance
+const unsigned long RUNTIME_BACKUP_INTERVAL = 300000; // Backup every 5 minutes
 
 /**
- * Load total runtime from file 
+ * Validate runtime value for reasonable range
+ */
+bool isValidRuntime(unsigned long runtime) {
+  // Runtime should be between 0 and 10 years (10 * 365 * 24 * 3600 = 315,360,000 seconds)
+  // This prevents corruption from loading garbage values
+  return runtime <= 315360000UL;
+}
+
+/**
+ * Load total runtime from file with validation and backup recovery
  */
 void loadTotalUptime() {
+  unsigned long loadedRuntime = 0;
+  bool loadedSuccessfully = false;
+  
+  // Try to load from primary file
   if (LittleFS.exists("/runtime.txt")) {
     File file = LittleFS.open("/runtime.txt", "r");
     if (file) {
       String runtimeStr = file.readString();
       runtimeStr.trim();
-      bootTimeSeconds = runtimeStr.toInt();
+      loadedRuntime = runtimeStr.toInt();
       file.close();
-      String loadMsg = "Total runtime loaded: " + String(bootTimeSeconds) + " seconds";
-      log(loadMsg.c_str());
+      
+      if (isValidRuntime(loadedRuntime)) {
+        bootTimeSeconds = loadedRuntime;
+        loadedSuccessfully = true;
+        String loadMsg = "Total runtime loaded: " + String(bootTimeSeconds) + " seconds (" + String(bootTimeSeconds/3600) + " hours)";
+        log(loadMsg.c_str());
+      } else {
+        String errorMsg = "Invalid runtime value: " + String(loadedRuntime) + " seconds, trying backup";
+        log(errorMsg.c_str());
+      }
     } else {
-      log("Failed to open runtime file");
-      bootTimeSeconds = 0;
+      log("Failed to open primary runtime file, trying backup");
     }
-  } else {
+  }
+  
+  // Try backup file if primary failed
+  if (!loadedSuccessfully && LittleFS.exists("/runtime_backup.txt")) {
+    File backupFile = LittleFS.open("/runtime_backup.txt", "r");
+    if (backupFile) {
+      String runtimeStr = backupFile.readString();
+      runtimeStr.trim();
+      loadedRuntime = runtimeStr.toInt();
+      backupFile.close();
+      
+      if (isValidRuntime(loadedRuntime)) {
+        bootTimeSeconds = loadedRuntime;
+        loadedSuccessfully = true;
+        String backupMsg = "Runtime recovered from backup: " + String(bootTimeSeconds) + " seconds (" + String(bootTimeSeconds/3600) + " hours)";
+        log(backupMsg.c_str());
+      } else {
+        String errorMsg = "Backup runtime also invalid: " + String(loadedRuntime) + " seconds";
+        log(errorMsg.c_str());
+      }
+    }
+  }
+  
+  // Fallback to 0 if everything failed
+  if (!loadedSuccessfully) {
     bootTimeSeconds = 0;
-    log("No runtime file found, starting at 0");
+    log("No valid runtime file found, starting at 0");
   }
 }
 
 /**
- * Save total runtime to file 
+ * Save total runtime to file with atomic write and backup
  */
 void saveTotalUptime() {
   unsigned long currentTotalRuntime = bootTimeSeconds + (millis() / 1000);
   
-  File file = LittleFS.open("/runtime.txt", "w");
-  if (file) {
-    file.println(currentTotalRuntime);
-    file.close();
-    String saveMsg = "Total runtime saved: " + String(currentTotalRuntime) + " seconds";
-    log(saveMsg.c_str());
+  // Validate before saving
+  if (!isValidRuntime(currentTotalRuntime)) {
+    String errorMsg = "ERROR: Refusing to save invalid runtime: " + String(currentTotalRuntime) + " seconds";
+    log(errorMsg.c_str());
+    return;
+  }
+  
+  // Atomic write: write to temporary file first, then rename
+  bool saveSuccessful = false;
+  
+  // Try to save to temporary file
+  File tempFile = LittleFS.open("/runtime_temp.txt", "w");
+  if (tempFile) {
+    tempFile.println(currentTotalRuntime);
+    tempFile.flush(); // Ensure data is written
+    tempFile.close();
+    
+    // Verify the temporary file was written correctly
+    File verifyFile = LittleFS.open("/runtime_temp.txt", "r");
+    if (verifyFile) {
+      String verifyStr = verifyFile.readString();
+      verifyStr.trim();
+      verifyFile.close();
+      
+      if (verifyStr.toInt() == currentTotalRuntime) {
+        // Rename temp file to main file (atomic on most filesystems)
+        if (LittleFS.exists("/runtime.txt")) {
+          LittleFS.remove("/runtime.txt");
+        }
+        if (LittleFS.rename("/runtime_temp.txt", "/runtime.txt")) {
+          saveSuccessful = true;
+          String saveMsg = "Runtime saved atomically: " + String(currentTotalRuntime) + " seconds (" + String(currentTotalRuntime/3600) + " hours)";
+          log(saveMsg.c_str());
+        } else {
+          log("ERROR: Failed to rename runtime temp file");
+        }
+      } else {
+        log("ERROR: Runtime verification failed after write");
+      }
+    } else {
+      log("ERROR: Failed to verify written runtime file");
+    }
+    
+    // Clean up temp file if rename failed
+    if (LittleFS.exists("/runtime_temp.txt")) {
+      LittleFS.remove("/runtime_temp.txt");
+    }
   } else {
-    log("Failed to save runtime - skipping");
+    log("ERROR: Failed to create runtime temp file");
+  }
+  
+  // Create backup file every 5 minutes
+  static unsigned long lastBackupTime = 0;
+  if (millis() - lastBackupTime >= RUNTIME_BACKUP_INTERVAL) {
+    File backupFile = LittleFS.open("/runtime_backup.txt", "w");
+    if (backupFile) {
+      backupFile.println(currentTotalRuntime);
+      backupFile.close();
+      String backupMsg = "Runtime backup created: " + String(currentTotalRuntime) + " seconds";
+      log(backupMsg.c_str());
+    }
+    lastBackupTime = millis();
+  }
+  
+  if (!saveSuccessful) {
+    log("ERROR: Failed to save runtime - data may be lost on power failure!");
   }
 }
 
@@ -1079,6 +1182,10 @@ void dataloggerTask(void *pvParameters) {
   unsigned long sessionStartTime = millis();
   bool motorWasRunning = false;
   
+  // Save total runtime more frequently and on important events
+  static MotorState lastMotorState = standby;
+  static unsigned long lastMotorStateChange = 0;
+  
   while (true) {
     unsigned long currentTime = millis();
     
@@ -1115,10 +1222,28 @@ void dataloggerTask(void *pvParameters) {
       }
     }
     
-    // Save total runtime every minute
+    // Save total runtime more frequently and on important events
+    if (motorState != lastMotorState) {
+      String stateChangeMsg = "Motor state changed from " + String(lastMotorState) + " to " + String(motorState) + " - saving runtime";
+      log(stateChangeMsg.c_str());
+      saveTotalUptime();
+      lastMotorState = motorState;
+      lastMotorStateChange = currentTime;
+    }
+    
+    // Save runtime every 10 seconds (reduced from 60 seconds)
     if (currentTime - lastSaveTime >= SAVE_INTERVAL) {
       saveTotalUptime();
       lastSaveTime = currentTime;
+    }
+    
+    // Also save runtime immediately when motor has been running for a while
+    // This catches cases where power is lost during operation
+    static unsigned long lastMotorRuntimeSave = 0;
+    if ((motorState == on || motorState == cruise || motorState == turbo) && 
+        currentTime - lastMotorRuntimeSave >= 30000) { // Every 30 seconds during motor operation (reduced from 5s for performance)
+      saveTotalUptime();
+      lastMotorRuntimeSave = currentTime;
     }
     
     // Keep task alive
