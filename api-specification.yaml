@@ -305,6 +305,48 @@ paths:
                 type: string
                 example: "Missing session parameter"
 
+  /api/session-csv:
+    get:
+      tags:
+        - Data
+      summary: Get CSV data from specific session
+      description: |
+        Retrieve sensor data from a specific session file in CSV format 
+        with Windows line endings (CRLF) for better Excel compatibility.
+        Limited to 50KB to prevent memory issues.
+      parameters:
+        - name: session
+          in: query
+          description: Session filename to retrieve CSV data from
+          required: true
+          schema:
+            type: string
+          example: "session_0003.bin"
+      responses:
+        '200':
+          description: CSV data from the session with Windows line endings
+          content:
+            text/csv:
+              schema:
+                type: string
+                example: |
+                  Timestamp,Motor Temperature (°C),MOSFET Temperature (°C),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (°C),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)
+                  2024-01-15T10:30:00.000Z,25.0,30.0,50.4,0.5,0.8,0,10,22.5,45.2,75,0,0,123
+        '400':
+          description: Missing session parameter
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Missing session parameter"
+        '404':
+          description: Session file not found or empty
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Session file not found or empty"
+
   /api/motor:
     post:
       tags:

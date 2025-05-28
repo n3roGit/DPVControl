@@ -626,7 +626,7 @@ const char* helloWorldHTML = R"rawliteral(
                     }
                     
                     // Create proper CSV header with correct field names
-                    let csv = 'Timestamp,Motor Temperature (°C),MOSFET Temperature (°C),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (°C),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\\n';
+                    let csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
                     
                     data.forEach(item => {
                         // Format timestamp properly
@@ -647,7 +647,7 @@ const char* helloWorldHTML = R"rawliteral(
                             item.leakSensorState || 0,
                             item.ledState || 0,
                             item.totalUptime || 0
-                        ].join(',') + '\\n';
+                        ].join(',') + "\r\n";
                     });
                     
                     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -3060,7 +3060,7 @@ String generateFullTripLogJson() {
     }
     
     // CSV Header
-    String csv = "Timestamp,Motor Temperature (°C),MOSFET Temperature (°C),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (°C),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\n";
+    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
     
     LogdataRow dataPoint;
     
@@ -3094,7 +3094,7 @@ String generateFullTripLogJson() {
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
         csv += String(dataPoint.ledState) + ",";
-        csv += String(dataPoint.totalUptime) + "\n";
+        csv += String(dataPoint.totalUptime) + "\r\n";
         
         // Prevent memory overflow for very large files
         if (csv.length() > 50000) { // Limit to ~50KB
@@ -3391,6 +3391,93 @@ bool updateSettingsFromJson(const String& jsonString) {
     return true;
 }
 
+/**
+ * Generate CSV data for a specific session file
+ */
+String generateSessionCsvData(String sessionFile) {
+    log("generateSessionCsvData called for session: " + sessionFile);
+    
+    // Ensure we have the full path
+    String fullPath = sessionFile;
+    if (!sessionFile.startsWith("/datalog/")) {
+        fullPath = "/datalog/" + sessionFile;
+    }
+    
+    if (!LittleFS.exists(fullPath)) {
+        log("Session file not found: " + fullPath);
+        return "";
+    }
+    
+    File file = LittleFS.open(fullPath, "r");
+    if (!file) {
+        log("Failed to open session file: " + fullPath);
+        return "";
+    }
+    
+    size_t fileSize = file.size();
+    size_t dataPointCount = fileSize / sizeof(LogdataRow);
+    
+    String countMsg = "Session " + sessionFile + " contains " + String(dataPointCount) + " data points (" + String(fileSize) + " bytes)";
+    log(countMsg.c_str());
+    
+    if (dataPointCount == 0) {
+        file.close();
+        return "";
+    }
+    
+    // CSV Header with Windows line endings
+    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
+    
+    LogdataRow dataPoint;
+    
+    // Read and convert each data point
+    for (size_t i = 0; i < dataPointCount; i++) {
+        size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
+        
+        if (bytesRead != sizeof(LogdataRow)) {
+            String errorMsg = "Error reading data point " + String(i) + " from session " + sessionFile + ", bytes read: " + String(bytesRead);
+            log(errorMsg.c_str());
+            break;
+        }
+        
+        // Convert timestamp to ISO format
+        time_t timestamp = dataPoint.timestamp / 1000; // Convert to seconds
+        struct tm* timeinfo = gmtime(&timestamp);
+        char timeStr[30];
+        strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%S.000Z", timeinfo);
+        
+        // Add data row with Windows line endings
+        csv += String(timeStr) + ",";
+        csv += String(dataPoint.tempMotor) + ",";
+        csv += String(dataPoint.tempMosfet) + ",";
+        csv += String(dataPoint.batteryVoltage) + ",";
+        csv += String(dataPoint.current) + ",";
+        csv += String(dataPoint.avgMotorCurrent) + ",";
+        csv += String(dataPoint.erpm) + ",";
+        csv += String(dataPoint.dutyCycle) + ",";
+        csv += String(dataPoint.temperature) + ",";
+        csv += String(dataPoint.humidity) + ",";
+        csv += String(dataPoint.batteryLevel) + ",";
+        csv += String(dataPoint.leakSensorState) + ",";
+        csv += String(dataPoint.ledState) + ",";
+        csv += String(dataPoint.totalUptime) + "\r\n";
+        
+        // Prevent memory overflow for very large files
+        if (csv.length() > 50000) { // Limit to ~50KB
+            String limitMsg = "Session CSV size limit reached at " + String(i+1) + " points for " + sessionFile + ", truncating";
+            log(limitMsg.c_str());
+            break;
+        }
+    }
+    
+    file.close();
+    
+    String resultMsg = "Generated session CSV for " + sessionFile + ", length: " + String(csv.length()) + " for " + String(dataPointCount) + " points";
+    log(resultMsg.c_str());
+    
+    return csv;
+}
+
 // Setup the webserver task on Core 0
 void setupWebserver() {
     log("Setting up webserver on Core 0");
@@ -3581,6 +3668,36 @@ void handleClient(WiFiClient client) {
         log(responseMsg.c_str());
         
         sendHttpResponse(client, 200, "application/json", jsonData.c_str());
+        
+    } else if (path.startsWith("/api/session-csv?")) {
+        // API endpoint for getting CSV data from a specific session
+        log("API /api/session-csv called");
+        
+        // Extract session parameter
+        String sessionFile = "";
+        if (path.indexOf("session=") != -1) {
+            sessionFile = path.substring(path.indexOf("session=") + 8);
+            if (sessionFile.indexOf("&") != -1) {
+                sessionFile = sessionFile.substring(0, sessionFile.indexOf("&"));
+            }
+        }
+        
+        if (sessionFile == "") {
+            sendHttpResponse(client, 400, "text/plain", "Missing session parameter");
+            return;
+        }
+        
+        String csvData = generateSessionCsvData(sessionFile);
+        
+        if (csvData.length() == 0) {
+            sendHttpResponse(client, 404, "text/plain", "Session file not found or empty");
+            return;
+        }
+        
+        String responseMsg = "Sending session CSV data, length: " + String(csvData.length());
+        log(responseMsg.c_str());
+        
+        sendHttpResponse(client, 200, "text/csv", csvData.c_str());
         
     } else if (path == "/api/trip-log") {
         // API endpoint for full trip log download
@@ -4113,9 +4230,9 @@ window.JSZip = function() {
             
             for (let filename in this.files) {
                 fileCount++;
-                csvContent += '=== ' + filename + ' ===\n';
+                csvContent += '=== ' + filename + ' ===\r\n';
                 csvContent += this.files[filename];
-                csvContent += '\n\n';
+                csvContent += '\r\n\r\n';
             }
             
             if (fileCount === 0) {
