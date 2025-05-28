@@ -1,0 +1,18 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+This project involves a watercraft - a so-called Diver-Purpose Vehicle (DPV). It is controlled by an ESP32, a VESC and other components.
+
+
+You can find information about the project in my blog: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
+
+
+
+Tasks:
+- Remember to update the API documentation every time you do something on the webserver!
+- If you install serial logging, make sure you use the existing function for this!
+- Always compile independently for major changes
+- The code and comments are always in English!
+- For every change, include in the chat a suggested git commit message in English.

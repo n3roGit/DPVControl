@@ -4,6 +4,8 @@
 #include "log.h"
 #include "main.h"
 #include "motor.h"
+#include "settings.h"
+#include <LittleFS.h>
 
 /**
 * CONSTANTS
@@ -36,6 +38,7 @@ BlinkSequence beepSequence = BlinkSequence(beepBlinker, beepDuration, PAUSE_MS);
 * Perform a beep for the given time. Works asynchronously. 
 */
 void beep(long length_ms){
+  if (!getBeeperEnabled()) return; // Use settings system
   log("Beeping for ms", length_ms);
   beepBlinker.blink(length_ms);
 }
@@ -46,7 +49,8 @@ void beep(long length_ms){
 * Works asynchronously(does not block).
 */
 void beep(const String& sequence) {
-  if(EnableDebugLog) Serial.println("beepSequence:"+sequence);
+  if (!getBeeperEnabled()) return; // Use settings system
+  log("beepSequence:"+sequence);
   beepSequence.blink(sequence);
 }
 

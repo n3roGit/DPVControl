@@ -145,6 +145,19 @@ float getAvergageVoltage(){
   return sum/i;
 }
 
+/**
+ * Returns the current battery voltage
+ * Uses the average voltage if available, or returns a default value
+ */
+float getBatteryVoltage() {
+  float voltage = getAvergageVoltage();
+  // If we don't have any measurements yet, return a default value
+  if (voltage <= 0.1) {
+    return 48.0; // Default battery voltage for 13S Li-ion battery
+  }
+  return voltage;
+}
+
 void updateBatteryLevel(float voltage) {
   recordVoltage(voltage);
   batteryLevel = calculateStateOfCharge(getAvergageVoltage());
@@ -161,8 +174,7 @@ void updateBatteryLevel(float voltage) {
 void testBattery(){
   for(int i = 0;i<40;i++){
     float voltage = 35.0+i*0.5;
-    Serial.print(voltage);Serial.print("V ");
     int soc = calculateStateOfCharge(voltage);
-    Serial.print(soc);Serial.println("% SOC");
+    log(String(voltage) + "V " + String(soc) + "% SOC");
   }
 }

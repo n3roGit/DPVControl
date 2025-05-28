@@ -3,6 +3,7 @@
 #include <ClickButton.h>
 #include "constants.h"
 #include "ledLamp.h"
+#include "ledBar.h"
 #include "battery.h"
 #include "log.h"
 
@@ -43,6 +44,14 @@ ClickButton rightButton(PIN_RIGHT_BUTTON, LOW);
 LastClick lastLeftClick;
 LastClick lastRightClick;
 
+// Forward declarations
+void updateButtonState();
+void performActions();
+bool heldForLong(long heldDownSince);
+void updateLastClick(LastClick &click, ClickButton &button); 
+bool checkCruise(ClickButton &button, LastClick &lastClick);
+bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs);
+
 void buttonSetup(){
   // Set debounce and click times for buttons
   leftButton.debounceTime = DEBOUNCE_TIME;
@@ -51,6 +60,9 @@ void buttonSetup(){
   rightButton.debounceTime = DEBOUNCE_TIME;     
   rightButton.multiclickTime = MULTICLICK_TIME; 
   rightButton.longClickTime = LONGCLICK_TIME;
+  
+  // Initialize lastActionTime to current time to prevent immediate standby during boot
+  lastActionTime = micros();
 }
 
 void buttonLoop(){
@@ -58,10 +70,7 @@ void buttonLoop(){
   performActions();
 }
 
-// Forward declarations
-void updateLastClick(LastClick &click, ClickButton &button); 
-bool checkCruise(ClickButton &button, LastClick &lastClick);
-bool isDoubleClickHold(LastClick &lastClick, unsigned long heldSinceMs);
+
 
 
 void updateButtonState(){
@@ -135,8 +144,15 @@ void performActions(){
     }else if (checkCruise(rightButton, lastLeftClick)
             ||checkCruise(leftButton,  lastRightClick)){
       enterCruiseMode(); 
-    }else{
-      motorState = off;
+    }else if (!remoteControlActive) {
+      // Only turn off motor if not under remote control
+      // If transitioning from standby to off, update LED bar to show speed
+      if (motorState == standby) {
+        motorState = off;
+        setBarSpeed(currentMotorStep); // Update LED bar when leaving standby
+      } else {
+        motorState = off;
+      }
     }
   
     if (leftButtonState == PRESSED || rightButtonState == PRESSED) {

@@ -26,13 +26,19 @@ void log(const char* label) {
   }
 }
 
+void log(const String& message) {
+  if (EnableDebugLog) {
+    Serial.println(message);
+  }
+}
+
 void logVehicleState() {
-  if (loopCount % NormalLogOutputIntervall == 0) {
+  if (EnableDebugLog && loopCount % NormalLogOutputIntervall == 0) {
     Serial.println("---");
     Serial.print("bat lvl: ");
     Serial.println(batteryLevel);  // test battery level
     Serial.println("up " + uptime_formatter::getUptime());
-    Serial.print("RPM: ");
+    Serial.print("eRPM: ");
     Serial.println(getVescUart().data.rpm);
     Serial.print("inpVoltage: ");
     Serial.println(getVescUart().data.inpVoltage);

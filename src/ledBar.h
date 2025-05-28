@@ -5,6 +5,7 @@ const int LedBar2_Num = 10; // (shared) Number of LEDs in the strip
 
 
 void ledBarSetup();
+void knightRiderStartup();
 void setBarStandby() ;
 void setBarSpeed(int num) ;
 void setBarSpeedCruise(int num);
@@ -13,6 +14,7 @@ void setBarLeak();
 void setBarPowerBank(bool status);
 void setBarLED(int num);
 void setBarFlasher(bool status);
+void forceRefreshLedBar();
 
 
 #endif

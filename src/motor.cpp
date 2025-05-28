@@ -5,6 +5,7 @@
 #include "ledBar.h"
 #include "button.h"
 #include "ledLamp.h"
+#include "settings.h"
 
 /**
 *
@@ -12,6 +13,7 @@
 */
 
 MotorState motorState = standby;
+bool remoteControlActive = false; // Flag for remote control override
 const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
 
 VescUart UART;
@@ -60,14 +62,15 @@ void motorSetup(){
   getVescUart().setSerialPort(&Serial1);
   delay(500);
   if (getVescUart().getVescValues()) {
-    Serial.println("Connected to VESC.");
+    log("Connected to VESC.");
   } else {
-    Serial.println("Failed to connect to VESC.");
+    log("Failed to connect to VESC.");
   }
 }
 
 void speedUp(){
-  if (currentMotorStep == SPEED_STEPS){
+  int maxSteps = getSpeedSteps();
+  if (currentMotorStep == maxSteps){
     beep("1");
   }else if(overloadSpeedThrottle != NEVER 
     &&currentMotorStep+1>=overloadSpeedThrottle){
@@ -93,7 +96,8 @@ void speedDown(){
 // Function to control standby mode
 void controlStandby() {
   if (motorState == off)  {
-    if (lastActionTime + STANDBY_DELAY_US < micros()) {
+    unsigned long standbyDelayUs = (unsigned long)getStandbyDelay() * 1000UL * 1000UL; // Convert seconds to microseconds
+    if (lastActionTime + standbyDelayUs < micros()) {
       standBy();
     }
   }
@@ -128,9 +132,14 @@ void standBy(){
 void setSoftMotorSpeed() {
   float timePassedSinceLastChange = min(micros() - currentMotorTime, MAX_DELTA_US);
   double lastMotorSpeed = currentMotorSpeed;
+  
+  // Get timing settings from configuration
+  unsigned long speedUpTimeUs = (unsigned long)getSpeedUpTime() * 1000UL; // Convert ms to microseconds
+  unsigned long speedDownTimeUs = (unsigned long)getSpeedDownTime() * 1000UL; // Convert ms to microseconds
+  
   if (currentMotorSpeed < targetMotorSpeed) {
     //Speed up
-    float maxChange = timePassedSinceLastChange/ SPEED_UP_TIME_US;
+    float maxChange = timePassedSinceLastChange / (float)speedUpTimeUs;
     currentMotorSpeed += maxChange;
     currentMotorSpeed = 
       //Do not go lower than minimal setting.
@@ -139,19 +148,18 @@ void setSoftMotorSpeed() {
       min(currentMotorSpeed, targetMotorSpeed));
   } else if(currentMotorSpeed > targetMotorSpeed) {
     //Speed down
-    float maxChange = timePassedSinceLastChange / SPEED_DOWN_TIME_US;
+    float maxChange = timePassedSinceLastChange / (float)speedDownTimeUs;
     currentMotorSpeed -= maxChange;
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
-  double effectiveSpeed = currentMotorSpeed * MAX_SPEED_RPM;
+  double effectiveSpeed = currentMotorSpeed * getMaxSpeedRpm();
   if(abs(effectiveSpeed) > 0.0){
     getVescUart().setRPM(effectiveSpeed);
   }
   currentMotorTime = micros();
 
   if(EnableDebugLog && abs(currentMotorSpeed - lastPrintedMotorSpeed) >= 0.01){
-    Serial.printf("%5.0f RPM (%2.0f%%)",effectiveSpeed, currentMotorSpeed*100);
-    Serial.println();
+    log("eRPM: " + String(effectiveSpeed, 0) + " (" + String(currentMotorSpeed*100, 0) + "%)");
     lastPrintedMotorSpeed = currentMotorSpeed;
   }
 }
@@ -161,16 +169,16 @@ void controlMotor() {
     // Motor is off
     targetMotorSpeed = 0.0;
   } else if (motorState == on || motorState == cruise) {
-    targetMotorSpeed = MIN_SPEED_PERCENT + ((double)currentMotorStep-1)/(SPEED_STEPS-1) * (1-MIN_SPEED_PERCENT);
+    float minSpeedPercent = getMinSpeedPercent();
+    int speedSteps = getSpeedSteps();
+    targetMotorSpeed = minSpeedPercent + ((double)currentMotorStep-1)/(speedSteps-1) * (1-minSpeedPercent);
   } else if (motorState == turbo) {
     targetMotorSpeed = 1.0;
   } else{
-    Serial.print("Unhandled motorstate: ");
-    Serial.println(motorState);
+    log("Unhandled motorstate: " + String(motorState));
   }
   if(EnableDebugLog && abs(lastTargetMotorSpeed - targetMotorSpeed) >= 0.01){
-    Serial.print("targetMotorSpeed: ");
-    Serial.println(targetMotorSpeed);
+    log("targetMotorSpeed: " + String(targetMotorSpeed));
   }
   setSoftMotorSpeed();
   lastTargetMotorSpeed = targetMotorSpeed;
@@ -187,7 +195,7 @@ float getMotorPower(){
 * drain without overloading the battery.
 **/
 float maxAvailablePowerForMotor(){
-  return BATTERY_POWER_MAX - getLedLampPower();
+  return getBatteryPowerMax() - getLedLampPower();
 }
 
 void preventOverload(){
@@ -195,13 +203,11 @@ void preventOverload(){
   if (overloaded){
     if (overLoadedSince == NEVER){
       if (EnableDebugLog){
-        Serial.print("Overloaded! getMotorPower(): ");
-        Serial.println(getMotorPower());
-        Serial.print("maxAvailablePowerForMotor(): ");
-        Serial.println(maxAvailablePowerForMotor());        
+        log("Overloaded! getMotorPower(): " + String(getMotorPower()));
+        log("maxAvailablePowerForMotor(): " + String(maxAvailablePowerForMotor()));
       }
       overLoadedSince = millis();
-    }else if(millis() > overLoadedSince + MAX_TIME_OVERLOADED){
+    }else if(millis() > overLoadedSince + getMaxTimeOverloaded()){
       log("Overloaded for too long. Lowering speed.");
       beep("12");
       speedDown();
@@ -232,7 +238,7 @@ void leaveCruiseMode(){
 
 void enterTurboMode(){
   log("enter turbo mode", 0);
-  setBarSpeed(SPEED_STEPS);
+  setBarSpeed(getSpeedSteps());
   motorState = turbo;
 }
 
@@ -250,8 +256,12 @@ void checkJam(){
   // Do not check for jam when running with no motor.
   if(!HAS_MOTOR) return;
 
-  if (motorState != jammed && currentMotorSpeed >= JAM_MIN
-  && getVescUart().data.rpm/currentMotorSpeed/MAX_SPEED_RPM < JAM_DETECTION_THRESHOLD){
+  float jamMin = getJamMin();
+  float jamThreshold = getJamDetectionThreshold();
+  float maxSpeedRpm = getMaxSpeedRpm();
+  
+  if (motorState != jammed && currentMotorSpeed >= jamMin
+  && getVescUart().data.rpm/currentMotorSpeed/maxSpeedRpm < jamThreshold){
     log("MOTOR JAMMED!");
     beep("211");
     motorState = jammed;

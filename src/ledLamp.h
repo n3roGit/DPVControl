@@ -8,6 +8,7 @@ float getLedLampPower();
 void blinkLED(const String& sequence);
 void toggleLED();
 void flash();
+void setLEDState(int state); // For remote control
 void ledLampSetup();
 void ledLampLoop();
 #endif

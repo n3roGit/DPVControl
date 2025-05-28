@@ -22,3 +22,8 @@ check-cppcheck-build-dir
 
 # Local configuration file for DPVController
 DPVController/localConfig.h
+
+# PlatformIO directories
+.pio/
+.pioenvs/
+.piolibdeps/

@@ -21,51 +21,70 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 
 # Development
 
-## VSCode
-We switched from using the Arduino IDE to VS Code. 
+## PlatformIO with VS Code
+This project uses **PlatformIO** for development, which provides better dependency management and build system compared to the Arduino IDE.
 
-Install Arduino extension from microsoft.
+### Setup Instructions
 
-Then install the [Arduino CLI](https://downloads.arduino.cc/arduino-cli/arduino-cli_latest_Windows_64bit.msi) and select it in vscode or just copy template files. You only need to click ".\\.vscode_template\copy_it.bat" to do that.
-Install the libraries that we use from inside vscode using the arduino library manager. If some are missing they need to be put in **C:\Users<user>\Documents\Arduino\libraries** so that they can be found there.
+1. **Install VS Code**: Download from [code.visualstudio.com](https://code.visualstudio.com/)
 
-Install the Arduino Plugin for vscode.
-![image](https://github.com/n3roGit/DPVControl/assets/8565847/588f0802-2234-4474-96cd-7569acd2c5f0)
+2. **Install PlatformIO Extension**: 
+   - Open VS Code
+   - Go to Extensions (Ctrl+Shift+X)
+   - Search for "PlatformIO IDE" and install it
+
+3. **Open Project**:
+   - Clone this repository
+   - Open the project folder in VS Code
+   - PlatformIO will automatically detect the `platformio.ini` file
+
+4. **Build and Upload**:
+   - Use the PlatformIO toolbar at the bottom of VS Code
+   - Click "Build" (✓) to compile
+   - Click "Upload" (→) to flash to ESP32
+   - Click "Serial Monitor" to view debug output
+
+### Dependencies
+All required libraries are automatically managed through `platformio.ini`:
+- ArduinoJson, ESP32Servo, OneWire, DallasTemperature
+- DHT sensor library, FastLED, Adafruit NeoPixel
+- VescUart, ClickButton, Uptime Library
+
+No manual library installation required!
 
 
-The bottom of you IDE should now looks like this:
-![image](https://github.com/n3roGit/DPVControl/assets/8565847/ff7176c8-c297-4b1b-a639-8d142603f475)
+# API Documentation
 
+The DPV Control system provides a comprehensive REST API for system monitoring, data retrieval, and configuration management.
 
-More information about in https://github.com/n3roGit/DPVControl/issues/26. 
+📖 **[View API Specification](./api-specification.yaml)** - Complete OpenAPI 3.0 documentation
 
+**Quick Links:**
+- **Interactive Documentation:** Open `api-specification.yaml` in [Swagger Editor](https://editor.swagger.io/) or VS Code with OpenAPI extension
+- **Base URL:** `http://4.3.2.1` (when connected to DPV WiFi)
+- **Format:** JSON REST API
 
-## Anduino IDE
-We used to use the <a href="https://www.arduino.cc/en/software">Arduino IDE</a> for Development. 
-Open the file **DPVControl/DPVController/DPVController.ino** to open the project. 
+**Available Endpoints:**
+- `GET /api/status` - Real-time system status and sensor readings
+- `GET /api/data` - Historical sensor data with filtering options
+- `GET /api/trip-log` - Complete trip log download
+- `GET /api/settings` - Current device configuration
+- `POST /api/settings` - Update device settings
+- `POST /api/settings/restore` - Restore default settings
 
-### Board Config
-I am using a wroom esp32 board for development. 
-
-Follow 
-<a href="https://randomnerdtutorials.com/installing-the-esp32-board-in-arduino-ide-windows-instructions/">
-this tutorial</a> to install the board .
-
-You might need a <a href="https://www.silabs.com/developers/usb-to-uart-bridge-vcp-drivers?tab=downloads">windows driver</a>.
-
-
-### Download Libraries
-
-Download the .zip files for all the required Libraries (use the github-links in DPVController.ino). Place
-them in the /libraries -Folder and install them into Arduino.
-
+**Features:**
+- Real-time monitoring of all sensor data
+- Historical data retrieval with configurable time ranges
+- Complete settings management with validation
+- Trip log export functionality
+- Session-based data filtering
 
 # TODO
 
-- 5% - **Web interface:** Retrieve basic information and adjust settings if necessary.
+- 95% - **Web interface:** Retrieve basic information and adjust settings if necessary. ✅
 - 0% - **Update via WiFi**
 - 0% - **Implement watchdog to make it smooth and stable**
-- 30% - **display uptime and overall runtime in gui**
+- 100% - **display uptime and overall runtime in gui** ✅
 
 
 

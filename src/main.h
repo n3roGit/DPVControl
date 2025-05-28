@@ -3,6 +3,10 @@
 #include <VescUart.h>
 #include "DHTesp.h"
 
+// Include FreeRTOS for multi-core functionality
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 //temporary collection of header definitions 
 //that should be moved to their own places.
 
