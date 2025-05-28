@@ -26,29 +26,31 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.ref }}
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          dotnet-version: '8.0.x'
+          python-version: '3.11'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
         with:
-          node-version: '20'
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+          key: ${{ runner.os }}-pio
 
-      - name: Build project
-        run: |
-          cd DPVController
-          dotnet restore
-          dotnet build -c Release --no-restore
-          dotnet publish -c Release --no-build -o ./publish
+      - name: Install PlatformIO Core
+        run: pip install --upgrade platformio
+
+      - name: Build PlatformIO Project
+        run: pio run
 
       - name: Determine version
         id: version
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/production_repo" ]]; then
             CURRENT_VERSION=$(cat DPVController/version.txt || echo "0.0.0")
-            NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
+            NEW_VERSION=$(python3 -c "v='$CURRENT_VERSION'.split('.'); v[2]=str(int(v[2])+1); print('.'.join(v))")
             echo $NEW_VERSION > DPVController/version.txt
             echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
             echo "TAG_NAME=v$NEW_VERSION" >> $GITHUB_ENV
@@ -66,6 +68,6 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           name: Release ${{ env.VERSION }}
           files: |
-            DPVController/publish/**/*
+            .pio/build/**/*
           draft: false
           prerelease: false
