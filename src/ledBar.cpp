@@ -4,6 +4,7 @@
 #include "motor.h"
 #include "settings.h"
 #include "log.h"
+#include "battery.h"
 
 /**
 * Code that controls the two led strips
@@ -67,6 +68,12 @@ void ledBarSetup(){
   
   // Start normal operation
   setBarStandby();
+  
+  // Initialize battery display with current battery level
+  // Convert battery level to LED steps for display
+  int steps = (batteryLevel + 5) / LedBar2_Num;
+  steps = constrain(steps, 0, LedBar2_Num);
+  setBarBattery(steps);
   
   // Small delay and second call to ensure display is stable
   delay(100);
@@ -211,7 +218,17 @@ void setBarPowerBank(bool status) {
 }
 
 void setBarLED(int num) {
-    setBar(1, num, "#000000", 0, "#FFFFFF", getLedBarBrightness());
+    int ledBarNum = getLedBarNum();
+    if (ledBarNum == 0) ledBarNum = 10; // Fallback
+    
+    // For lamp levels: 0=OFF (0 LEDs), 1-4 = brightness levels (1-4 LEDs)
+    // We want the LEDs to build up from right to left
+    int numOn = num; // num is already the correct number of LEDs to show
+    int numOff = ledBarNum - numOn;
+    
+    // Display: OFF LEDs on left (black), ON LEDs on right (white)
+    // This makes the brightness build up from right to left
+    setBar(1, numOff, "#000000", 0, "#FFFFFF", getLedBarBrightness());
 }
 
 void setBarFlasher(bool status) {

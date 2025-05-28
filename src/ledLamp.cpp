@@ -145,7 +145,8 @@ void flash(){
 
 void toggleLED(){
   LED_State++;
-  if (LED_State > getLampMaxLevels()) LED_State = LAMP_OFF;
+  int maxLevel = getLampMaxLevels() - 1; // Maximum valid level is maxLevels-1
+  if (LED_State > maxLevel) LED_State = LAMP_OFF;
   setLEDState(LED_State);
   setBarLED(LED_State);
   log("LED_State", LED_State, true);

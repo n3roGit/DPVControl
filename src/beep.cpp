@@ -50,7 +50,7 @@ void beep(long length_ms){
 */
 void beep(const String& sequence) {
   if (!getBeeperEnabled()) return; // Use settings system
-  if(EnableDebugLog) Serial.println("beepSequence:"+sequence);
+  log("beepSequence:"+sequence);
   beepSequence.blink(sequence);
 }
 
