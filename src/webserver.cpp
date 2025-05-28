@@ -789,8 +789,8 @@ const char* helloWorldHTML = R"rawliteral(
                             <input type="range" id="timeSlider" min="0" max="100" value="100" 
                                    style="width: 100%;" onchange="updateTimeWindow()" oninput="updateTimeWindow()">
                             <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 3px;">
-                                <span id="sliderStart">Älteste</span>
-                                <span id="sliderEnd">Neueste</span>
+                                <span id="sliderStart">Oldest</span>
+                                <span id="sliderEnd">Newest</span>
                             </div>
                         </div>
                         
@@ -1567,9 +1567,9 @@ const char* helloWorldHTML = R"rawliteral(
                 // Format the display text with real duration
                 let durationText = '';
                 if (minutes > 0) {
-                    durationText = `${minutes} Min. ${seconds} Sek. (${totalDatapoints} Datenpunkte, ${chartDatapoints} angezeigt)`;
+                    durationText = `${minutes} Min. ${seconds} Sec. (${totalDatapoints} data points, ${chartDatapoints} displayed)`;
                 } else {
-                    durationText = `${seconds} Sek. (${totalDatapoints} Datenpunkte, ${chartDatapoints} angezeigt)`;
+                    durationText = `${seconds} Sec. (${totalDatapoints} data points, ${chartDatapoints} displayed)`;
                 }
                 
                 durationInfo.textContent = durationText;
@@ -1611,9 +1611,9 @@ const char* helloWorldHTML = R"rawliteral(
             // Format the display text
             let durationText = '';
             if (minutes > 0) {
-                durationText = `~${minutes} Min. ${seconds} Sek. (${data.length} Datenpunkte, evtl. reduziert)`;
+                durationText = `~${minutes} Min. ${seconds} Sec. (${data.length} data points, possibly reduced)`;
             } else {
-                durationText = `~${seconds} Sek. (${data.length} Datenpunkte, evtl. reduziert)`;
+                durationText = `~${seconds} Sec. (${data.length} data points, possibly reduced)`;
             }
             
             durationInfo.textContent = durationText;

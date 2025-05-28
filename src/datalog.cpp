@@ -347,7 +347,7 @@ unsigned long getTotalUptime() {
 }
 
 /**
- * Öffnet eine neue CSV-Datei zum Schreiben
+ * Opens a new CSV file for writing
  */
 void openCSVFile() {
   // Short pause before file access
@@ -834,7 +834,7 @@ void appendToTripLog(LogdataRow datapoint) {
 }
 
 /**
- * Fügt einen Datenpunkt zum Recent-Buffer hinzu UND speichert ihn persistent
+ * Adds a data point to the Recent buffer AND saves it persistently
  */
 void addToRecentData(LogdataRow datapoint) {
   // Add to RAM buffer for live display (always keep full resolution in RAM)
@@ -999,7 +999,7 @@ void loadCompressedData() {
 }
 
 /**
- * Gibt die letzten n Datenpunkte zurück - liest aus Trip-Log wenn mehr als RAM-Buffer
+ * Returns the last n data points - reads from Trip-Log if more than RAM buffer
  */
 LogdataRow* getLatestDataPoints(int count, String timeRange) {
   if (count <= totalRecentPoints) {
@@ -1052,7 +1052,7 @@ LogdataRow* getLatestDataPoints(int count, String timeRange) {
 }
 
 /**
- * Gibt Recent-Daten zurück (1s Auflösung)
+ * Returns Recent data (1s resolution)
  */
 LogdataRow* getRecentData(int count) {
   String requestMsg = "getRecentData called - Requested: " + String(count) + ", Available: " + String(totalRecentPoints);
