@@ -46,7 +46,7 @@ extern int currentMotorStep; // Declare external variable
 void setLEDState(int state);
 
 
-void turnLampOn(){setLEDState(getLampMaxLevels());}
+void turnLampOn(){setLEDState(getLampMaxLevels() - 1);}
 void turnLampOff() {
   // Turn lamp off for blinking without changing LED_State
   setLEDState(LAMP_OFF);
@@ -82,7 +82,7 @@ void ledLampLoop(){
         flashStep = 2;
         break;
       case 2: // Step 2: Flash on max for 1 second  
-        setLEDState(getLampMaxLevels());
+        setLEDState(getLampMaxLevels() - 1);
         flashStepTime = millis() + 1000;
         flashStep = 3;
         break;
