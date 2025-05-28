@@ -816,7 +816,6 @@ const char* helloWorldHTML = R"rawliteral(
                 </div>
                 
                 <p style="margin-top: 10px; font-size: 12px; color: #888;">
-                    Note: Time range: 5 minutes, Update interval: 10s.
                 </p>
             </div>
         </div>
@@ -877,27 +876,8 @@ const char* helloWorldHTML = R"rawliteral(
                         <label style="display: block; margin-bottom: 15px; font-weight: bold; text-align: center;">
                             Brightness Level:
                         </label>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="lampLevel" value="1" style="margin-right: 10px;" 
-                                       onchange="setLampLevelFromRadio(this.value)" disabled>
-                                <span>Level 1 - Low</span>
-                            </label>
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="lampLevel" value="2" style="margin-right: 10px;" 
-                                       onchange="setLampLevelFromRadio(this.value)" disabled>
-                                <span>Level 2 - Medium</span>
-                            </label>
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="lampLevel" value="3" style="margin-right: 10px;" 
-                                       onchange="setLampLevelFromRadio(this.value)" disabled>
-                                <span>Level 3 - High</span>
-                            </label>
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="radio" name="lampLevel" value="4" style="margin-right: 10px;" 
-                                       onchange="setLampLevelFromRadio(this.value)" disabled>
-                                <span>Level 4 - Maximum</span>
-                            </label>
+                        <div id="lampLevelRadios" style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Lamp level radio buttons will be generated dynamically by JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -1356,6 +1336,9 @@ const char* helloWorldHTML = R"rawliteral(
                     
                     // Load available sessions
                     loadSessionList();
+                    
+                    // Enable remote control interface after initialization
+                    setTimeout(enableRemoteControlInterface, 1000);
                 } else {
                     console.log('Waiting for libraries to load... Chart:', typeof Chart, 'JSZip:', typeof JSZip);
                     setTimeout(waitForLibraries, 200);
@@ -2107,6 +2090,9 @@ const char* helloWorldHTML = R"rawliteral(
             
             // Update remote control lamp slider after changing levels
             updateRemoteLampSlider();
+            
+            // Update remote control lamp level interface with new brightness values
+            updateLampLevelInterface();
         }
         
         // Update remote control lamp slider based on current settings
@@ -2228,6 +2214,9 @@ const char* helloWorldHTML = R"rawliteral(
                     
                     // Update remote control lamp slider interface after all settings are loaded
                     updateLampSliderInterface();
+                    
+                    // Update remote control lamp level interface after all settings are loaded
+                    updateLampLevelInterface();
                 })
                 .catch(error => {
                     console.error('Error loading settings:', error);
@@ -2329,6 +2318,9 @@ const char* helloWorldHTML = R"rawliteral(
                         
                         // Update remote control lamp slider interface after successful save
                         updateLampSliderInterface();
+                        
+                        // Update remote control lamp level interface after successful save
+                        updateLampLevelInterface();
                     } else {
                         settingsStatusEl.textContent = 'Error saving settings!';
                         console.error('Server reported error saving settings');
@@ -2830,6 +2822,80 @@ const char* helloWorldHTML = R"rawliteral(
         // Legacy function for backward compatibility  
         function setLampLevel(value) {
             updateLampLevel(value);
+        }
+        
+        // Generate dynamic lamp level radio buttons based on current settings
+        function updateLampLevelInterface() {
+            const maxLevels = parseInt(document.getElementById('lampMaxLevels')?.value || 5);
+            const container = document.getElementById('lampLevelRadios');
+            
+            if (!container) {
+                console.warn('lampLevelRadios container not found');
+                return;
+            }
+            
+            // Clear existing radio buttons
+            container.innerHTML = '';
+            
+            // Generate radio buttons for each level (starting from level 1)
+            for (let i = 1; i < maxLevels; i++) {
+                const brightnessEl = document.getElementById('lampBrightness' + i);
+                const brightness = brightnessEl ? parseInt(brightnessEl.value) || 0 : 0;
+                
+                const label = document.createElement('label');
+                label.style.cssText = 'display: flex; align-items: center; cursor: pointer;';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'lampLevel';
+                radio.value = i.toString();
+                radio.style.cssText = 'margin-right: 10px;';
+                radio.onchange = function() { setLampLevelFromRadio(this.value); };
+                radio.disabled = false; // Enable radio buttons when interface is ready
+                
+                const span = document.createElement('span');
+                span.textContent = `Level ${i} - ${brightness}`;
+                
+                label.appendChild(radio);
+                label.appendChild(span);
+                container.appendChild(label);
+            }
+            
+            console.log('Updated lamp level interface with', maxLevels - 1, 'brightness levels');
+        }
+        
+        // Enable remote control interface after system initialization
+        function enableRemoteControlInterface() {
+            console.log('Enabling remote control interface...');
+            
+            // Enable motor control slider
+            const motorSlider = document.getElementById('motorSpeed');
+            if (motorSlider) {
+                motorSlider.disabled = false;
+                motorSlider.style.opacity = '1.0';
+            }
+            
+            // Enable lamp control slider
+            const lampSlider = document.getElementById('lampLevelSlider');
+            if (lampSlider) {
+                lampSlider.disabled = false;
+                lampSlider.style.opacity = '1.0';
+            }
+            
+            // Enable all lamp level radio buttons
+            const radioButtons = document.querySelectorAll('input[name="lampLevel"]');
+            radioButtons.forEach(radio => {
+                radio.disabled = false;
+            });
+            
+            // Enable motor toggle button
+            const motorToggle = document.getElementById('motorToggle');
+            if (motorToggle) {
+                motorToggle.disabled = false;
+                motorToggle.style.opacity = '1.0';
+            }
+            
+            console.log('Remote control interface enabled');
         }
     </script>
 </body>
