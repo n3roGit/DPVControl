@@ -15,3 +15,4 @@ Tasks:
 - If you install serial logging, make sure you use the existing function for this!
 - Always compile independently for major changes
 - The code and comments are always in English!
+- For every change, include in the chat a suggested git commit message in English.
