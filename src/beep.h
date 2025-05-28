@@ -3,7 +3,7 @@
 #include "Arduino.h"
 
 /**
-* Code for making beeps. Surprisingly hard, because we avoid
+* Code for making beeps. Surprisingly hard, because we avoid 
 * using delay() so that we do not block all execution while
 * we beep. We achieve this by using running a loop that checks the current time with
 * a timestamp to determine if we need to stop beeping or continue the next beep
