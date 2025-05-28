@@ -61,14 +61,29 @@ void ledBarSetup(){
   // Run Knight Rider startup animation
   knightRiderStartup();
   
+  // Force refresh to clear any cached states
+  forceRefreshLedBar();
+  
   // Start normal operation
+  setBarStandby();
+  
+  // Small delay and second call to ensure display is stable
+  delay(100);
   setBarStandby();
 }
 
 
 void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
+  // Debug output
+  Serial.println("setBar() called:");
+  Serial.println("  stripNumber: " + String(stripNumber));
+  Serial.println("  numLEDsOn: " + String(numLEDsOn));
+  Serial.println("  hexColorOn: " + hexColorOn);
+  Serial.println("  brightnessOn: " + String(brightnessOn));
+  
   // Make sure that stripNumber is valid (1 for the first strip, 2 for the second strip)
   if (stripNumber != 1 && stripNumber != 2) {
+    Serial.println("  ERROR: Invalid stripNumber!");
     return; // Unauthorized value, do nothing
   }
 
@@ -78,6 +93,10 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
 
   // Calculate the end index based on stripNumber
   int endIndex = (stripNumber == 1) ? ledBarNum : ledBarNum + LedBar2_Num;
+  
+  Serial.println("  ledBarNum: " + String(ledBarNum));
+  Serial.println("  startIndex: " + String(startIndex));
+  Serial.println("  endIndex: " + String(endIndex));
 
   // Convert the hex color value to RGB color values for the switched-on color
   long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
@@ -88,12 +107,16 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
   // Apply brightness correction for ON color
   int correctedBrightnessOn = calculateBrightnessCorrectedValue(redOn, greenOn, blueOn, brightnessOn);
 
+  Serial.println("  RGB ON: " + String(redOn) + "," + String(greenOn) + "," + String(blueOn));
+  Serial.println("  correctedBrightnessOn: " + String(correctedBrightnessOn));
+
   // Set the LEDs according to the specified brightness and colors
   for (int i = startIndex; i < startIndex + numLEDsOn; i++) {
     int dimmed_color_r = redOn * correctedBrightnessOn / 100;
     int dimmed_color_g = greenOn * correctedBrightnessOn / 100;
     int dimmed_color_b = blueOn * correctedBrightnessOn / 100;
     strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
+    Serial.println("  Setting LED " + String(i) + " to RGB(" + String(dimmed_color_r) + "," + String(dimmed_color_g) + "," + String(dimmed_color_b) + ")");
   }
 
     // Convert the hex color value to RGB color values for the switched off color
@@ -111,6 +134,7 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
   }
 
   strip.show();  // Update LED strips
+  Serial.println("setBar() completed, strip.show() called");
 }
 
 void setBarStandby() {
@@ -122,7 +146,19 @@ void setBarStandby() {
     // Force immediate update with current settings
     int ledBarNum = getLedBarNum();
     int brightness = getLedBarBrightnessSecond();
+    
+    // Fallback values if settings are not loaded yet
+    if (ledBarNum == 0) ledBarNum = 10;  // Default LED bar length
+    if (brightness == 0) brightness = 3; // Default brightness
+    
+    // Debug output
+    Serial.println("setBarStandby() called:");
+    Serial.println("  ledBarNum: " + String(ledBarNum));
+    Serial.println("  brightness: " + String(brightness));
+    
     setBar(1, ledBarNum, "#e38f09", brightness, "#000000", 0);
+    
+    Serial.println("setBarStandby() completed");
 }
 
 void setBarSpeed(int num) {
