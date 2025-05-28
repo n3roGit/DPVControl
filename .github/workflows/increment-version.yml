@@ -1,16 +1,17 @@
-name: Increment Version
+name: Build and Version
 
 on:
   push:
     branches:
       - main
       - production_repo
+      - '**'
     paths:
       - 'DPVController/**'
       - '!DPVController/version.txt'
 
 jobs:
-  versioning:
+  build-and-version:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -24,23 +25,45 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Increment version
+      - name: Build project
         run: |
-          CURRENT_VERSION=$(cat DPVController/version.txt || echo "0.0.0")
-          NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
-          echo $NEW_VERSION > DPVController/version.txt
-          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=v$NEW_VERSION" >> $GITHUB_ENV
+          cd DPVController
+          dotnet build -c Release
 
-      - name: Push new version
+      - name: Determine version
+        id: version
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == "refs/heads/production_repo" ]]; then
+            CURRENT_VERSION=$(cat DPVController/version.txt || echo "0.0.0")
+            NEW_VERSION=$(node -e "let v='$CURRENT_VERSION'.split('.'); v[2]++; console.log(v.join('.'))")
+            echo $NEW_VERSION > DPVController/version.txt
+            echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+            echo "TAG_NAME=v$NEW_VERSION" >> $GITHUB_ENV
+          else
+            BRANCH_NAME=${GITHUB_REF#refs/heads/}
+            COMMIT_ID=$(git rev-parse --short HEAD)
+            echo "VERSION=$BRANCH_NAME-$COMMIT_ID" >> $GITHUB_ENV
+            echo "TAG_NAME=$BRANCH_NAME-$COMMIT_ID" >> $GITHUB_ENV
+          fi
+
+      - name: Create Release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: Release ${{ env.VERSION }}
+          files: |
+            DPVController/bin/Release/**/*.dll
+            DPVController/bin/Release/**/*.exe
+          draft: false
+          prerelease: false
+
+      - name: Push version changes
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add DPVController/version.txt
           git commit -m "Bump version to ${VERSION}"
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "Tag v$VERSION already exists. Skipping tagging."
-          else
-            git tag -a "$TAG_NAME" -m "Version $VERSION"
-            git push origin HEAD --tags
-          fi
+          git tag -a "$TAG_NAME" -m "Version $VERSION"
+          git push origin HEAD --tags
