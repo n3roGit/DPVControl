@@ -60,24 +60,23 @@ void ledBarSetup(){
   strip.begin();
   strip.show(); // Turn off all LEDs
   
-  // Run Knight Rider startup animation
+  // Run Knight Rider startup animation (now only affects Strip 1)
   knightRiderStartup();
   
   // Force refresh to clear any cached states
   forceRefreshLedBar();
   
-  // Start normal operation
-  setBarStandby();
-  
-  // Initialize battery display with current battery level
+  // Initialize battery display first with current battery level
   // Convert battery level to LED steps for display
   int steps = (batteryLevel + 5) / LedBar2_Num;
   steps = constrain(steps, 0, LedBar2_Num);
   setBarBattery(steps);
   
-  // Small delay and second call to ensure display is stable
-  delay(100);
+  // Then set standby state on Strip 1 (this will not affect Strip 2)
   setBarStandby();
+  
+  // Small delay to ensure display is stable
+  delay(100);
 }
 
 
@@ -264,8 +263,8 @@ void knightRiderStartup() {
 
     // Forward sweep: Strip 1 (left to right), Strip 2 (right to left)
     for (int pos = 0; pos < ledBarNum; pos++) {
-      // Clear all LEDs
-      for (int i = 0; i < ledBarNum + LedBar2_Num; i++) {
+      // Clear only Strip 1 LEDs (preserve Strip 2 battery display)
+      for (int i = 0; i < ledBarNum; i++) {
         strip.setPixelColor(i, strip.Color(0, 0, 0));
       }
 
@@ -278,24 +277,14 @@ void knightRiderStartup() {
         strip.setPixelColor(pos - 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
       }
       
-      // Strip 2 (upper strip): right to left (positions 10-19)
-      int strip2Pos = ledBarNum + (ledBarNum - 1 - pos); // Mirror position
-      strip.setPixelColor(strip2Pos, strip.Color(maxBrightness, 0, 0)); // Main LED
-      if (pos > 0) {
-        strip.setPixelColor(strip2Pos + 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
-      }
-      if (pos > 1) {
-        strip.setPixelColor(strip2Pos + 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
-      }
-
       strip.show();
       delay(delayTime);
     }
 
-    // Backward sweep: Strip 1 (right to left), Strip 2 (left to right)
+    // Backward sweep: Strip 1 (right to left)  
     for (int pos = ledBarNum - 1; pos >= 0; pos--) {
-      // Clear all LEDs
-      for (int i = 0; i < ledBarNum + LedBar2_Num; i++) {
+      // Clear only Strip 1 LEDs (preserve Strip 2 battery display)
+      for (int i = 0; i < ledBarNum; i++) {
         strip.setPixelColor(i, strip.Color(0, 0, 0));
       }
 
@@ -308,23 +297,13 @@ void knightRiderStartup() {
         strip.setPixelColor(pos + 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
       }
       
-      // Strip 2 (upper strip): left to right (positions 10-19)
-      int strip2Pos = ledBarNum + (ledBarNum - 1 - pos); // Mirror position
-      strip.setPixelColor(strip2Pos, strip.Color(maxBrightness, 0, 0)); // Main LED
-      if (pos < ledBarNum - 1) {
-        strip.setPixelColor(strip2Pos - 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
-      }
-      if (pos < ledBarNum - 2) {
-        strip.setPixelColor(strip2Pos - 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
-      }
-
       strip.show();
       delay(delayTime);
     }
   }
 
-  // Clear all LEDs after animation
-  for (int i = 0; i < ledBarNum + LedBar2_Num; i++) {
+  // Clear only Strip 1 LEDs after animation (preserve Strip 2)
+  for (int i = 0; i < ledBarNum; i++) {
     strip.setPixelColor(i, strip.Color(0, 0, 0));
   }
   strip.show();
