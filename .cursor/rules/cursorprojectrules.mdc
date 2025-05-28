@@ -13,3 +13,4 @@ You can find information about the project in my blog: https://bubtec.de/2024/10
 Tasks:
 - Remember to update the API documentation every time you do something on the webserver!
 - If you install serial logging, make sure you use the existing function for this!
+- Always compile independently for major changes
