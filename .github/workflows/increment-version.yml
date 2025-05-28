@@ -8,6 +8,9 @@ on:
       - '**'
     paths:
       - 'DPVController/**'
+      - 'src/**'
+      - 'firmware/**'
+      - 'web/**'
       - '!DPVController/version.txt'
 
 jobs:
