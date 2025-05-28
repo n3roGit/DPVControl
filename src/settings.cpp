@@ -35,7 +35,7 @@ void initializeDefaultSettings() {
     defaultSettings.ledFrequency = 960;
     
     // Lamp settings (front light) - Level 0 must always be OFF
-    defaultSettings.lampMaxLevels = 5; // OFF + 4 brightness levels
+    defaultSettings.lampMaxLevels = 5; // 4 brightness levels + OFF
     defaultSettings.lampBrightness[0] = 0;   // Level 0: OFF
     defaultSettings.lampBrightness[1] = 60;  // Level 1: Low brightness
     defaultSettings.lampBrightness[2] = 120; // Level 2: Medium brightness
@@ -175,17 +175,15 @@ bool validateSettings(const DPVSettings& settings) {
         log(msg.c_str());
         return false;
     }
-    
-    // Log lamp brightness values before validation
-    String lampMsg = "Lamp brightness validation - MaxLevels: " + String(settings.lampMaxLevels);
-    for (int i = 0; i <= settings.lampMaxLevels; i++) {
-        lampMsg += ", Level" + String(i) + ":" + String(settings.lampBrightness[i]);
+    // Level 0 must always be 0
+    if (settings.lampBrightness[0] != 0) {
+        String msg = "VALIDATION FAILED: lampBrightness[0] must be 0 (OFF)";
+        log(msg.c_str());
+        return false;
     }
-    log(lampMsg.c_str());
-    
-    for (int i = 0; i <= settings.lampMaxLevels; i++) {
-        if (settings.lampBrightness[i] < 0 || settings.lampBrightness[i] > 255) {
-            String msg = "VALIDATION FAILED: lampBrightness[" + String(i) + "] = " + String(settings.lampBrightness[i]) + " not in range 0-255";
+    for (int i = 1; i < settings.lampMaxLevels; i++) {
+        if (settings.lampBrightness[i] < 1 || settings.lampBrightness[i] > 255) {
+            String msg = "VALIDATION FAILED: lampBrightness[" + String(i) + "] = " + String(settings.lampBrightness[i]) + " not in range 1-255";
             log(msg.c_str());
             return false;
         }
