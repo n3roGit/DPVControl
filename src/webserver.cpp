@@ -2502,8 +2502,10 @@ const char* helloWorldHTML = R"rawliteral(
             // Calculate actual level based on percentage and max levels
             let actualLevel = 0;
             if (levelPercent > 0) {
-                actualLevel = Math.ceil((levelPercent * maxLevels) / 100);
-                if (actualLevel > maxLevels) actualLevel = maxLevels;
+                // Map 1-100% to 1-(maxLevels-1) correctly
+                actualLevel = ((levelPercent * (maxLevels - 1)) + 99) / 100; // Fixed: use (maxLevels-1)
+                if (actualLevel < 1) actualLevel = 1; // Ensure minimum level 1 for any non-zero percentage
+                if (actualLevel >= maxLevels) actualLevel = maxLevels - 1; // Maximum valid level is maxLevels-1
             }
             
             document.getElementById('lampLevelValue').textContent = levelPercent;
@@ -3636,10 +3638,10 @@ void handleClient(WiFiClient client) {
         int maxLevels = getLampMaxLevels();
         int actualLevel = 0;
         if (levelPercent > 0) {
-            // Map 1-100% to 1-maxLevels
-            actualLevel = (levelPercent * maxLevels + 99) / 100; // Round up
-            if (actualLevel > maxLevels) actualLevel = maxLevels;
+            // Map 1-100% to 1-(maxLevels-1) correctly
+            actualLevel = ((levelPercent * (maxLevels - 1)) + 99) / 100; // Fixed: use (maxLevels-1)
             if (actualLevel < 1) actualLevel = 1; // Ensure minimum level 1 for any non-zero percentage
+            if (actualLevel >= maxLevels) actualLevel = maxLevels - 1; // Maximum valid level is maxLevels-1
         }
         
         // Integrate with actual LED lamp functions
