@@ -2499,13 +2499,21 @@ const char* helloWorldHTML = R"rawliteral(
             const maxLevels = parseInt(document.getElementById('lampMaxLevels')?.value || 5);
             const levelPercent = parseInt(value);
             
-            // Calculate actual level based on percentage and max levels
+            // Convert percentage (0-100) to actual LED level (0-maxLevels)
             let actualLevel = 0;
             if (levelPercent > 0) {
-                // Map 1-100% to 1-(maxLevels-1) correctly
-                actualLevel = ((levelPercent * (maxLevels - 1)) + 99) / 100; // Fixed: use (maxLevels-1)
-                if (actualLevel < 1) actualLevel = 1; // Ensure minimum level 1 for any non-zero percentage
-                if (actualLevel >= maxLevels) actualLevel = maxLevels - 1; // Maximum valid level is maxLevels-1
+                // Map 1-100% to levels 1 through (maxLevels-1) dynamically
+                // For example: 3 levels (OFF + 2 brightness): 1-50% -> level 1, 51-100% -> level 2
+                // For example: 5 levels (OFF + 4 brightness): 1-25% -> level 1, 26-50% -> level 2, etc.
+                int activeLevels = maxLevels - 1; // Exclude level 0 (OFF)
+                if (activeLevels > 0) {
+                    // Calculate which level based on percentage
+                    actualLevel = ((levelPercent - 1) * activeLevels) / 100 + 1;
+                    if (actualLevel < 1) actualLevel = 1;
+                    if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
+                } else {
+                    actualLevel = 1; // Fallback to level 1 if no active levels configured
+                }
             }
             
             document.getElementById('lampLevelValue').textContent = levelPercent;
@@ -3637,11 +3645,22 @@ void handleClient(WiFiClient client) {
         // Convert percentage (0-100) to actual LED level (0-maxLevels)
         int maxLevels = getLampMaxLevels();
         int actualLevel = 0;
-        if (levelPercent > 0) {
-            // Map 1-100% to 1-(maxLevels-1) correctly
-            actualLevel = ((levelPercent * (maxLevels - 1)) + 99) / 100; // Fixed: use (maxLevels-1)
-            if (actualLevel < 1) actualLevel = 1; // Ensure minimum level 1 for any non-zero percentage
-            if (actualLevel >= maxLevels) actualLevel = maxLevels - 1; // Maximum valid level is maxLevels-1
+        if (levelPercent == 0) {
+            // 0% should always be OFF (level 0)
+            actualLevel = 0;
+        } else {
+            // Map 1-100% to levels 1 through (maxLevels-1) dynamically
+            // For example: 3 levels (OFF + 2 brightness): 1-50% -> level 1, 51-100% -> level 2
+            // For example: 5 levels (OFF + 4 brightness): 1-25% -> level 1, 26-50% -> level 2, etc.
+            int activeLevels = maxLevels - 1; // Exclude level 0 (OFF)
+            if (activeLevels > 0) {
+                // Calculate which level based on percentage
+                actualLevel = ((levelPercent - 1) * activeLevels) / 100 + 1;
+                if (actualLevel < 1) actualLevel = 1;
+                if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
+            } else {
+                actualLevel = 1; // Fallback to level 1 if no active levels configured
+            }
         }
         
         // Integrate with actual LED lamp functions

@@ -376,8 +376,11 @@ paths:
       summary: Control front lamp
       description: |
         Adjust the brightness of the front LED lamp using percentage values.
-        0% turns the lamp off, 100% sets maximum brightness.
-        The percentage is automatically mapped to the available brightness levels (typically 0-4).
+        0% turns the lamp off, 1-100% are mapped dynamically to the configured brightness levels.
+        The number of levels and their brightness values are configurable via the settings system.
+        Percentage ranges are automatically calculated: For N levels, 1-(100/N)% = level 1, (100/N+1)-100% = level N.
+        Example: 3 levels (OFF + 2 brightness): 1-50% → level 1, 51-100% → level 2
+        Example: 5 levels (OFF + 4 brightness): 1-25% → level 1, 26-50% → level 2, 51-75% → level 3, 76-100% → level 4
       requestBody:
         required: true
         content:
@@ -398,7 +401,7 @@ paths:
                 - level
               example:
                 enabled: true
-                level: 75
+                level: 50
       responses:
         '200':
           description: Lamp control result
@@ -420,13 +423,13 @@ paths:
                         description: Current lamp percentage (same as level)
                       actualLevel:
                         type: integer
-                        description: Internal brightness level used by hardware (0 to maxLevels-1)
+                        description: Internal brightness level used by hardware (0=OFF, 1 to maxLevels-1 for brightness levels)
               example:
                 success: true
                 enabled: true
-                level: 75
-                percentage: 75
-                actualLevel: 3
+                level: 50
+                percentage: 50
+                actualLevel: 1
 
   /api/version:
     get:
@@ -711,20 +714,20 @@ components:
         # Lamp Settings
         lampMaxLevels:
           type: integer
-          description: Number of lamp brightness levels (2-10)
+          description: Number of lamp brightness levels including OFF (2-10)
           minimum: 2
           maximum: 10
-          example: 5
+          example: 3
         lampBrightness:
           type: array
-          description: Array of brightness values for each lamp level
+          description: Array of brightness values for each lamp level (Level 0 must be 0 for OFF)
           items:
             type: integer
             minimum: 0
             maximum: 255
           minItems: 10
           maxItems: 10
-          example: [0, 20, 76, 153, 255, 0, 0, 0, 0, 0]
+          example: [0, 50, 200, 0, 0, 0, 0, 0, 0, 0]
         
         # WiFi Settings
         wifiSSID:

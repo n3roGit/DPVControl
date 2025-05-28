@@ -34,15 +34,13 @@ void initializeDefaultSettings() {
     defaultSettings.ledBarBrightnessSecond = 3;
     defaultSettings.ledFrequency = 960;
     
-    // Lamp settings (front light) - based on your switch statement
-    defaultSettings.lampMaxLevels = 5; // LAMP_OFF to LAMP_MAX (0-4)
-    defaultSettings.lampBrightness[0] = 0;   // LAMP_OFF
-    defaultSettings.lampBrightness[1] = 20;  // Level 1
-    defaultSettings.lampBrightness[2] = 76;  // Level 2
-    defaultSettings.lampBrightness[3] = 153; // Level 3
-    defaultSettings.lampBrightness[4] = 255; // LAMP_MAX
+    // Lamp settings (front light) - Level 0 must always be OFF
+    defaultSettings.lampMaxLevels = 3; // OFF + 2 brightness levels
+    defaultSettings.lampBrightness[0] = 0;   // Level 0: OFF
+    defaultSettings.lampBrightness[1] = 50;  // Level 1: First brightness
+    defaultSettings.lampBrightness[2] = 200; // Level 2: Second brightness (MAX)
     // Initialize remaining levels to 0
-    for (int i = 5; i < 10; i++) {
+    for (int i = 3; i < 10; i++) {
         defaultSettings.lampBrightness[i] = 0;
     }
     
