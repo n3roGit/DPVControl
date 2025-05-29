@@ -10,7 +10,7 @@ on:
       - 'src/**'
       - 'firmware/**'
       - 'web/**'
-      - '!DPVController/version.txt'
+      - '!data/version.txt'
 
 jobs:
   build-and-version:
@@ -44,12 +44,36 @@ jobs:
       - name: Build PlatformIO Project
         run: pio run
 
-      - name: Determine version
+      - name: Determine and increment version
         id: version
         run: |
-          VERSION=$(cat DPVController/version.txt || echo "0.0.0")
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=v$VERSION" >> $GITHUB_ENV
+          CURRENT_VERSION=$(cat data/version.txt || echo "2.0.0")
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Split version into parts
+          IFS='.' read -ra PARTS <<< "$CURRENT_VERSION"
+          MAJOR=${PARTS[0]}
+          MINOR=${PARTS[1]}
+          PATCH=${PARTS[2]}
+          
+          # Increment patch version
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          
+          echo "New version: $NEW_VERSION"
+          echo "$NEW_VERSION" > data/version.txt
+          
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=v$NEW_VERSION" >> $GITHUB_ENV
+
+      - name: Commit version file
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/version.txt
+          git commit -m "Auto-increment version to ${{ env.VERSION }}" || exit 0
+          git push
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
