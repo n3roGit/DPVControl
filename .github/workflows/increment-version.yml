@@ -6,11 +6,15 @@ on:
       - main
       - production_repo
     paths:
-      - 'DPVController/**'
       - 'src/**'
-      - 'firmware/**'
-      - 'web/**'
+      - 'platformio.ini'
+      - 'data/chart.min.js'
+      - 'data/jszip.min.js'
       - '!data/version.txt'
+      - '!src/**/*.md'
+      - '!**/*.png'
+      - '!**/*.jpg'
+      - '!**/*.jpeg'
 
 jobs:
   build-and-version:
