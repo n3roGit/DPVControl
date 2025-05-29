@@ -79,14 +79,6 @@ The DPV Control system provides a comprehensive REST API for system monitoring, 
 - Trip log export functionality
 - Session-based data filtering
 
-# TODO
-
-- 95% - **Web interface:** Retrieve basic information and adjust settings if necessary. ✅
-- 0% - **Update via WiFi**
-- 0% - **Implement watchdog to make it smooth and stable**
-- 100% - **display uptime and overall runtime in gui** ✅
-
-
 
 
 # Click Codes
@@ -107,7 +99,7 @@ The DPV Control system provides a comprehensive REST API for system monitoring, 
 | 3 Clicks | 3 Clicks | PowerBank ON/OFF|
 | 3 Clicks |          | Short light flash |
 |          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
-| 4 Clicks | 4 Clicks |  |
+| 4 Clicks | 4 Clicks | reverse drive mode |
 | 4 Clicks |          | beep Battery level |
 |          | 4 Clicks |  |
 
