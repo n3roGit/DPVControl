@@ -3974,29 +3974,39 @@ void handleClient(WiFiClient client) {
         bool success = true;
         
         try {
-            // Get list of session files
-            int count;
-            String* sessions = listSessionFiles(&count);
-            
-            // Delete each session file
-            for (int i = 0; i < count; i++) {
-                String fullPath = "/datalog/" + sessions[i];
-                if (LittleFS.exists(fullPath)) {
-                    if (LittleFS.remove(fullPath)) {
-                        deleteCount++;
-                        String delMsg = "Deleted session file: " + fullPath;
-                        log(delMsg.c_str());
+            // Directly iterate through datalog directory to find all .bin files
+            // This avoids the 50-session limit from listSessionFiles()
+            File root = LittleFS.open("/datalog");
+            if (root && root.isDirectory()) {
+                File file = root.openNextFile();
+                while (file) {
+                    String fileName = String(file.name());
+                    if (!file.isDirectory() && fileName.endsWith(".bin")) {
+                        String fullPath = "/datalog/" + fileName;
+                        file.close(); // Close file handle before deletion
+                        
+                        if (LittleFS.exists(fullPath)) {
+                            if (LittleFS.remove(fullPath)) {
+                                deleteCount++;
+                                String delMsg = "Deleted session file: " + fullPath;
+                                log(delMsg.c_str());
+                            } else {
+                                errorMsg += "Failed to delete " + fileName + "; ";
+                                success = false;
+                            }
+                        } else {
+                            errorMsg += "File not found " + fileName + "; ";
+                        }
                     } else {
-                        errorMsg += "Failed to delete " + sessions[i] + "; ";
-                        success = false;
+                        file.close(); // Close non-.bin files
                     }
-                } else {
-                    errorMsg += "File not found " + sessions[i] + "; ";
+                    file = root.openNextFile();
                 }
+                root.close();
+            } else {
+                errorMsg = "Could not open /datalog directory";
+                success = false;
             }
-            
-            // Clean up
-            delete[] sessions;
             
             String resultMsg = "Deleted " + String(deleteCount) + " session files";
             log(resultMsg.c_str());
