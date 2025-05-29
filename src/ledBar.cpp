@@ -93,16 +93,40 @@ int calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBr
 void ledBarSetup(){
   // Neopixel
   strip.begin();
+  
+  // Explicitly clear both strips first
+  int ledBarNum = getLedBarNum();
+  if (ledBarNum == 0) ledBarNum = 10; // Fallback
+  int totalLEDs = ledBarNum + LedBar2_Num;
+  
+  for (int i = 0; i < totalLEDs; i++) {
+    safeSetPixelColor(i, strip.Color(0, 0, 0));
+  }
   strip.show(); // Turn off all LEDs
   
-  // Run Knight Rider startup animation (now only affects Strip 1)
+  // Proper delay to ensure LEDs are initialized
+  delay(250);
+  
+  // Run Knight Rider startup animation
   knightRiderStartup();
+  
+  // Single thorough clearing after animation
+  for (int i = 0; i < totalLEDs; i++) {
+    safeSetPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.show();
   
   // Force refresh to clear any cached states
   forceRefreshLedBar();
   
+  // Adequate delay before setting states
+  delay(100);
+  
   // Set standby state on Strip 1 first
   setBarStandby();
+  
+  // Delay between strip operations
+  delay(75);
   
   // Then initialize battery display on Strip 2 (this must come after setBarStandby)
   // Force battery display update by getting current level and setting it
@@ -113,7 +137,7 @@ void ledBarSetup(){
   lastDisplayedBattery = -1;
   setBarBattery(steps);
   
-  // Small delay to ensure display is stable
+  // Final delay to ensure display is stable
   delay(100);
 }
 
@@ -409,10 +433,20 @@ void knightRiderStartup() {
     }
   }
 
-  // Clear all LEDs after animation
+  // Clear all LEDs after animation and ensure both strips are off
   for (int i = 0; i < totalLEDs; i++) {
     safeSetPixelColor(i, strip.Color(0, 0, 0));
   }
   strip.show();
+  
+  // Small delay to ensure the clear is visible
+  delay(100);
+  
+  // Force another clear to be absolutely sure
+  for (int i = 0; i < totalLEDs; i++) {
+    safeSetPixelColor(i, strip.Color(0, 0, 0));
+  }
+  strip.show();
+  
   ledUpdateInProgress = false;
 }
