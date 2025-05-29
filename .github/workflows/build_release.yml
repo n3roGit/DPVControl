@@ -76,7 +76,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/version.txt
-          git commit -m "Auto-increment version to $NEW_VERSION" || exit 0
+          git commit -m "Auto-increment version to ${NEW_VERSION}" || exit 0
           git push
 
       - name: Create Release
