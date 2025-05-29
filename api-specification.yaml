@@ -42,27 +42,108 @@ paths:
   /api/status:
     get:
       tags:
-        - Status
-      summary: Get current system status
-      description: Returns real-time system information including uptime, sensor states, and operational status
+        - System
+      summary: Get system status
+      description: Returns current system status information including operational status, uptime, and sensor data
       responses:
         '200':
-          description: Current system status
+          description: System status information
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SystemStatus'
+                type: object
+                properties:
+                  uptime:
+                    type: integer
+                    description: Current system uptime in milliseconds
+                    example: 3654000
+                  totalUptime:
+                    type: integer
+                    description: Total device operating time in seconds
+                    example: 12345
+                  dataPoints:
+                    type: integer
+                    description: Number of data points in current recording buffer
+                    example: 120
+                  isDataloggerRunning:
+                    type: boolean
+                    description: Whether the datalogger is currently recording
+                    example: true
+                  waterSensorFront:
+                    type: boolean
+                    description: Front water sensor state (true if leak detected)
+                    example: false
+                  waterSensorBack:
+                    type: boolean
+                    description: Back water sensor state (true if leak detected)
+                    example: false
+                  leftButton:
+                    type: boolean
+                    description: Left button state (true if pressed)
+                    example: false
+                  rightButton:
+                    type: boolean
+                    description: Right button state (true if pressed)
+                    example: false
+                  lampLevel:
+                    type: integer
+                    description: Current lamp brightness level
+                    example: 2
+                  beeperEnabled:
+                    type: boolean
+                    description: Whether the beeper is enabled
+                    example: true
+                  erpm:
+                    type: number
+                    description: Current motor speed in electrical RPM
+                    example: 12500
+                  motorTemp:
+                    type: number
+                    description: Motor temperature in Celsius
+                    example: 42.5
+                  mosfetTemp:
+                    type: number
+                    description: MOSFET temperature in Celsius
+                    example: 38.2
+                  inputVoltage:
+                    type: number
+                    description: Current input voltage
+                    example: 14.8
+                  avgInputCurrent:
+                    type: number
+                    description: Average input current in Amperes
+                    example: 15.3
+                  avgMotorCurrent:
+                    type: number
+                    description: Average motor current in Amperes
+                    example: 20.1
+                  dutyCycle:
+                    type: number
+                    description: Current duty cycle (0.0 to 1.0)
+                    example: 0.75
+                  motorState:
+                    type: integer
+                    description: Current motor state (0=Standby, 1=On, 2=Off, 3=Cruise, 4=Turbo, 5=Jammed)
+                    example: 1
               example:
-                uptime: 129752
-                totalUptime: 5649
-                dataPoints: 100
+                uptime: 3654000
+                totalUptime: 12345
+                dataPoints: 120
                 isDataloggerRunning: true
                 waterSensorFront: false
                 waterSensorBack: false
                 leftButton: false
                 rightButton: false
-                lampLevel: 0
-                beeperEnabled: false
+                lampLevel: 2
+                beeperEnabled: true
+                erpm: 12500
+                motorTemp: 42.5
+                mosfetTemp: 38.2
+                inputVoltage: 14.8
+                avgInputCurrent: 15.3
+                avgMotorCurrent: 20.1
+                dutyCycle: 0.75
+                motorState: 1
 
   /api/data:
     get:

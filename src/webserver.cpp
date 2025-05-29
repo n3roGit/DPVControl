@@ -3589,7 +3589,17 @@ void handleClient(WiFiClient client) {
         jsonStatus += "\"leftButton\":" + String(digitalRead(PIN_LEFT_BUTTON) == LOW ? "true" : "false") + ",";
         jsonStatus += "\"rightButton\":" + String(digitalRead(PIN_RIGHT_BUTTON) == LOW ? "true" : "false") + ",";
         jsonStatus += "\"lampLevel\":" + String(LED_State) + ",";
-        jsonStatus += "\"beeperEnabled\":" + String(currentSettings.beeperEnabled ? "true" : "false");
+        jsonStatus += "\"beeperEnabled\":" + String(currentSettings.beeperEnabled ? "true" : "false") + ",";
+        
+        // Add motor data
+        jsonStatus += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
+        jsonStatus += "\"motorTemp\":" + String(getVescUart().data.tempMotor) + ",";
+        jsonStatus += "\"mosfetTemp\":" + String(getVescUart().data.tempMosfet) + ",";
+        jsonStatus += "\"inputVoltage\":" + String(getVescUart().data.inpVoltage) + ",";
+        jsonStatus += "\"avgInputCurrent\":" + String(getVescUart().data.avgInputCurrent) + ",";
+        jsonStatus += "\"avgMotorCurrent\":" + String(getVescUart().data.avgMotorCurrent) + ",";
+        jsonStatus += "\"dutyCycle\":" + String(getVescUart().data.dutyCycleNow) + ",";
+        jsonStatus += "\"motorState\":" + String(static_cast<int>(motorState));
         jsonStatus += "}";
         
         String statusMsg = "Status response: " + jsonStatus;

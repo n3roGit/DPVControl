@@ -836,6 +836,49 @@ bool initializeFileSystem() {
             </div>
         </div>
         
+        <h2>Motor Status</h2>
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-label">Motor Speed (ERPM)</div>
+                <div class="info-value" id="motorErpm">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">Motor Temperature</div>
+                <div class="info-value" id="motorTemp">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">MOSFET Temperature</div>
+                <div class="info-value" id="mosfetTemp">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">Input Voltage</div>
+                <div class="info-value" id="inputVoltage">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">Average Input Current</div>
+                <div class="info-value" id="avgInputCurrent">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">Average Motor Current</div>
+                <div class="info-value" id="avgMotorCurrent">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">Duty Cycle</div>
+                <div class="info-value" id="dutyCycle">Loading...</div>
+            </div>
+            
+            <div class="info-card">
+                <div class="info-label">Motor State</div>
+                <div class="info-value" id="motorState">Loading...</div>
+            </div>
+        </div>
+        
         <h2>Sensor Status</h2>
         <div class="info-grid">
             <div class="info-card">
@@ -906,6 +949,22 @@ bool initializeFileSystem() {
                     // Update data information
                     document.getElementById('dataPoints').textContent = statusData.dataPoints;
                     document.getElementById('dataloggerStatus').textContent = statusData.isDataloggerRunning ? 'Running' : 'Stopped';
+                    
+                    // Update motor data
+                    document.getElementById('motorErpm').textContent = statusData.erpm ? statusData.erpm.toFixed(0) : '0';
+                    document.getElementById('motorTemp').textContent = statusData.motorTemp ? statusData.motorTemp.toFixed(1) + '°C' : 'N/A';
+                    document.getElementById('mosfetTemp').textContent = statusData.mosfetTemp ? statusData.mosfetTemp.toFixed(1) + '°C' : 'N/A';
+                    document.getElementById('inputVoltage').textContent = statusData.inputVoltage ? statusData.inputVoltage.toFixed(1) + 'V' : 'N/A';
+                    document.getElementById('avgInputCurrent').textContent = statusData.avgInputCurrent ? statusData.avgInputCurrent.toFixed(1) + 'A' : 'N/A';
+                    document.getElementById('avgMotorCurrent').textContent = statusData.avgMotorCurrent ? statusData.avgMotorCurrent.toFixed(1) + 'A' : 'N/A';
+                    document.getElementById('dutyCycle').textContent = statusData.dutyCycle ? (statusData.dutyCycle * 100).toFixed(1) + '%' : 'N/A';
+                    
+                    // Motor state translation
+                    const motorStates = ['Standby', 'On', 'Off', 'Cruise', 'Turbo', 'Jammed'];
+                    document.getElementById('motorState').textContent = 
+                        statusData.motorState !== undefined && statusData.motorState >= 0 && statusData.motorState < motorStates.length 
+                            ? motorStates[statusData.motorState] 
+                            : 'Unknown';
                     
                     // Update sensor status
                     document.getElementById('waterSensorFront').textContent = statusData.waterSensorFront ? 'LEAK DETECTED' : 'OK';
