@@ -9,8 +9,26 @@ name: Lint Code Base
 on:
   push:
     branches: [ "production_repo" ]
+    paths:
+      - 'src/**'
+      - 'platformio.ini'
+      - 'data/**'
+      - '.github/workflows/**'
+      - '!**/*.md'
+      - '!**/*.png'
+      - '!**/*.jpg'
+      - '!**/*.jpeg'
   pull_request:
     branches: [ "production_repo" ]
+    paths:
+      - 'src/**'
+      - 'platformio.ini'
+      - 'data/**'
+      - '.github/workflows/**'
+      - '!**/*.md'
+      - '!**/*.png'
+      - '!**/*.jpg'
+      - '!**/*.jpeg'
 jobs:
   run-lint:
     runs-on: ubuntu-latest
@@ -27,3 +45,5 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          LOG_LEVEL: DEBUG        # Aktiviert ausführliches Logging
+          VERBOSE: true           # Zeigt detaillierte Informationen zu jedem Linter-Durchlauf
