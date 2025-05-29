@@ -28,6 +28,41 @@ static int lastDisplayedSpeed = -1;
 static int lastDisplayedMotorState = -1;
 static int lastDisplayedBattery = -1;
 
+// Mutex-like flag to prevent concurrent LED updates
+static bool ledUpdateInProgress = false;
+
+// Helper function to safely get LED strip boundaries
+void getStripBoundaries(int stripNumber, int& startIndex, int& endIndex) {
+    int ledBarNum = getLedBarNum();
+    if (ledBarNum == 0) ledBarNum = 10; // Fallback
+    
+    if (stripNumber == 1) {
+        startIndex = 0;
+        endIndex = ledBarNum;
+    } else if (stripNumber == 2) {
+        startIndex = ledBarNum;
+        endIndex = ledBarNum + LedBar2_Num;
+    } else {
+        // Invalid strip number
+        startIndex = 0;
+        endIndex = 0;
+    }
+}
+
+// Helper function to safely set a single LED with boundary checking
+bool safeSetPixelColor(int index, uint32_t color) {
+    int totalLEDs = getLedBarNum() + LedBar2_Num;
+    if (totalLEDs == 0) totalLEDs = 20; // Fallback
+    
+    if (index >= 0 && index < totalLEDs) {
+        strip.setPixelColor(index, color);
+        return true;
+    } else {
+        log("ERROR: LED index " + String(index) + " out of bounds (0-" + String(totalLEDs-1) + ")");
+        return false;
+    }
+}
+
 // Function to calculate brightness correction based on active RGB channels
 // This ensures that all colors appear equally bright regardless of how many LEDs are active
 int calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBrightness) {
@@ -84,18 +119,27 @@ void ledBarSetup(){
 
 
 void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
+  // Prevent concurrent updates
+  if (ledUpdateInProgress) {
+    log("WARNING: LED update already in progress, skipping");
+    return;
+  }
+  ledUpdateInProgress = true;
+  
   // Make sure that stripNumber is valid (1 for the first strip, 2 for the second strip)
   if (stripNumber != 1 && stripNumber != 2) {
     log("ERROR: Invalid stripNumber: " + String(stripNumber));
+    ledUpdateInProgress = false;
     return; // Unauthorized value, do nothing
   }
 
-  // Calculate start index based on stripNumber
-  int ledBarNum = getLedBarNum();
-  int startIndex = (stripNumber == 1) ? 0 : ledBarNum;
-
-  // Calculate the end index based on stripNumber
-  int endIndex = (stripNumber == 1) ? ledBarNum : ledBarNum + LedBar2_Num;
+  // Get safe strip boundaries
+  int startIndex, endIndex;
+  getStripBoundaries(stripNumber, startIndex, endIndex);
+  
+  // Validate numLEDsOn against strip boundaries
+  int maxLEDs = endIndex - startIndex;
+  numLEDsOn = constrain(numLEDsOn, 0, maxLEDs);
 
   // Convert the hex color value to RGB color values for the switched-on color
   long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
@@ -111,7 +155,7 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     int dimmed_color_r = redOn * correctedBrightnessOn / 100;
     int dimmed_color_g = greenOn * correctedBrightnessOn / 100;
     int dimmed_color_b = blueOn * correctedBrightnessOn / 100;
-    strip.setPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
+    safeSetPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
   }
 
     // Convert the hex color value to RGB color values for the switched off color
@@ -125,10 +169,11 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
 
   // Set the LEDs for the side that is switched off
   for (int i = startIndex + numLEDsOn; i < endIndex; i++) {
-    strip.setPixelColor(i, strip.Color(redOff * correctedBrightnessOff / 100, greenOff * correctedBrightnessOff / 100, blueOff * correctedBrightnessOff / 100));
+    safeSetPixelColor(i, strip.Color(redOff * correctedBrightnessOff / 100, greenOff * correctedBrightnessOff / 100, blueOff * correctedBrightnessOff / 100));
   }
 
   strip.show();  // Update LED strips
+  ledUpdateInProgress = false;
 }
 
 void setBarStandby() {
@@ -168,19 +213,45 @@ void setBarSpeedCruise(int num) {
         return;
     }
     
+    // Get strip boundaries for validation
+    int startIndex, endIndex;
+    getStripBoundaries(1, startIndex, endIndex);
+    int maxLEDs = endIndex - startIndex;
+    
+    // Validate num against strip boundaries
+    num = constrain(num, 1, maxLEDs);
+    
+    // Prevent concurrent updates
+    if (ledUpdateInProgress) {
+        log("WARNING: LED update already in progress in setBarSpeedCruise");
+        return;
+    }
+    ledUpdateInProgress = true;
+    
+    // Clear all LEDs in strip 1 first
+    for (int i = startIndex; i < endIndex; i++) {
+        safeSetPixelColor(i, strip.Color(0, 0, 0));
+    }
+    
     // Set all LEDs except the last one to pink
-    setBar(1, num-1, "#cb1bf2", getLedBarBrightness(), "#000000", 0);
+    for (int i = startIndex; i < startIndex + num - 1; i++) {
+        int correctedBrightness = calculateBrightnessCorrectedValue(203, 27, 242, getLedBarBrightness());
+        int dimmed_r = 203 * correctedBrightness / 100;
+        int dimmed_g = 27 * correctedBrightness / 100;
+        int dimmed_b = 242 * correctedBrightness / 100;
+        safeSetPixelColor(i, strip.Color(dimmed_r, dimmed_g, dimmed_b));
+    }
     
-    // Set the last LED to red with brightness correction
-    int startIndex = 0;
+    // Set the last LED to red with boundary check
     int lastLEDIndex = startIndex + num - 1;
+    if (lastLEDIndex >= startIndex && lastLEDIndex < endIndex) {
+        int correctedRedBrightness = calculateBrightnessCorrectedValue(255, 0, 0, getLedBarBrightness());
+        int redValue = 255 * correctedRedBrightness / 100;
+        safeSetPixelColor(lastLEDIndex, strip.Color(redValue, 0, 0));
+    }
     
-    // Apply brightness correction for red color (255, 0, 0)
-    int correctedRedBrightness = calculateBrightnessCorrectedValue(255, 0, 0, getLedBarBrightness());
-    int redValue = 255 * correctedRedBrightness / 100;
-    
-    strip.setPixelColor(lastLEDIndex, strip.Color(redValue, 0, 0));
     strip.show();
+    ledUpdateInProgress = false;
 }
 
 void setBarBattery(int num) {
@@ -261,32 +332,44 @@ void knightRiderStartup() {
   int ledBarNum = getLedBarNum();
   if (ledBarNum == 0) ledBarNum = 10; // Fallback if settings not loaded
   
+  // Prevent concurrent updates
+  if (ledUpdateInProgress) {
+    log("WARNING: LED update already in progress during Knight Rider");
+    return;
+  }
+  ledUpdateInProgress = true;
+  
+  // Calculate total LED count for boundary checking
+  int totalLEDs = ledBarNum + LedBar2_Num;
+  
   // Run the effect 2 times
   for (int cycle = 0; cycle < 2; cycle++) {
     // Forward sweep: Strip 1 (left to right), Strip 2 (right to left)
     for (int pos = 0; pos < ledBarNum; pos++) {
-      // Clear all LEDs
-      for (int i = 0; i < ledBarNum + LedBar2_Num; i++) {
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      // Clear all LEDs with boundary check
+      for (int i = 0; i < totalLEDs; i++) {
+        safeSetPixelColor(i, strip.Color(0, 0, 0));
       }
 
-      // Strip 1 (lower strip): left to right (positions 0-9)
-      strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0)); // Main LED
+      // Strip 1 (lower strip): left to right (positions 0 to ledBarNum-1)
+      safeSetPixelColor(pos, strip.Color(maxBrightness, 0, 0)); // Main LED
       if (pos > 0) {
-        strip.setPixelColor(pos - 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
+        safeSetPixelColor(pos - 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
       }
       if (pos > 1) {
-        strip.setPixelColor(pos - 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
+        safeSetPixelColor(pos - 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
       }
       
-      // Strip 2 (upper strip): right to left (positions 10-19)
-      int strip2Pos = ledBarNum + (ledBarNum - 1 - pos); // Mirror position
-      strip.setPixelColor(strip2Pos, strip.Color(maxBrightness, 0, 0)); // Main LED
-      if (pos > 0) {
-        strip.setPixelColor(strip2Pos + 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
-      }
-      if (pos > 1) {
-        strip.setPixelColor(strip2Pos + 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
+      // Strip 2 (upper strip): right to left (positions ledBarNum to ledBarNum+LedBar2_Num-1)
+      int strip2Pos = ledBarNum + (LedBar2_Num - 1 - pos); // Fixed mirror position calculation
+      if (strip2Pos >= ledBarNum && strip2Pos < totalLEDs) { // Boundary check
+        safeSetPixelColor(strip2Pos, strip.Color(maxBrightness, 0, 0)); // Main LED
+        if (pos > 0 && strip2Pos + 1 < totalLEDs) {
+          safeSetPixelColor(strip2Pos + 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
+        }
+        if (pos > 1 && strip2Pos + 2 < totalLEDs) {
+          safeSetPixelColor(strip2Pos + 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
+        }
       }
       
       strip.show();
@@ -295,28 +378,30 @@ void knightRiderStartup() {
 
     // Backward sweep: Strip 1 (right to left), Strip 2 (left to right)
     for (int pos = ledBarNum - 1; pos >= 0; pos--) {
-      // Clear all LEDs
-      for (int i = 0; i < ledBarNum + LedBar2_Num; i++) {
-        strip.setPixelColor(i, strip.Color(0, 0, 0));
+      // Clear all LEDs with boundary check
+      for (int i = 0; i < totalLEDs; i++) {
+        safeSetPixelColor(i, strip.Color(0, 0, 0));
       }
 
-      // Strip 1 (lower strip): right to left (positions 0-9)
-      strip.setPixelColor(pos, strip.Color(maxBrightness, 0, 0)); // Main LED
+      // Strip 1 (lower strip): right to left (positions 0 to ledBarNum-1)
+      safeSetPixelColor(pos, strip.Color(maxBrightness, 0, 0)); // Main LED
       if (pos < ledBarNum - 1) {
-        strip.setPixelColor(pos + 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
+        safeSetPixelColor(pos + 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
       }
       if (pos < ledBarNum - 2) {
-        strip.setPixelColor(pos + 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
+        safeSetPixelColor(pos + 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
       }
       
-      // Strip 2 (upper strip): left to right (positions 10-19)
-      int strip2Pos = ledBarNum + (ledBarNum - 1 - pos); // Mirror position
-      strip.setPixelColor(strip2Pos, strip.Color(maxBrightness, 0, 0)); // Main LED
-      if (pos < ledBarNum - 1) {
-        strip.setPixelColor(strip2Pos - 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
-      }
-      if (pos < ledBarNum - 2) {
-        strip.setPixelColor(strip2Pos - 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
+      // Strip 2 (upper strip): left to right (positions ledBarNum to ledBarNum+LedBar2_Num-1)
+      int strip2Pos = ledBarNum + (LedBar2_Num - 1 - pos); // Fixed mirror position calculation
+      if (strip2Pos >= ledBarNum && strip2Pos < totalLEDs) { // Boundary check
+        safeSetPixelColor(strip2Pos, strip.Color(maxBrightness, 0, 0)); // Main LED
+        if (pos < ledBarNum - 1 && strip2Pos - 1 >= ledBarNum) {
+          safeSetPixelColor(strip2Pos - 1, strip.Color(maxBrightness / 3, 0, 0)); // Trailing LED 1
+        }
+        if (pos < ledBarNum - 2 && strip2Pos - 2 >= ledBarNum) {
+          safeSetPixelColor(strip2Pos - 2, strip.Color(maxBrightness / 8, 0, 0)); // Trailing LED 2
+        }
       }
       
       strip.show();
@@ -325,8 +410,9 @@ void knightRiderStartup() {
   }
 
   // Clear all LEDs after animation
-  for (int i = 0; i < ledBarNum + LedBar2_Num; i++) {
-    strip.setPixelColor(i, strip.Color(0, 0, 0));
+  for (int i = 0; i < totalLEDs; i++) {
+    safeSetPixelColor(i, strip.Color(0, 0, 0));
   }
   strip.show();
+  ledUpdateInProgress = false;
 }
