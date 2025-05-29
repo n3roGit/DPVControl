@@ -2,5 +2,51 @@
     "C_Cpp.default.compilerPath": "c:\\Program Files\\Arduino CLI\\arduino-cli.exe",
     "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
         "clang-diagnostic-error"
-    ]
+    ],
+    
+    // C++ Standard and IntelliSense Configuration
+    "C_Cpp.default.cppStandard": "c++20",
+    "C_Cpp.default.intelliSenseMode": "windows-clang-x64",
+    
+    // Clang-Format Configuration (xaver.clang-format plugin)
+    "clang-format.executable": "clang-format",
+    "clang-format.style": "file",
+    "clang-format.formatOnSave": true,
+    "clang-format.formatOnType": false,
+    
+    // Editor Settings
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false,
+    "editor.rulers": [120],
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.wordWrap": "wordWrapColumn",
+    "editor.wordWrapColumn": 120,
+    
+    // C++ specific editor settings
+    "[cpp]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    "[c]": {
+        "editor.defaultFormatter": "xaver.clang-format",
+        "editor.formatOnSave": true,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    
+    // Clang-Tidy Configuration
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "C_Cpp.codeAnalysis.runAutomatically": true,
+    "C_Cpp.codeAnalysis.clangTidy.runAutomatically": true,
+    
+    // File Associations
+    "files.associations": {
+        "*.hpp": "cpp",
+        "*.h": "c",
+        "*.ino": "cpp"
+    }
 }
