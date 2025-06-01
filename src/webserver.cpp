@@ -589,15 +589,12 @@ const char* helloWorldHTML = R"rawliteral(
                         return;
                     }
                     
-                    // Create proper CSV header with correct field names
-                    let csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
+                    // Create proper CSV header with Total Uptime as primary time reference
+                    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n";
                     
                     data.forEach(item => {
-                        // Format timestamp properly
-                        const timestamp = new Date(item.timestamp).toISOString();
-                        
                         csv += [
-                            timestamp,
+                            item.totalUptime || 0,
                             item.tempMotor || 0,
                             item.tempMosfet || 0,
                             item.batteryVoltage || 0,
@@ -609,8 +606,7 @@ const char* helloWorldHTML = R"rawliteral(
                             item.humidity || 0,
                             item.batteryLevel || 0,
                             item.leakSensorState || 0,
-                            item.ledState || 0,
-                            item.totalUptime || 0
+                            item.ledState || 0
                         ].join(',') + "\r\n";
                     });
                     
@@ -3389,8 +3385,8 @@ String generateSessionCsvData(String sessionFile) {
         return "";
     }
     
-    // CSV Header with Windows line endings
-    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
+    // CSV Header with Windows line endings - Total Uptime as primary time reference
+    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n";
     
     LogdataRow dataPoint;
     
@@ -3404,14 +3400,8 @@ String generateSessionCsvData(String sessionFile) {
             break;
         }
         
-        // Convert timestamp to ISO format
-        time_t timestamp = dataPoint.timestamp / 1000; // Convert to seconds
-        struct tm* timeinfo = gmtime(&timestamp);
-        char timeStr[30];
-        strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%S.000Z", timeinfo);
-        
-        // Add data row with Windows line endings
-        csv += String(timeStr) + ",";
+        // Add data row with Windows line endings - Total Uptime first as primary time reference
+        csv += String(dataPoint.totalUptime) + ",";
         csv += String(dataPoint.tempMotor) + ",";
         csv += String(dataPoint.tempMosfet) + ",";
         csv += String(dataPoint.batteryVoltage) + ",";
@@ -3423,8 +3413,7 @@ String generateSessionCsvData(String sessionFile) {
         csv += String(dataPoint.humidity) + ",";
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
-        csv += String(dataPoint.ledState) + ",";
-        csv += String(dataPoint.totalUptime) + "\r\n";
+        csv += String(dataPoint.ledState) + "\r\n";
         
         // Prevent memory overflow for very large files
         if (csv.length() > 50000) { // Limit to ~50KB
