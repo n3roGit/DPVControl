@@ -12,7 +12,8 @@
 */
 
 
-const int VESC_VALUES_INTERVAL = 100;
+const int VESC_VALUES_INTERVAL = 100;  // Update interval in milliseconds
+static unsigned long lastVescUpdate = 0;  // Track last VESC data update time
 
 
 int FromTimeToTimeIntervall = 50;
@@ -25,10 +26,18 @@ void GetVESCValues() {
 
   if (!HAS_MOTOR) return;
 
+  // Implement the VESC_VALUES_INTERVAL timing to prevent UART overload
+  unsigned long currentTime = millis();
+  if (currentTime - lastVescUpdate < VESC_VALUES_INTERVAL) {
+    return; // Skip update if interval hasn't passed
+  }
+
   if (getVescUart().getVescValues()) {
     updateBatteryLevel(getVescUart().data.inpVoltage);
+    lastVescUpdate = currentTime; // Update timestamp only on successful read
   } else {
     log("Failed to get VESC data!", 00000);
+    // Don't update lastVescUpdate on failure, allowing retry sooner
   }
 
 }
