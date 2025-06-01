@@ -152,12 +152,12 @@ String generateSessionDataJson(String sessionFile) {
     }
     
     // Calculate optimal number of points based on duration
-    const int maxPoints = 100; // Maximum points to prevent memory issues
+    const int maxPoints = 1000; // Increased from 100 to support larger sessions (memory allows up to 1000 points)
     int targetPoints = maxPoints;
     
     if (realSessionDurationSeconds > 0) {
-        // One point per 5 seconds for longer sessions
-        targetPoints = min(maxPoints, realSessionDurationSeconds / 5);
+        // One point per 3 seconds for better resolution on longer sessions
+        targetPoints = min(maxPoints, realSessionDurationSeconds / 3);
         targetPoints = max(10, targetPoints); // At least 10 points
     }
     
@@ -1581,33 +1581,25 @@ const char* helloWorldHTML = R"rawliteral(
         
         // Filter data based on time window slider position
         function filterDataByTimeRange(data) {
-            // For sessions longer than 5 minutes, allow sliding through the data
-            // For shorter sessions, show all data
+            // Use the new display window function with increased limits
+            return getDisplayWindow(data, timeSliderValue);
+        }
+        
+        // Time window management for chart display
+        function getDisplayWindow(data, timeSliderValue) {
+            if (!data || data.length === 0) return [];
             
-            if (data.length === 0) {
-                return data;
-            }
-            
-            // Update slider labels first
-            updateSliderLabels(data);
-            
-            // If session is short enough, show all data
-            const FIXED_WINDOW_POINTS = 60; // 5 minutes at 5-second intervals
+            // Increased display window for better data visibility
+            const FIXED_WINDOW_POINTS = 500; // Increased from 60 for better session coverage
             if (data.length <= FIXED_WINDOW_POINTS) {
-                // Disable slider for short sessions
+                // Show all data if session is small enough
                 const slider = document.getElementById('timeSlider');
-                if (slider) {
-                    slider.disabled = true;
-                    slider.style.opacity = '0.5';
-                }
+                if (slider) slider.style.opacity = '0.3';
                 return data;
-            }
-            
-            // Enable slider for long sessions
-            const slider = document.getElementById('timeSlider');
-            if (slider) {
-                slider.disabled = false;
-                slider.style.opacity = '1.0';
+            } else {
+                // For larger sessions, enable time slider
+                const slider = document.getElementById('timeSlider');
+                if (slider) slider.style.opacity = '1.0';
             }
             
             // Calculate window position based on slider (0 = oldest, 100 = newest)
@@ -1631,15 +1623,15 @@ const char* helloWorldHTML = R"rawliteral(
             // Use first timestamp as session start reference
             const sessionStart = data[0].timestamp;
             
-            // For short sessions, show relative times from start and disable slider
-            if (data.length <= 60) {
+            // For small sessions, show relative times from start and disable slider
+            if (data.length <= 500) { // Updated threshold from 60 to 500
                 sliderStart.textContent = formatTimeOnly(data[0].timestamp, sessionStart);
                 sliderEnd.textContent = formatTimeOnly(data[data.length - 1].timestamp, sessionStart);
                 return;
             }
             
             // For long sessions, calculate current window based on slider position
-            const windowSize = 60;
+            const windowSize = 500; // Updated from 60 to 500
             const maxStartIndex = data.length - windowSize;
             const currentStartIndex = Math.floor((maxStartIndex * timeSliderValue) / 100);
             const currentEndIndex = Math.min(currentStartIndex + windowSize, data.length);
