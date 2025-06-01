@@ -3355,43 +3355,32 @@ bool updateSettingsFromJson(const String& jsonString) {
  * Generate CSV data for a specific session file
  */
 String generateSessionCsvData(String sessionFile) {
-    log("generateSessionCsvData called for session: " + sessionFile);
+    log(("Starting CSV generation for session: " + sessionFile).c_str());
     
-    // Ensure we have the full path
-    String fullPath = sessionFile;
-    if (!sessionFile.startsWith("/datalog/")) {
-        fullPath = "/datalog/" + sessionFile;
-    }
-    
-    if (!LittleFS.exists(fullPath)) {
-        log("Session file not found: " + fullPath);
-        return "";
-    }
-    
-    File file = LittleFS.open(fullPath, "r");
+    // Try to open the session file
+    File file = LittleFS.open("/" + sessionFile, "r");
     if (!file) {
-        log("Failed to open session file: " + fullPath);
-        return "";
+        String errorMsg = "Failed to open session file: " + sessionFile;
+        log(errorMsg.c_str());
+        return "Error: Could not open session file " + sessionFile;
     }
     
+    // Calculate how many data points we have
     size_t fileSize = file.size();
     size_t dataPointCount = fileSize / sizeof(LogdataRow);
     
-    String countMsg = "Session " + sessionFile + " contains " + String(dataPointCount) + " data points (" + String(fileSize) + " bytes)";
-    log(countMsg.c_str());
+    String fileSizeMsg = "Session file size: " + String(fileSize) + " bytes, estimated " + String(dataPointCount) + " data points";
+    log(fileSizeMsg.c_str());
     
-    if (dataPointCount == 0) {
-        file.close();
-        return "";
-    }
-    
-    // CSV Header with Windows line endings - Total Uptime as primary time reference
-    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n";
+    // Build CSV header with Total Uptime as primary time reference
+    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\\r\\n";
     
     LogdataRow dataPoint;
+    int exportedPoints = 0;
+    int maxPoints = 1000; // Reasonable limit for ESP32 memory
     
     // Read and convert each data point
-    for (size_t i = 0; i < dataPointCount; i++) {
+    for (size_t i = 0; i < dataPointCount && exportedPoints < maxPoints; i++) {
         size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
         
         if (bytesRead != sizeof(LogdataRow)) {
@@ -3400,36 +3389,152 @@ String generateSessionCsvData(String sessionFile) {
             break;
         }
         
-        // Add data row with Windows line endings - Total Uptime first as primary time reference
-        csv += String(dataPoint.totalUptime) + ",";
-        csv += String(dataPoint.tempMotor) + ",";
-        csv += String(dataPoint.tempMosfet) + ",";
-        csv += String(dataPoint.batteryVoltage) + ",";
-        csv += String(dataPoint.current) + ",";
-        csv += String(dataPoint.avgMotorCurrent) + ",";
+        // Convert timestamp to total uptime in seconds
+        float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
+        
+        // Build CSV row with Total Uptime first
+        csv += String(totalUptimeSeconds, 1) + ",";
+        csv += String(dataPoint.tempMotor, 1) + ",";
+        csv += String(dataPoint.tempMosfet, 1) + ",";
+        csv += String(dataPoint.batteryVoltage, 5) + ",";
+        csv += String(dataPoint.current, 2) + ",";
+        csv += String(dataPoint.avgMotorCurrent, 2) + ",";
         csv += String(dataPoint.erpm) + ",";
-        csv += String(dataPoint.dutyCycle) + ",";
-        csv += String(dataPoint.temperature) + ",";
-        csv += String(dataPoint.humidity) + ",";
+        csv += String(dataPoint.dutyCycle, 3) + ",";
+        csv += String(dataPoint.temperature, 1) + ",";
+        csv += String(dataPoint.humidity, 1) + ",";
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
-        csv += String(dataPoint.ledState) + "\r\n";
+        csv += String(dataPoint.ledState) + "\\r\\n";
         
-        // Prevent memory overflow for very large files
-        if (csv.length() > 50000) { // Limit to ~50KB
-            String limitMsg = "Session CSV size limit reached at " + String(i+1) + " points for " + sessionFile + ", truncating";
+        exportedPoints++;
+        
+        // Check memory usage more frequently
+        if (csv.length() > 400000) { // 400KB limit for ESP32 safety
+            String limitMsg = "Session CSV memory limit reached at " + String(exportedPoints) + " points for " + sessionFile + ", exported " + String((float)exportedPoints/dataPointCount*100, 1) + "% of session";
             log(limitMsg.c_str());
             break;
+        }
+        
+        // Give other tasks time to run
+        if (i % 10 == 0) {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
         }
     }
     
     file.close();
     
-    String resultMsg = "Generated session CSV for " + sessionFile + ", length: " + String(csv.length()) + " for " + String(dataPointCount) + " points";
+    String resultMsg = "Generated session CSV for " + sessionFile + " with " + String(exportedPoints) + "/" + String(dataPointCount) + " points, size: " + String(csv.length()) + " bytes";
     log(resultMsg.c_str());
+    
+    // Add summary footer if truncated
+    if (exportedPoints < dataPointCount) {
+        csv += "\\r\\n# Note: Session truncated due to memory limits\\r\\n";
+        csv += "# Exported " + String(exportedPoints) + " of " + String(dataPointCount) + " total points (" + String((float)exportedPoints/dataPointCount*100, 1) + "%)\\r\\n";
+        csv += "# Use session data API for complete dataset\\r\\n";
+    }
     
     return csv;
 }
+
+/**
+ * Stream CSV data directly to client to avoid memory issues
+ */
+void streamSessionCsvData(WiFiClient client, String sessionFile) {
+    log(("Starting streaming CSV for session: " + sessionFile).c_str());
+    
+    // Try to open the session file
+    File file = LittleFS.open("/" + sessionFile, "r");
+    if (!file) {
+        String errorMsg = "Failed to open session file: " + sessionFile;
+        log(errorMsg.c_str());
+        String errorResponse = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nError: Could not open session file " + sessionFile;
+        client.print(errorResponse);
+        return;
+    }
+    
+    // Calculate how many data points we have
+    size_t fileSize = file.size();
+    size_t dataPointCount = fileSize / sizeof(LogdataRow);
+    
+    String fileSizeMsg = "Session file size: " + String(fileSize) + " bytes, estimated " + String(dataPointCount) + " data points";
+    log(fileSizeMsg.c_str());
+    
+    // Send HTTP headers for CSV download
+    client.print("HTTP/1.1 200 OK\r\n");
+    client.print("Content-Type: text/csv\r\n");
+    client.print("Content-Disposition: attachment; filename=\"" + sessionFile.substring(0, sessionFile.lastIndexOf('.')) + ".csv\"\r\n");
+    client.print("Cache-Control: no-cache\r\n");
+    client.print("\r\n");
+    
+    // Send CSV header
+    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n");
+    
+    LogdataRow dataPoint;
+    int exportedPoints = 0;
+    int maxPoints = 10000; // Much higher limit since we're streaming
+    
+    // Stream each data point directly to client
+    for (size_t i = 0; i < dataPointCount && exportedPoints < maxPoints; i++) {
+        size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
+        
+        if (bytesRead != sizeof(LogdataRow)) {
+            String errorMsg = "Error reading data point " + String(i) + " from session " + sessionFile;
+            log(errorMsg.c_str());
+            break;
+        }
+        
+        // Convert timestamp to total uptime in seconds
+        float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
+        
+        // Build and send CSV row directly (small string, immediately sent)
+        String csvRow = String(totalUptimeSeconds, 1) + ",";
+        csvRow += String(dataPoint.tempMotor, 1) + ",";
+        csvRow += String(dataPoint.tempMosfet, 1) + ",";
+        csvRow += String(dataPoint.batteryVoltage, 5) + ",";
+        csvRow += String(dataPoint.current, 2) + ",";
+        csvRow += String(dataPoint.avgMotorCurrent, 2) + ",";
+        csvRow += String(dataPoint.erpm) + ",";
+        csvRow += String(dataPoint.dutyCycle, 3) + ",";
+        csvRow += String(dataPoint.temperature, 1) + ",";
+        csvRow += String(dataPoint.humidity, 1) + ",";
+        csvRow += String(dataPoint.batteryLevel) + ",";
+        csvRow += String(dataPoint.leakSensorState) + ",";
+        csvRow += String(dataPoint.ledState) + "\r\n";
+        
+        // Send this row immediately
+        client.print(csvRow);
+        
+        exportedPoints++;
+        
+        // Give other tasks time and check client connection
+        if (i % 10 == 0) {
+            vTaskDelay(1 / portTICK_PERIOD_MS);
+            if (!client.connected()) {
+                log("Client disconnected during CSV stream");
+                break;
+            }
+        }
+        
+        // Progress logging
+        if (exportedPoints % 100 == 0) {
+            String progressMsg = "Streamed " + String(exportedPoints) + "/" + String(dataPointCount) + " CSV rows";
+            log(progressMsg.c_str());
+        }
+    }
+    
+    file.close();
+    
+    // Send summary footer if truncated
+    if (exportedPoints < dataPointCount) {
+        client.print("\r\n# Note: Session truncated due to data limits\r\n");
+        client.print("# Exported " + String(exportedPoints) + " of " + String(dataPointCount) + " total points (" + String((float)exportedPoints/dataPointCount*100, 1) + "%)\r\n");
+    }
+    
+    String resultMsg = "Completed streaming CSV for " + sessionFile + " with " + String(exportedPoints) + "/" + String(dataPointCount) + " points";
+    log(resultMsg.c_str());
+}
+
 
 // Setup the webserver task on Core 0
 void setupWebserver() {
@@ -3650,17 +3755,7 @@ void handleClient(WiFiClient client) {
             return;
         }
         
-        String csvData = generateSessionCsvData(sessionFile);
-        
-        if (csvData.length() == 0) {
-            sendHttpResponse(client, 404, "text/plain", "Session file not found or empty");
-            return;
-        }
-        
-        String responseMsg = "Sending session CSV data, length: " + String(csvData.length());
-        log(responseMsg.c_str());
-        
-        sendHttpResponse(client, 200, "text/csv", csvData.c_str());
+        streamSessionCsvData(client, sessionFile);
         
     } else if (path == "/api/trip-log") {
         // API endpoint for full trip log download
