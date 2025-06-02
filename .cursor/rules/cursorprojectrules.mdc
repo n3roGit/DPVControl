@@ -16,3 +16,6 @@ Tasks:
 - Always compile independently for major changes
 - The code and comments are always in English!
 - For every change, include in the chat a suggested git commit message in English.
+- Always run and update tests when making code changes
+- Tests must be adapted when API or functionality changes
+- Test failures must be fixed before proceeding with changes 
