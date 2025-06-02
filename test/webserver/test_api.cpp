@@ -1910,4 +1910,323 @@ TEST_F(WebApiTest, DHT22_HandlesSensorTimeout) {
     EXPECT_TRUE(mockGetDHTValid());
     EXPECT_NEAR(mockGetTemperature(), 25.5, 0.1);
     EXPECT_NEAR(mockGetHumidity(), 50.0, 0.1);
+}
+
+TEST_F(WebApiTest, DHT22_HandlesHeatIndex) {
+    // Test normal conditions
+    mockSetTemperature(25.5);
+    mockSetHumidity(50.0);
+    float heatIndex = mock_computeHeatIndex(mockGetTemperature(), mockGetHumidity());
+    EXPECT_NEAR(heatIndex, 25.5, 0.1); // Should be close to temperature at normal conditions
+
+    // Test hot and humid conditions
+    mockSetTemperature(30.0);
+    mockSetHumidity(80.0);
+    heatIndex = mock_computeHeatIndex(mockGetTemperature(), mockGetHumidity());
+    EXPECT_GT(heatIndex, 30.0); // Heat index should be higher than temperature
+
+    // Test cold conditions
+    mockSetTemperature(10.0);
+    mockSetHumidity(50.0);
+    heatIndex = mock_computeHeatIndex(mockGetTemperature(), mockGetHumidity());
+    EXPECT_NEAR(heatIndex, 10.0, 0.1); // Should be close to temperature at cold conditions
+}
+
+TEST_F(WebApiTest, DHT22_HandlesDewPoint) {
+    // Test normal conditions
+    mockSetTemperature(25.5);
+    mockSetHumidity(50.0);
+    float dewPoint = mock_computeDewPoint(mockGetTemperature(), mockGetHumidity());
+    EXPECT_LT(dewPoint, mockGetTemperature()); // Dew point should be lower than temperature
+    EXPECT_GT(dewPoint, 0.0); // Dew point should be positive
+
+    // Test high humidity
+    mockSetTemperature(25.5);
+    mockSetHumidity(90.0);
+    dewPoint = mock_computeDewPoint(mockGetTemperature(), mockGetHumidity());
+    EXPECT_NEAR(dewPoint, 23.8, 0.1); // Expected dew point at 25.5°C and 90% humidity
+
+    // Test low humidity
+    mockSetTemperature(25.5);
+    mockSetHumidity(20.0);
+    dewPoint = mock_computeDewPoint(mockGetTemperature(), mockGetHumidity());
+    EXPECT_NEAR(dewPoint, 1.2, 0.1); // Expected dew point at 25.5°C and 20% humidity
+}
+
+TEST_F(WebApiTest, DHT22_HandlesComfortRatio) {
+    // Test comfortable conditions
+    mockSetTemperature(22.0);
+    mockSetHumidity(50.0);
+    ComfortState comfort;
+    float ratio = mock_getComfortRatio(comfort, mockGetTemperature(), mockGetHumidity());
+    EXPECT_EQ(comfort, Comfort_OK);
+    EXPECT_GT(ratio, 80.0); // High comfort ratio
+
+    // Test too hot
+    mockSetTemperature(30.0);
+    mockSetHumidity(50.0);
+    ratio = mock_getComfortRatio(comfort, mockGetTemperature(), mockGetHumidity());
+    EXPECT_EQ(comfort, Comfort_TooHot);
+    EXPECT_LT(ratio, 50.0); // Low comfort ratio
+
+    // Test too cold
+    mockSetTemperature(15.0);
+    mockSetHumidity(50.0);
+    ratio = mock_getComfortRatio(comfort, mockGetTemperature(), mockGetHumidity());
+    EXPECT_EQ(comfort, Comfort_TooCold);
+    EXPECT_LT(ratio, 50.0); // Low comfort ratio
+}
+
+TEST_F(WebApiTest, DHT22_HandlesPerception) {
+    // Test comfortable conditions
+    mockSetTemperature(22.0);
+    mockSetHumidity(50.0);
+    byte perception = mock_computePerception(mockGetTemperature(), mockGetHumidity());
+    EXPECT_EQ(perception, Perception_Comfy);
+
+    // Test dry conditions
+    mockSetTemperature(25.0);
+    mockSetHumidity(20.0);
+    perception = mock_computePerception(mockGetTemperature(), mockGetHumidity());
+    EXPECT_EQ(perception, Perception_Dry);
+
+    // Test uncomfortable conditions
+    mockSetTemperature(30.0);
+    mockSetHumidity(80.0);
+    perception = mock_computePerception(mockGetTemperature(), mockGetHumidity());
+    EXPECT_EQ(perception, Perception_VeryUnComfy);
+}
+
+TEST_F(WebApiTest, DHT22_HandlesAbsoluteHumidity) {
+    // Test normal conditions
+    mockSetTemperature(25.5);
+    mockSetHumidity(50.0);
+    float absHumidity = mock_computeAbsoluteHumidity(mockGetTemperature(), mockGetHumidity());
+    EXPECT_GT(absHumidity, 0.0); // Should be positive
+    EXPECT_LT(absHumidity, 30.0); // Should be reasonable value
+
+    // Test high humidity
+    mockSetTemperature(25.5);
+    mockSetHumidity(90.0);
+    absHumidity = mock_computeAbsoluteHumidity(mockGetTemperature(), mockGetHumidity());
+    EXPECT_GT(absHumidity, 20.0); // Should be higher than normal conditions
+
+    // Test low humidity
+    mockSetTemperature(25.5);
+    mockSetHumidity(20.0);
+    absHumidity = mock_computeAbsoluteHumidity(mockGetTemperature(), mockGetHumidity());
+    EXPECT_LT(absHumidity, 10.0); // Should be lower than normal conditions
+}
+
+// Test real-time status updates
+TEST_F(WebApiTest, StatusEndpoint_RealTimeUpdates) {
+    // Test initial state
+    mockSetTemperature(25.0);
+    mockSetHumidity(50.0);
+    mockSetMotorStep(0);
+    
+    handleApiStatus(&client);
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, client.response);
+    
+    EXPECT_NEAR(doc["temperature"].as<float>(), 25.0, 0.1);
+    EXPECT_NEAR(doc["humidity"].as<float>(), 50.0, 0.1);
+    EXPECT_EQ(doc["motorSpeed"].as<int>(), 0);
+    
+    // Test state changes
+    mockSetTemperature(26.0);
+    mockSetHumidity(55.0);
+    mockSetMotorStep(50);
+    
+    client = MockWiFiClient();
+    handleApiStatus(&client);
+    
+    doc.clear();
+    deserializeJson(doc, client.response);
+    
+    EXPECT_NEAR(doc["temperature"].as<float>(), 26.0, 0.1);
+    EXPECT_NEAR(doc["humidity"].as<float>(), 55.0, 0.1);
+    EXPECT_EQ(doc["motorSpeed"].as<int>(), 50);
+}
+
+// Test system status transitions
+TEST_F(WebApiTest, StatusEndpoint_SystemTransitions) {
+    // Test normal operation
+    mockSetSystemStatus("running");
+    handleApiStatus(&client);
+    verifyJsonResponse(client.response, {"systemStatus"});
+    
+    // Test error state
+    mockSetSystemStatus("error");
+    client = MockWiFiClient();
+    handleApiStatus(&client);
+    verifyJsonResponse(client.response, {"systemStatus", "errorMessage"});
+    
+    // Test maintenance state
+    mockSetSystemStatus("maintenance");
+    client = MockWiFiClient();
+    handleApiStatus(&client);
+    verifyJsonResponse(client.response, {"systemStatus", "maintenanceMessage"});
+}
+
+// Test data endpoint with large datasets
+TEST_F(WebApiTest, DataEndpoint_LargeDatasets) {
+    // Test with maximum allowed data points
+    handleApiData(&client, "?count=1000");
+    
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc.containsKey("data"));
+    EXPECT_TRUE(doc["data"].is<JsonArray>());
+    EXPECT_LE(doc["data"].size(), 1000);
+    
+    // Test data aggregation
+    client = MockWiFiClient();
+    handleApiData(&client, "?range=day&aggregate=hour");
+    
+    doc.clear();
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc.containsKey("data"));
+    EXPECT_TRUE(doc["data"].is<JsonArray>());
+    EXPECT_LE(doc["data"].size(), 24); // Max 24 hours
+}
+
+// Test data filtering
+TEST_F(WebApiTest, DataEndpoint_Filtering) {
+    // Test temperature filter
+    handleApiData(&client, "?filter=temperature&min=20&max=30");
+    
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc.containsKey("data"));
+    JsonArray data = doc["data"];
+    for (JsonVariant value : data) {
+        float temp = value["temperature"].as<float>();
+        EXPECT_GE(temp, 20.0);
+        EXPECT_LE(temp, 30.0);
+    }
+    
+    // Test motor speed filter
+    client = MockWiFiClient();
+    handleApiData(&client, "?filter=motorSpeed&min=50&max=100");
+    
+    doc.clear();
+    deserializeJson(doc, client.response);
+    
+    data = doc["data"];
+    for (JsonVariant value : data) {
+        int speed = value["motorSpeed"].as<int>();
+        EXPECT_GE(speed, 50);
+        EXPECT_LE(speed, 100);
+    }
+}
+
+// Test session transitions
+TEST_F(WebApiTest, SessionEndpoint_Transitions) {
+    // Test session start
+    String startBody = "{\"action\":\"start\",\"name\":\"test_session\"}";
+    client.print(startBody);
+    handleApiSession(&client);
+    
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc["success"].as<bool>());
+    EXPECT_TRUE(doc.containsKey("sessionId"));
+    
+    // Test session pause
+    String pauseBody = "{\"action\":\"pause\"}";
+    client = MockWiFiClient();
+    client.print(pauseBody);
+    handleApiSession(&client);
+    
+    doc.clear();
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc["success"].as<bool>());
+    EXPECT_TRUE(doc.containsKey("status"));
+    EXPECT_EQ(doc["status"].as<String>(), "paused");
+    
+    // Test session resume
+    String resumeBody = "{\"action\":\"resume\"}";
+    client = MockWiFiClient();
+    client.print(resumeBody);
+    handleApiSession(&client);
+    
+    doc.clear();
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc["success"].as<bool>());
+    EXPECT_TRUE(doc.containsKey("status"));
+    EXPECT_EQ(doc["status"].as<String>(), "running");
+}
+
+// Test session validation
+TEST_F(WebApiTest, SessionEndpoint_Validation) {
+    // Test invalid session name
+    String invalidNameBody = "{\"action\":\"start\",\"name\":\"invalid/name\"}";
+    client.print(invalidNameBody);
+    handleApiSession(&client);
+    
+    verifyErrorResponse(client.response, "Invalid session name");
+    
+    // Test duplicate session
+    String duplicateBody = "{\"action\":\"start\",\"name\":\"existing_session\"}";
+    client = MockWiFiClient();
+    client.print(duplicateBody);
+    handleApiSession(&client);
+    
+    verifyErrorResponse(client.response, "Session already exists");
+    
+    // Test invalid action
+    String invalidActionBody = "{\"action\":\"invalid\"}";
+    client = MockWiFiClient();
+    client.print(invalidActionBody);
+    handleApiSession(&client);
+    
+    verifyErrorResponse(client.response, "Invalid action");
+}
+
+// Test session metadata
+TEST_F(WebApiTest, SessionEndpoint_Metadata) {
+    // Test session creation with metadata
+    String metadataBody = R"({
+        "action": "start",
+        "name": "test_session",
+        "metadata": {
+            "description": "Test session",
+            "tags": ["test", "automated"],
+            "parameters": {
+                "motorSpeed": 75,
+                "temperature": 25.5
+            }
+        }
+    })";
+    client.print(metadataBody);
+    handleApiSession(&client);
+    
+    DynamicJsonDocument doc(1024);
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc["success"].as<bool>());
+    EXPECT_TRUE(doc.containsKey("sessionId"));
+    EXPECT_TRUE(doc.containsKey("metadata"));
+    
+    // Test metadata retrieval
+    String sessionId = doc["sessionId"].as<String>();
+    client = MockWiFiClient();
+    handleApiSessionData(&client, sessionId.c_str());
+    
+    doc.clear();
+    deserializeJson(doc, client.response);
+    
+    EXPECT_TRUE(doc.containsKey("metadata"));
+    JsonObject metadata = doc["metadata"];
+    EXPECT_EQ(metadata["description"].as<String>(), "Test session");
+    EXPECT_TRUE(metadata["tags"].is<JsonArray>());
+    EXPECT_EQ(metadata["parameters"]["motorSpeed"].as<int>(), 75);
+    EXPECT_NEAR(metadata["parameters"]["temperature"].as<float>(), 25.5, 0.1);
 } 
