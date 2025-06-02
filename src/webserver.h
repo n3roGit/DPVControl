@@ -26,4 +26,12 @@ void handleClient(WiFiClient client);
 bool loadFromSPIFFS(WiFiClient client, String path);
 void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType, const char* content);
 
+// API handler functions
+void handleApiStatus(void* client);
+void handleApiMotor(void* client);
+void handleApiLamp(void* client);
+void handleApiBeeper(void* client);
+void handleApiSettings(void* client);
+void handleApiVersion(void* client);
+
 #endif // WEBSERVER_H 

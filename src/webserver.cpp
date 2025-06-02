@@ -997,8 +997,8 @@ void handleClient(WiFiClient client) {
                 int ampIndex = countStr.indexOf("&");
                 if (ampIndex != -1) {
                     countStr = countStr.substring(0, ampIndex);
-            }
-            count = countStr.toInt();
+                }
+                count = countStr.toInt();
                 if (count <= 0 || count > 1000) count = 100; // Limit to reasonable range
             }
             
