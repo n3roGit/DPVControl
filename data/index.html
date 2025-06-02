@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DPVControl</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>DPVControl Web Interface</h1>
+        
+        <div class="section">
+            <div class="tab-navigation">
+                <button class="nav-tab active" onclick="showTab('status')">Status</button>
+                <button class="nav-tab" onclick="showTab('charts')">Charts</button>
+                <button class="nav-tab" onclick="showTab('remote')">Remote Control</button>
+                <button class="nav-tab" onclick="showTab('settings')">Settings</button>
+                <button class="nav-tab" onclick="showTab('info')">Info</button>
+            </div>
+        </div>
+        
+        <div id="status-tab" class="tab-content active">
+            <div class="section">
+                <h2>System Status</h2>
+                <table>
+                    <tr>
+                        <td>Uptime:</td>
+                        <td class="status-value" id="uptime">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Total Uptime:</td>
+                        <td class="status-value" id="totalUptime">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Data Points:</td>
+                        <td class="status-value" id="dataPointCount">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Battery Voltage:</td>
+                        <td class="status-value" id="battery">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Motor Temperature:</td>
+                        <td class="status-value" id="motorTemp">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>MOSFET Temperature:</td>
+                        <td class="status-value" id="mosfetTemp">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Ambient Temperature:</td>
+                        <td class="status-value" id="temperature">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Humidity:</td>
+                        <td class="status-value" id="humidity">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Input Current:</td>
+                        <td class="status-value" id="current">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Motor Current:</td>
+                        <td class="status-value" id="motorCurrent">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>eRPM:</td>
+                        <td class="status-value" id="rpm">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Duty Cycle:</td>
+                        <td class="status-value" id="dutyCycle">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Battery Level:</td>
+                        <td class="status-value" id="batteryLevel">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Water Sensor Front:</td>
+                        <td class="status-value" id="waterSensorFront">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Water Sensor Back:</td>
+                        <td class="status-value" id="waterSensorBack">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Left Button:</td>
+                        <td class="status-value" id="leftButton">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Right Button:</td>
+                        <td class="status-value" id="rightButton">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Lamp Level:</td>
+                        <td class="status-value" id="lampLevel">Loading...</td>
+                    </tr>
+                    <tr>
+                        <td>Beeper:</td>
+                        <td class="status-value" id="beeperStatus">Loading...</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div id="charts-tab" class="tab-content">
+            <div class="section">
+                <h2>Data Visualization</h2>
+                
+                <!-- Chart Controls -->
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #3a3a3a; border-radius: 8px; border: 1px solid #505050;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                        <div>
+                            <label for="sessionSelect" style="color: #b0b0b0; font-weight: bold; margin-right: 8px;">Session:</label>
+                            <select id="sessionSelect" onchange="updateSessionFilter()" style="padding: 6px; border: 1px solid #555; border-radius: 4px; background-color: #4a4a4a; color: #e0e0e0;">
+                                <!-- Sessions will be populated dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div id="sessionDurationInfo" style="color: #4fc3f7; font-weight: bold; font-size: 14px;">
+                            <!-- Session duration will be displayed here -->
+                        </div>
+                        
+                        <div id="timeSliderContainer" style="flex: 1; min-width: 200px;">
+                            <label for="timeSlider" style="color: #b0b0b0; font-weight: bold; display: block; margin-bottom: 5px;">
+                                Time Window Position:
+                            </label>
+                            <input type="range" id="timeSlider" min="0" max="100" value="100" 
+                                   style="width: 100%;" onchange="updateTimeWindow()" oninput="updateTimeWindow()">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 3px;">
+                                <span id="sliderStart">Oldest</span>
+                                <span id="sliderEnd">Newest</span>
+                            </div>
+                        </div>
+                        
+                        <button class="button" onclick="refreshChart()">Refresh</button>
+                        
+                        <button class="button" onclick="deleteAllSessions()" style="background-color: #f44336; margin-left: 20px;">Delete All Sessions</button>
+                    </div>
+                </div>
+                
+                <!-- Chart Container -->
+                <div style="height: 400px; width: 100%; position: relative;">
+                    <canvas id="combinedChart"></canvas>
+                </div>
+                
+                <!-- Download Buttons -->
+                <div style="margin-top: 15px; text-align: center;">
+                    <button class="button" onclick="exportCurrentViewAsCSV()" style="background-color: #27ae60; margin-right: 10px;">
+                        Export Current View as CSV
+                    </button>
+                    <button class="button" onclick="exportAllSessionsAsZip()" style="background-color: #e67e22;">
+                        Export All Sessions as CSV
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Include other tab content via JavaScript -->
+        <div id="remote-tab" class="tab-content"></div>
+        <div id="settings-tab" class="tab-content"></div>
+        <div id="info-tab" class="tab-content"></div>
+    </div>
+
+    <script src="/chart.min.js"></script>
+    <script src="/jszip.min.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html> 

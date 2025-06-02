@@ -11,7 +11,7 @@ You can find information about the project in my blog: https://bubtec.de/2024/10
 
 
 Tasks:
-- Remember to update the API documentation every time you do something on the webserver!
+- Remember to update the API documentation (api-specification.yaml) every time you do something on the webserver and increment the api version!
 - If you install serial logging, make sure you use the existing function for this!
 - Always compile independently for major changes
 - The code and comments are always in English!

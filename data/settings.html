@@ -1,0 +1,160 @@
+<div class="section">
+    <h2>DPV Settings</h2>
+    
+    <!-- Settings Controls -->
+    <div style="margin-bottom: 20px; text-align: center;">
+        <button class="button" onclick="loadDPVSettings()" style="background-color: #2196f3;">Reload</button>
+        <button class="button" onclick="saveDPVSettings()" style="background-color: #4caf50;">Save Settings</button>
+        <button class="button" onclick="restoreDefaultSettings()" style="background-color: #f44336;">Restore Defaults</button>
+        <button class="button" onclick="rebootSystem()" style="background-color: #ff5722; margin-left: 10px;">🔄 Reboot System</button>
+        <br>
+        <button class="button" onclick="exportSettings()" style="background-color: #ff9800; margin-top: 10px;">Export Settings</button>
+        <button class="button" onclick="importSettings()" style="background-color: #9c27b0; margin-top: 10px;">Import Settings</button>
+        <input type="file" id="settingsFileInput" accept=".json" style="display: none;" onchange="handleSettingsFile(event)">
+    </div>
+    
+    <!-- Settings Form -->
+    <form id="settingsForm">
+        <!-- Motor and Speed Settings -->
+        <div class="settings-group">
+            <h3>Motor and Speed Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="speedSteps">Speed Steps:</label><span class="info-icon" title="Number of speed levels available (2-20). More steps = finer speed control.">?</span></td>
+                    <td><input type="number" id="speedSteps" min="2" max="20" value="10"></td>
+                </tr>
+                <tr>
+                    <td><label for="standbyDelaySeconds">Standby Delay (s):</label><span class="info-icon" title="Time in seconds before the system enters standby mode when inactive.">?</span></td>
+                    <td><input type="number" id="standbyDelaySeconds" min="10" max="3600" value="300"></td>
+                </tr>
+                <tr>
+                    <td><label for="batteryPowerMax">Battery Power Max (W):</label><span class="info-icon" title="Maximum power consumption from battery in watts. Used for power calculations and safety limits.">?</span></td>
+                    <td><input type="number" id="batteryPowerMax" min="100" max="5000" value="1000"></td>
+                </tr>
+                <tr>
+                    <td><label for="minSpeedPercent">Min Speed Percent:</label><span class="info-icon" title="Minimum speed as percentage (0.01-1.0). Lower values allow slower minimum speeds.">?</span></td>
+                    <td><input type="number" id="minSpeedPercent" min="0.01" max="1.0" step="0.01" value="0.38"></td>
+                </tr>
+                <tr>
+                    <td><label for="maxSpeedRpm">Max Speed eRPM:</label><span class="info-icon" title="Maximum electrical RPM of the motor. Higher values = higher top speed. Typical range: 3000-20000 eRPM.">?</span></td>
+                    <td><input type="number" id="maxSpeedRpm" min="1000" max="50000" value="15800"></td>
+                </tr>
+                <tr>
+                    <td><label for="speedUpTimeMs">Speed Up Time (ms):</label><span class="info-icon" title="Time in milliseconds for motor to accelerate between speed steps. Higher = smoother acceleration.">?</span></td>
+                    <td><input type="number" id="speedUpTimeMs" min="100" max="5000" value="1000"></td>
+                </tr>
+                <tr>
+                    <td><label for="speedDownTimeMs">Speed Down Time (ms):</label><span class="info-icon" title="Time in milliseconds for motor to decelerate between speed steps. Higher = smoother deceleration.">?</span></td>
+                    <td><input type="number" id="speedDownTimeMs" min="100" max="5000" value="1000"></td>
+                </tr>
+                <tr>
+                    <td><label for="maxTimeOverloadedMs">Max Time Overloaded (ms):</label><span class="info-icon" title="Maximum time motor can be overloaded before protection kicks in. Safety feature to prevent damage.">?</span></td>
+                    <td><input type="number" id="maxTimeOverloadedMs" min="1000" max="30000" value="5000"></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Jam Detection Settings -->
+        <div class="settings-group">
+            <h3>Jam Detection Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="jamMin">Jam Min:</label><span class="info-icon" title="Minimum current threshold for jam detection. Lower values = more sensitive jam detection.">?</span></td>
+                    <td><input type="number" id="jamMin" min="0.1" max="10.0" step="0.1" value="0.5"></td>
+                </tr>
+                <tr>
+                    <td><label for="jamDetectionThreshold">Jam Detection Threshold:</label><span class="info-icon" title="Current threshold above which jam protection activates. Higher values = less sensitive.">?</span></td>
+                    <td><input type="number" id="jamDetectionThreshold" min="0.5" max="20.0" step="0.1" value="2.0"></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Battery Settings -->
+        <div class="settings-group">
+            <h3>Battery Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="cellsInSeries">Cells in Series:</label><span class="info-icon" title="Number of battery cells connected in series. Used for voltage calculations and battery level estimation.">?</span></td>
+                    <td><input type="number" id="cellsInSeries" min="1" max="20" value="6"></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- LED Bar Settings -->
+        <div class="settings-group">
+            <h3>LED Bar Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="ledBarNum">LED Bar Number:</label><span class="info-icon" title="Number of LEDs in the status bar (1-50). More LEDs = finer status display resolution.">?</span></td>
+                    <td><input type="number" id="ledBarNum" min="1" max="50" value="10"></td>
+                </tr>
+                <tr>
+                    <td><label for="ledBarBrightness">LED Bar Brightness:</label><span class="info-icon" title="Main brightness level for LED bar (1-255). Higher values = brighter display.">?</span></td>
+                    <td><input type="number" id="ledBarBrightness" min="1" max="255" value="15"></td>
+                </tr>
+                <tr>
+                    <td><label for="ledBarBrightnessSecond">LED Bar Brightness Second:</label><span class="info-icon" title="Secondary brightness level for standby/dimmed mode (1-255). Used for low-power indication.">?</span></td>
+                    <td><input type="number" id="ledBarBrightnessSecond" min="1" max="255" value="3"></td>
+                </tr>
+                <tr>
+                    <td><label for="ledFrequency">LED Frequency:</label><span class="info-icon" title="PWM frequency for LED control in Hz (100-10000). Higher frequencies reduce flicker.">?</span></td>
+                    <td><input type="number" id="ledFrequency" min="100" max="10000" value="960"></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Lamp Settings -->
+        <div class="settings-group">
+            <h3>Front Lamp Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="lampMaxLevels">Number of Lamp Levels:</label><span class="info-icon" title="Number of brightness levels for front lamp (2-10). More levels = finer brightness control.">?</span></td>
+                    <td><input type="number" id="lampMaxLevels" min="2" max="10" value="5" onchange="updateLampBrightnessInputs()"></td>
+                </tr>
+            </table>
+            <div id="lampBrightnessContainer">
+                <!-- Lamp brightness inputs will be generated dynamically -->
+            </div>
+        </div>
+        
+        <!-- WiFi Settings -->
+        <div class="settings-group">
+            <h3>WiFi Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="wifiSSID">WiFi SSID:</label><span class="info-icon" title="WiFi network name for the DPV access point. Change to customize your network name.">?</span></td>
+                    <td><input type="text" id="wifiSSID" maxlength="31" value="DPVControl"></td>
+                </tr>
+                <tr>
+                    <td><label for="wifiPassword">WiFi Password:</label><span class="info-icon" title="WiFi password for the DPV access point. Minimum 8 characters for security.">?</span></td>
+                    <td><input type="password" id="wifiPassword" maxlength="31" value="DPVControl"></td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- System Settings -->
+        <div class="settings-group">
+            <h3>System Settings</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="beeperEnabled">Beeper Enabled:</label><span class="info-icon" title="Enable/disable audio feedback beeps for system status and warnings.">?</span></td>
+                    <td><input type="checkbox" id="beeperEnabled" checked></td>
+                </tr>
+                <tr>
+                    <td><label for="debugLoggingEnabled">Debug Logging Enabled:</label></td>
+                    <td><input type="checkbox" id="debugLoggingEnabled"></td>
+                </tr>
+                <tr>
+                    <td><label for="standbyBlinkStartMinutes">Standby Blink Start (min):</label></td>
+                    <td><input type="number" id="standbyBlinkStartMinutes" min="1" max="60" value="15"></td>
+                </tr>
+                <tr>
+                    <td><label for="standbyBlinkDurationSeconds">Standby Blink Duration (s):</label></td>
+                    <td><input type="number" id="standbyBlinkDurationSeconds" min="1" max="60" value="10"></td>
+                </tr>
+            </table>
+        </div>
+    </form>
+    
+    <div id="settingsStatus" style="margin-top: 20px; text-align: center; color: #2c3e50;"></div>
+</div> 
