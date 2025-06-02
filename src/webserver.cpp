@@ -16,12 +16,17 @@ extern int LED_State; // From ledLamp.cpp
 extern int currentMotorStep; // From motor.cpp
 extern MotorState motorState; // From motor.cpp
 extern unsigned long lastActionTime; // From main.cpp
+extern bool remoteControlActive; // From motor.cpp - for remote control mode
 
 // External function declarations
 extern void wakeUp(); // From motor.cpp
 extern void setBarSpeed(int speed); // From ledBar.cpp
 extern void setLEDState(int state); // From ledLamp.cpp
 extern void setBarLED(int level); // From ledBar.cpp
+extern int getTotalDataPoints(String timeRange); // From datalog.cpp
+extern LogdataRow* getLatestDataPoints(int count, String timeRange); // From datalog.cpp
+extern String* listSessionFiles(int* count); // From datalog.cpp
+extern String getCurrentSessionFile(); // From datalog.cpp
 
 // Task handle for the webserver task
 TaskHandle_t webserverTaskHandle = NULL;
@@ -978,6 +983,112 @@ void handleClient(WiFiClient client) {
         }
     } else if (path == "/api/data" || path.startsWith("/api/data?")) {
         // API endpoint for datalogger data
+        String range = "recent";
+        int count = 100;
+        
+        // Parse query parameters
+        if (path.indexOf("?") != -1) {
+            String queryString = path.substring(path.indexOf("?") + 1);
+            
+            // Extract count parameter
+            int countIndex = queryString.indexOf("count=");
+            if (countIndex != -1) {
+                String countStr = queryString.substring(countIndex + 6);
+                int ampIndex = countStr.indexOf("&");
+                if (ampIndex != -1) {
+                    countStr = countStr.substring(0, ampIndex);
+            }
+            count = countStr.toInt();
+                if (count <= 0 || count > 1000) count = 100; // Limit to reasonable range
+            }
+            
+            // Extract range parameter
+            int rangeIndex = queryString.indexOf("range=");
+            if (rangeIndex != -1) {
+                String rangeStr = queryString.substring(rangeIndex + 6);
+                int ampIndex = rangeStr.indexOf("&");
+                if (ampIndex != -1) {
+                    rangeStr = rangeStr.substring(0, ampIndex);
+                }
+                range = rangeStr;
+            }
+        }
+        
+        String jsonData = generateDataLoggerJson(count, range);
+        sendHttpResponse(client, 200, "application/json", jsonData.c_str());
+        
+    } else if (path == "/api/status") {
+        // API endpoint for system status
+        log("API /api/status called");
+        
+        String json = "{";
+        json += "\"uptime\":" + String(millis()) + ",";
+        json += "\"totalUptime\":" + String(millis() / 1000) + ",";
+        json += "\"dataPoints\":" + String(getTotalDataPoints()) + ",";
+        json += "\"beeperEnabled\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
+        json += "\"lampLevel\":" + String(LED_State) + ",";
+        json += "\"waterSensorFront\":false,"; // Placeholder
+        json += "\"waterSensorBack\":false,"; // Placeholder
+        json += "\"leftButton\":false,"; // Placeholder
+        json += "\"rightButton\":false"; // Placeholder
+        json += "}";
+        
+        sendHttpResponse(client, 200, "application/json", json.c_str());
+        
+    } else if (path == "/api/sessions") {
+        // API endpoint for session list
+        log("API /api/sessions called");
+        
+        String sessionsJson = generateSessionListJson();
+        sendHttpResponse(client, 200, "application/json", sessionsJson.c_str());
+        
+    } else if (path.startsWith("/api/sessions/") && path.endsWith("/data") && method == "GET") {
+        // API endpoint for session data
+        String sessionFile = path.substring(14); // Remove "/api/sessions/"
+        sessionFile = sessionFile.substring(0, sessionFile.length() - 5); // Remove "/data"
+        
+        log(("API session data request for: " + sessionFile).c_str());
+        
+        String sessionData = generateSessionDataJson(sessionFile);
+        sendHttpResponse(client, 200, "application/json", sessionData.c_str());
+        
+    } else if (path.startsWith("/api/sessions/") && path.endsWith("/csv") && method == "GET") {
+        // API endpoint for session CSV download
+        String sessionFile = path.substring(14); // Remove "/api/sessions/"
+        sessionFile = sessionFile.substring(0, sessionFile.length() - 4); // Remove "/csv"
+        
+        log(("API session CSV request for: " + sessionFile).c_str());
+        
+        // Stream CSV data directly to avoid memory issues
+        streamSessionCsvData(client, sessionFile);
+        return; // streamSessionCsvData handles client connection
+        
+    } else if (path == "/api/settings" && method == "GET") {
+        // API endpoint to get current settings
+        log("API /api/settings GET called");
+        
+        String settingsJson = generateSettingsJson();
+        sendHttpResponse(client, 200, "application/json", settingsJson.c_str());
+        
+    } else if (path == "/api/settings" && method == "POST") {
+        // API endpoint to save settings
+        log("API /api/settings POST called");
+        
+        // Read POST body if Content-Length is specified
+        String body = "";
+        if (contentLength.length() > 0) {
+            int bodyLength = contentLength.toInt();
+            if (bodyLength > 0 && bodyLength < 10240) { // 10KB limit for settings
+                char* buffer = new char[bodyLength + 1];
+                int bytesRead = 0;
+                unsigned long startTime = millis();
+                
+                // Read the exact number of bytes specified in Content-Length
+                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 3000)) {
+                    if (client.available()) {
+                        buffer[bytesRead] = client.read();
+                        bytesRead++;
+                    } else {
                         delay(1);
                     }
                 }

@@ -56,6 +56,12 @@ function loadTabContent() {
         .then(response => response.text())
         .then(html => {
             document.getElementById('remote-tab').innerHTML = html;
+            
+            // Generiere die Lampen-Level nach dem Laden der Remote-Seite
+            setTimeout(generateLampLevels, 100);
+            
+            // Initialisiere die Remote-Control-Schnittstelle
+            setTimeout(enableRemoteControlInterface, 200);
         })
         .catch(error => {
             console.error('Error loading remote control tab:', error);
@@ -133,160 +139,6 @@ function exportToCSV(data, filename) {
     console.log('CSV exported: ' + filename + ' with ' + data.length + ' data points');
 }
 
-// Built-in Chart class optimized for DPV data
-if (typeof Chart === 'undefined') {
-    window.Chart = class {
-        constructor(ctx, config) {
-            this.ctx = ctx;
-            this.config = config;
-            this.data = config.data || { labels: [], datasets: [] };
-            this.canvas = ctx.canvas;
-            this.canvas.style.backgroundColor = '#1e1e1e';
-            this.canvas.width = 800;
-            this.canvas.height = 400;
-            this.update();
-        }
-        
-        update() {
-            const ctx = this.ctx;
-            const canvas = this.canvas;
-            
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#2a2a2a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Check if we have valid data
-            if (!this.data.datasets || this.data.datasets.length === 0 || !this.data.labels || this.data.labels.length === 0) {
-                ctx.fillStyle = '#888';
-                ctx.font = '16px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('DPV Chart - No data available', canvas.width / 2, canvas.height / 2 - 20);
-                ctx.fillText('Waiting for sensor data...', canvas.width / 2, canvas.height / 2 + 20);
-                return;
-            }
-            
-            const legendWidth = 200;
-            const margin = 60;
-            const chartWidth = canvas.width - 2 * margin - legendWidth;
-            const chartHeight = canvas.height - 2 * margin;
-            
-            // Draw axes
-            ctx.strokeStyle = '#555';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(margin, margin);
-            ctx.lineTo(margin, canvas.height - margin);
-            ctx.lineTo(margin + chartWidth, canvas.height - margin);
-            ctx.stroke();
-            
-            // Colors for different datasets
-            const colors = [
-                '#4bc0c0', '#ff6384', '#ffce56', '#36a2eb', 
-                '#9966ff', '#ff9f40', '#c7c7c7', '#ff63ff',
-                '#63ff84', '#ffce84'
-            ];
-            
-            // Find global min/max for all visible datasets
-            let globalMin = Infinity;
-            let globalMax = -Infinity;
-            
-            this.data.datasets.forEach(dataset => {
-                if (dataset.data && dataset.data.length > 0) {
-                    const values = dataset.data.map(d => typeof d === 'object' ? d.y : d);
-                    const min = Math.min(...values);
-                    const max = Math.max(...values);
-                    if (min < globalMin) globalMin = min;
-                    if (max > globalMax) globalMax = max;
-                }
-            });
-            
-            const range = globalMax - globalMin || 1;
-            
-            // Draw datasets
-            this.data.datasets.forEach((dataset, datasetIndex) => {
-                if (!dataset.data || dataset.data.length === 0) return;
-                
-                const color = colors[datasetIndex % colors.length];
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                
-                let hasValidPoint = false;
-                for (let i = 0; i < dataset.data.length; i++) {
-                    const x = margin + (i / (dataset.data.length - 1)) * chartWidth;
-                    const val = typeof dataset.data[i] === 'object' ? dataset.data[i].y : dataset.data[i];
-                    const y = margin + chartHeight - ((val - globalMin) / range) * chartHeight;
-                    
-                    if (i === 0 || !hasValidPoint) {
-                        ctx.moveTo(x, y);
-                        hasValidPoint = true;
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
-                }
-                ctx.stroke();
-            });
-            
-            // Draw legend on the right side
-            ctx.font = '11px Arial';
-            ctx.textAlign = 'left';
-            const legendX = margin + chartWidth + 20;
-            let legendY = margin + 20;
-            
-            ctx.fillStyle = '#ccc';
-            ctx.font = '12px Arial';
-            ctx.fillText('Parameters:', legendX, legendY);
-            legendY += 20;
-            
-            ctx.font = '10px Arial';
-            this.data.datasets.forEach((dataset, index) => {
-                if (dataset.label) {
-                    const color = colors[index % colors.length];
-                    ctx.fillStyle = color;
-                    ctx.fillRect(legendX, legendY - 8, 12, 10);
-                    ctx.fillStyle = '#ccc';
-                    ctx.fillText(dataset.label, legendX + 16, legendY);
-                    legendY += 14;
-                }
-            });
-            
-            // Draw title
-            ctx.fillStyle = '#4fc3f7';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('DPV Sensor Data Visualization', (margin + chartWidth/2), 20);
-            
-            // Draw data point count
-            ctx.font = '11px Arial';
-            ctx.fillStyle = '#888';
-            ctx.fillText(`${this.data.labels.length} data points`, (margin + chartWidth/2), canvas.height - 10);
-            
-            // Draw Y-axis labels
-            ctx.font = '9px Arial';
-            ctx.textAlign = 'right';
-            ctx.fillStyle = '#888';
-            for (let i = 0; i <= 5; i++) {
-                const y = margin + (i / 5) * chartHeight;
-                const value = globalMax - (i / 5) * range;
-                ctx.fillText(value.toFixed(1), margin - 5, y + 3);
-            }
-            
-            // Draw X-axis labels (time)
-            ctx.textAlign = 'center';
-            if (this.data.labels.length > 0) {
-                const labelStep = Math.max(1, Math.floor(this.data.labels.length / 6));
-                for (let i = 0; i < this.data.labels.length; i += labelStep) {
-                    const x = margin + (i / (this.data.labels.length - 1)) * chartWidth;
-                    ctx.fillText(this.data.labels[i], x, canvas.height - margin + 15);
-                }
-            }
-        }
-        
-        destroy() {}
-    };
-}
-
 // Initialize Charts
 function initCharts() {
     // Combined Chart with all data
@@ -299,77 +151,209 @@ function initCharts() {
                 label: 'Battery Voltage (V)',
                 borderColor: 'rgb(75, 192, 192)',
                 backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'voltage'
             }, {
                 label: 'Current (A)',
                 borderColor: 'rgb(255, 99, 132)',
                 backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'current'
             }, {
                 label: 'Motor Temp (°C)',
                 borderColor: 'rgb(255, 206, 86)',
                 backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'temperature'
             }, {
                 label: 'Ambient Temp (°C)',
                 borderColor: 'rgb(54, 162, 235)',
                 backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'temperature'
             }, {
                 label: 'Humidity (%)',
                 borderColor: 'rgb(153, 102, 255)',
                 backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'percent'
             }, {
                 label: 'RPM (÷100)',
                 borderColor: 'rgb(255, 159, 64)',
                 backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'rpm'
             }, {
                 label: 'Duty Cycle (%)',
                 borderColor: 'rgb(199, 199, 199)',
                 backgroundColor: 'rgba(199, 199, 199, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'percent'
             }, {
                 label: 'MOSFET Temp (°C)',
                 borderColor: 'rgb(255, 99, 255)',
                 backgroundColor: 'rgba(255, 99, 255, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'temperature'
             }, {
                 label: 'Motor Current (A)',
                 borderColor: 'rgb(99, 255, 132)',
                 backgroundColor: 'rgba(99, 255, 132, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'current'
             }, {
                 label: 'Battery Level (%)',
                 borderColor: 'rgb(255, 206, 132)',
                 backgroundColor: 'rgba(255, 206, 132, 0.1)',
+                borderWidth: 2,
                 data: [],
-                tension: 0.1
+                tension: 0.2,
+                yAxisID: 'percent'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100
-                }
+            animation: {
+                duration: 500
+            },
+            interaction: {
+                mode: 'index',
+                intersect: false
             },
             plugins: {
                 legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 10,
+                        color: '#ddd'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    padding: 10,
+                    caretSize: 8,
+                    cornerRadius: 4,
+                    displayColors: true
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#aaa'
+                    }
+                },
+                voltage: {
+                    type: 'linear',
                     display: true,
-                    position: 'top'
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Voltage (V)',
+                        color: 'rgb(75, 192, 192)'
+                    },
+                    grid: {
+                        color: 'rgba(75, 192, 192, 0.2)'
+                    },
+                    ticks: {
+                        color: '#aaa'
+                    }
+                },
+                current: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Current (A)',
+                        color: 'rgb(255, 99, 132)'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#aaa'
+                    }
+                },
+                temperature: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Temperature (°C)',
+                        color: 'rgb(255, 206, 86)'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#aaa'
+                    }
+                },
+                percent: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Percent (%)',
+                        color: 'rgb(153, 102, 255)'
+                    },
+                    min: 0,
+                    max: 100,
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#aaa'
+                    }
+                },
+                rpm: {
+                    type: 'linear',
+                    display: false,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'RPM (÷100)',
+                        color: 'rgb(255, 159, 64)'
+                    },
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#aaa'
+                    }
                 }
             }
         }
@@ -516,16 +500,848 @@ function formatTime(milliseconds) {
 // This is a condensed version. The complete JavaScript file would include all functions from the original webserver.cpp
 
 // Placeholder functions for now - these would be implemented fully
-function loadSessionList() { console.log('loadSessionList called'); }
-function loadChartData() { console.log('loadChartData called'); }
-function loadVersionInfo() { console.log('loadVersionInfo called'); }
-function updateLampBrightnessInputs() { console.log('updateLampBrightnessInputs called'); }
-function loadDPVSettings() { console.log('loadDPVSettings called'); }
-function enableRemoteControlInterface() { console.log('enableRemoteControlInterface called'); }
+function loadSessionList() {
+    console.log('Loading session list...');
+    fetch('/api/sessions')
+        .then(response => response.json())
+        .then(sessions => {
+            console.log('Sessions loaded:', sessions);
+            availableSessions = sessions;
+            const select = document.getElementById('sessionSelect');
+            select.innerHTML = '';
+            
+            sessions.forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.filename;
+                option.text = session.displayName;
+                if (session.isCurrent) {
+                    option.selected = true;
+                    selectedSession = session.filename;
+                }
+                select.appendChild(option);
+            });
+            
+            // Load initial chart data
+            loadChartData();
+        })
+        .catch(error => {
+            console.error('Error loading sessions:', error);
+        });
+}
+
+function loadChartData() {
+    if (!selectedSession) return;
+    
+    console.log('Loading chart data for session:', selectedSession);
+    fetch(`/api/sessions/${selectedSession}/data`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Chart data loaded:', data);
+            sessionMetadata = data.meta;
+            allDataPoints = data.data;
+            
+            // Update time slider
+            updateTimeSlider();
+            
+            // Update chart
+            updateChart();
+        })
+        .catch(error => {
+            console.error('Error loading chart data:', error);
+        });
+}
+
+function loadVersionInfo() {
+    fetch('/api/version')
+        .then(response => response.json())
+        .then(data => {
+            const versionElement = document.getElementById('version');
+            if (versionElement) {
+                versionElement.textContent = data.version;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading version info:', error);
+        });
+}
+
+function updateLampBrightnessInputs() {
+    fetch('/api/settings')
+        .then(response => response.json())
+        .then(settings => {
+            const maxLevels = settings.lampMaxLevels;
+            const container = document.getElementById('lampBrightnessContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            for (let i = 0; i < maxLevels; i++) {
+                const div = document.createElement('div');
+                div.className = 'lamp-level';
+                
+                const label = document.createElement('label');
+                label.textContent = `Level ${i}:`;
+                
+                const input = document.createElement('input');
+                input.type = 'range';
+                input.min = '0';
+                input.max = '100';
+                input.value = settings.lampBrightness[i] || 0;
+                input.onchange = () => updateLampBrightness(i, input.value);
+                
+                const value = document.createElement('span');
+                value.textContent = `${input.value}%`;
+                input.oninput = () => value.textContent = `${input.value}%`;
+                
+                div.appendChild(label);
+                div.appendChild(input);
+                div.appendChild(value);
+                container.appendChild(div);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading lamp settings:', error);
+        });
+}
+
+function loadDPVSettings() {
+    fetch('/api/settings')
+        .then(response => response.json())
+        .then(settings => {
+            // Update all settings inputs
+            Object.keys(settings).forEach(key => {
+                const input = document.getElementById(key);
+                if (input) {
+                    if (typeof settings[key] === 'boolean') {
+                        input.checked = settings[key];
+                    } else {
+                        input.value = settings[key];
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading settings:', error);
+        });
+}
+
+function enableRemoteControlInterface() {
+    const speedSlider = document.getElementById('speedSlider');
+    const lampSlider = document.getElementById('lampSlider');
+    
+    if (speedSlider) {
+        speedSlider.oninput = function() {
+            const speed = this.value;
+            document.getElementById('speedValue').textContent = `${speed}%`;
+            
+            // Send speed update to API
+            fetch('/api/motor', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    enabled: speed > 0,
+                    speed: parseInt(speed)
+                })
+            }).catch(error => {
+                console.error('Error updating motor speed:', error);
+            });
+        };
+    }
+    
+    if (lampSlider) {
+        lampSlider.oninput = function() {
+            const level = this.value;
+            document.getElementById('lampValue').textContent = `Level ${level}`;
+            
+            // Send lamp update to API
+            fetch('/api/lamp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    level: parseInt(level)
+                })
+            }).catch(error => {
+                console.error('Error updating lamp level:', error);
+            });
+        };
+    }
+}
+
 function loadDataWithLiveSession() { loadData(); }
-function updateSessionFilter() { console.log('updateSessionFilter called'); }
-function updateTimeWindow() { console.log('updateTimeWindow called'); }
-function refreshChart() { console.log('refreshChart called'); }
-function deleteAllSessions() { console.log('deleteAllSessions called'); }
-function exportCurrentViewAsCSV() { console.log('exportCurrentViewAsCSV called'); }
-function exportAllSessionsAsZip() { console.log('exportAllSessionsAsZip called'); } 
+function updateSessionFilter() {
+    const select = document.getElementById('sessionSelect');
+    selectedSession = select.value;
+    loadChartData();
+}
+function updateTimeWindow() {
+    const slider = document.getElementById('timeSlider');
+    timeSliderValue = slider.value;
+    updateChart();
+}
+function refreshChart() {
+    loadChartData();
+}
+function deleteAllSessions() {
+    if (!confirm('Are you sure you want to delete all sessions? This cannot be undone.')) {
+        return;
+    }
+    
+    fetch('/api/delete-all-sessions', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`Successfully deleted ${data.deleted} sessions`);
+            loadSessionList();
+        } else {
+            alert('Error deleting sessions: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting sessions:', error);
+        alert('Error deleting sessions');
+    });
+}
+function exportCurrentViewAsCSV() {
+    if (!selectedSession) {
+        alert('No session selected');
+        return;
+    }
+    
+    const filename = selectedSession.replace('.bin', '.csv');
+    exportToCSV(allDataPoints, filename);
+}
+function exportAllSessionsAsZip() {
+    if (!availableSessions || availableSessions.length === 0) {
+        alert('No sessions available');
+        return;
+    }
+    
+    const zip = new JSZip();
+    let completedExports = 0;
+    
+    availableSessions.forEach(session => {
+        fetch(`/api/sessions/${session.filename}/csv`)
+            .then(response => response.text())
+            .then(csv => {
+                const filename = session.filename.replace('.bin', '.csv');
+                zip.file(filename, csv);
+                completedExports++;
+                
+                if (completedExports === availableSessions.length) {
+                    zip.generateAsync({type: 'blob'})
+                        .then(content => {
+                            const url = window.URL.createObjectURL(content);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'dpv_sessions.zip';
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                            window.URL.revokeObjectURL(url);
+                        });
+                }
+            })
+            .catch(error => {
+                console.error('Error exporting session:', error);
+                completedExports++;
+            });
+    });
+}
+function updateTimeSlider() {
+    if (!sessionMetadata) return;
+    
+    const slider = document.getElementById('timeSlider');
+    if (!slider) return;
+    
+    // Set slider max to total datapoints
+    slider.max = sessionMetadata.totalDatapoints;
+    slider.value = timeSliderValue;
+    
+    // Update time window display
+    const timeWindow = document.getElementById('timeWindow');
+    if (timeWindow) {
+        const startTime = new Date(sessionMetadata.realStartTimestamp);
+        const endTime = new Date(sessionMetadata.realEndTimestamp);
+        timeWindow.textContent = `${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`;
+    }
+}
+function updateChart() {
+    if (!allDataPoints || !sessionMetadata) return;
+    
+    // Calculate visible data points based on time slider
+    const startIndex = Math.max(0, allDataPoints.length - timeSliderValue);
+    const visibleData = allDataPoints.slice(startIndex);
+    
+    // Format timestamps for better readability
+    const formattedLabels = visibleData.map(d => {
+        const date = new Date(d.timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    });
+    
+    // Update chart data
+    if (charts.combinedChart) {
+        charts.combinedChart.data.labels = formattedLabels;
+        charts.combinedChart.data.datasets[0].data = visibleData.map(d => d.batteryVoltage);
+        charts.combinedChart.data.datasets[1].data = visibleData.map(d => d.current);
+        charts.combinedChart.data.datasets[2].data = visibleData.map(d => d.tempMotor);
+        charts.combinedChart.data.datasets[3].data = visibleData.map(d => d.temperature);
+        charts.combinedChart.data.datasets[4].data = visibleData.map(d => d.humidity);
+        charts.combinedChart.data.datasets[5].data = visibleData.map(d => d.erpm / 100); // Scale down RPM
+        charts.combinedChart.data.datasets[6].data = visibleData.map(d => d.dutyCycle);
+        charts.combinedChart.data.datasets[7].data = visibleData.map(d => d.tempMosfet);
+        charts.combinedChart.data.datasets[8].data = visibleData.map(d => d.avgMotorCurrent);
+        charts.combinedChart.data.datasets[9].data = visibleData.map(d => d.batteryLevel);
+        
+        // Update chart with animation
+        charts.combinedChart.update();
+        
+        // Update data point count display
+        const dataPointCount = document.getElementById('chartDataPointCount');
+        if (dataPointCount) {
+            dataPointCount.textContent = visibleData.length + ' / ' + sessionMetadata.totalDatapoints;
+        }
+    }
+}
+
+// Remote Control Functions
+function updateMotorSpeed(value) {
+    // Zeigt den aktuellen Wert im UI an
+    document.getElementById('motorSpeedValue').textContent = value;
+    if (document.getElementById('remoteMotorSpeed')) {
+        document.getElementById('remoteMotorSpeed').textContent = value + '%';
+    }
+}
+
+function setMotorSpeed(value) {
+    // Sende den Wert an die API
+    fetch('/api/motor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            enabled: value > 0,
+            speed: parseInt(value)
+        })
+    }).then(() => {
+        if (document.getElementById('remoteLastCommand')) {
+            document.getElementById('remoteLastCommand').textContent = 'Set speed to ' + value + '%';
+        }
+        
+        // Update motor status
+        if (document.getElementById('remoteMotorStatus')) {
+            document.getElementById('remoteMotorStatus').textContent = value > 0 ? 'RUNNING' : 'STOPPED';
+        }
+    }).catch(error => {
+        console.error('Error updating motor speed:', error);
+    });
+}
+
+function toggleMotor() {
+    // Prüfe aktuellen Status
+    const button = document.getElementById('motorToggle');
+    const isRunning = button.textContent.includes('STOP');
+    
+    if (isRunning) {
+        // Motor stoppen
+        fetch('/api/motor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: false, speed: 0 })
+        }).then(() => {
+            button.textContent = 'START MOTOR';
+            button.style.backgroundColor = '#4caf50';
+            
+            // Update UI
+            if (document.getElementById('motorSpeedSlider')) {
+                document.getElementById('motorSpeedSlider').value = 0;
+            }
+            if (document.getElementById('motorSpeedValue')) {
+                document.getElementById('motorSpeedValue').textContent = '0';
+            }
+            if (document.getElementById('remoteMotorStatus')) {
+                document.getElementById('remoteMotorStatus').textContent = 'STOPPED';
+            }
+            if (document.getElementById('remoteMotorSpeed')) {
+                document.getElementById('remoteMotorSpeed').textContent = '0%';
+            }
+            if (document.getElementById('remoteLastCommand')) {
+                document.getElementById('remoteLastCommand').textContent = 'Motor stopped';
+            }
+        }).catch(error => {
+            console.error('Error stopping motor:', error);
+        });
+    } else {
+        // Motor starten
+        const speed = document.getElementById('motorSpeedSlider') ? 
+                     parseInt(document.getElementById('motorSpeedSlider').value) : 50;
+        
+        fetch('/api/motor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: true, speed: speed })
+        }).then(() => {
+            button.textContent = 'STOP MOTOR';
+            button.style.backgroundColor = '#f44336';
+            
+            // Update UI
+            if (document.getElementById('remoteMotorStatus')) {
+                document.getElementById('remoteMotorStatus').textContent = 'RUNNING';
+            }
+            if (document.getElementById('remoteMotorSpeed')) {
+                document.getElementById('remoteMotorSpeed').textContent = speed + '%';
+            }
+            if (document.getElementById('remoteLastCommand')) {
+                document.getElementById('remoteLastCommand').textContent = 'Motor started at ' + speed + '%';
+            }
+        }).catch(error => {
+            console.error('Error starting motor:', error);
+        });
+    }
+}
+
+function emergencyStop() {
+    // Sofort Motor stoppen
+    fetch('/api/motor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: false, speed: 0 })
+    }).then(() => {
+        // Update UI
+        const button = document.getElementById('motorToggle');
+        if (button) {
+            button.textContent = 'START MOTOR';
+            button.style.backgroundColor = '#4caf50';
+        }
+        
+        if (document.getElementById('motorSpeedSlider')) {
+            document.getElementById('motorSpeedSlider').value = 0;
+        }
+        if (document.getElementById('motorSpeedValue')) {
+            document.getElementById('motorSpeedValue').textContent = '0';
+        }
+        if (document.getElementById('remoteMotorStatus')) {
+            document.getElementById('remoteMotorStatus').textContent = 'EMERGENCY STOP';
+        }
+        if (document.getElementById('remoteMotorSpeed')) {
+            document.getElementById('remoteMotorSpeed').textContent = '0%';
+        }
+        if (document.getElementById('remoteLastCommand')) {
+            document.getElementById('remoteLastCommand').textContent = 'EMERGENCY STOP activated';
+        }
+        
+        // Zeige Meldung
+        if (document.getElementById('remoteControlStatus')) {
+            document.getElementById('remoteControlStatus').textContent = 'Emergency stop activated!';
+            setTimeout(() => {
+                document.getElementById('remoteControlStatus').textContent = '';
+            }, 5000);
+        }
+    }).catch(error => {
+        console.error('Error emergency stopping motor:', error);
+    });
+}
+
+function toggleLamp() {
+    const button = document.getElementById('lampToggleBtn');
+    const isOn = button.textContent.includes('OFF') ? false : true;
+    
+    // Neuer Status
+    const newStatus = !isOn;
+    const newLevel = newStatus ? 1 : 0;
+    
+    fetch('/api/lamp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: newLevel })
+    }).then(() => {
+        // Update UI
+        button.textContent = newStatus ? '💡 LAMP ON' : '💡 LAMP OFF';
+        button.style.backgroundColor = newStatus ? '#ff9800' : '#666';
+        
+        // Enable/disable brightness controls
+        const levelsContainer = document.getElementById('lampLevelsContainer');
+        if (levelsContainer) {
+            levelsContainer.style.opacity = newStatus ? '1' : '0.5';
+        }
+        
+        // Update status
+        if (document.getElementById('remoteLampStatus')) {
+            document.getElementById('remoteLampStatus').textContent = newStatus ? 'ON' : 'OFF';
+        }
+        if (document.getElementById('remoteLastCommand')) {
+            document.getElementById('remoteLastCommand').textContent = 'Lamp turned ' + (newStatus ? 'ON' : 'OFF');
+        }
+    }).catch(error => {
+        console.error('Error toggling lamp:', error);
+    });
+}
+
+// Settings Functions
+function saveDPVSettings() {
+    console.log('saveDPVSettings called');
+    
+    // Sammle alle Einstellungen aus dem Formular
+    const form = document.getElementById('settingsForm');
+    if (!form) {
+        console.error('Settings form not found!');
+        alert('Error: Settings form not found!');
+        return;
+    }
+    
+    // Erstelle ein Objekt mit allen Einstellungen
+    const settings = {
+        // Motor and Speed Settings
+        speedSteps: parseInt(document.getElementById('speedSteps').value),
+        standbyDelaySeconds: parseInt(document.getElementById('standbyDelaySeconds').value),
+        batteryPowerMax: parseInt(document.getElementById('batteryPowerMax').value),
+        minSpeedPercent: parseFloat(document.getElementById('minSpeedPercent').value),
+        maxSpeedRpm: parseFloat(document.getElementById('maxSpeedRpm').value),
+        speedUpTimeMs: parseInt(document.getElementById('speedUpTimeMs').value),
+        speedDownTimeMs: parseInt(document.getElementById('speedDownTimeMs').value),
+        maxTimeOverloadedMs: parseInt(document.getElementById('maxTimeOverloadedMs').value),
+        
+        // Jam Detection Settings
+        jamMin: parseFloat(document.getElementById('jamMin').value),
+        jamDetectionThreshold: parseFloat(document.getElementById('jamDetectionThreshold').value),
+        
+        // Battery Settings
+        cellsInSeries: parseInt(document.getElementById('cellsInSeries').value),
+        
+        // LED Bar Settings
+        ledBarNum: parseInt(document.getElementById('ledBarNum').value),
+        ledBarBrightness: parseInt(document.getElementById('ledBarBrightness').value),
+        ledBarBrightnessSecond: parseInt(document.getElementById('ledBarBrightnessSecond').value),
+        ledFrequency: parseInt(document.getElementById('ledFrequency').value),
+        
+        // Lamp Settings
+        lampMaxLevels: parseInt(document.getElementById('lampMaxLevels').value),
+        lampBrightness: [],
+        
+        // WiFi Settings
+        wifiSSID: document.getElementById('wifiSSID').value,
+        wifiPassword: document.getElementById('wifiPassword').value,
+        
+        // System Settings
+        beeperEnabled: document.getElementById('beeperEnabled').checked,
+        debugLoggingEnabled: document.getElementById('debugLoggingEnabled').checked,
+        standbyBlinkStartMinutes: parseInt(document.getElementById('standbyBlinkStartMinutes').value),
+        standbyBlinkDurationSeconds: parseInt(document.getElementById('standbyBlinkDurationSeconds').value)
+    };
+    
+    // Sammle Lampen-Helligkeitswerte
+    const lampContainer = document.getElementById('lampBrightnessContainer');
+    if (lampContainer) {
+        const lampInputs = lampContainer.querySelectorAll('input[type="range"]');
+        for (let i = 0; i < lampInputs.length; i++) {
+            settings.lampBrightness.push(parseInt(lampInputs[i].value));
+        }
+    }
+    
+    console.log('Saving settings:', settings);
+    
+    // Zeige Status-Nachricht
+    const statusElement = document.getElementById('settingsStatus');
+    if (statusElement) {
+        statusElement.textContent = 'Saving settings...';
+    }
+    
+    // Sende an API
+    fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+    }).then(response => {
+        if (!response.ok) {
+            throw new Error('Server responded with status: ' + response.status);
+        }
+        return response.json();
+    }).then(data => {
+        console.log('Settings saved response:', data);
+        if (data.success) {
+            if (statusElement) {
+                statusElement.textContent = 'Settings saved successfully!';
+                statusElement.style.color = '#4caf50';
+            } else {
+                alert('Settings saved successfully!');
+            }
+        } else {
+            if (statusElement) {
+                statusElement.textContent = 'Error saving settings: ' + (data.error || 'Unknown error');
+                statusElement.style.color = '#f44336';
+            } else {
+                alert('Error saving settings: ' + (data.error || 'Unknown error'));
+            }
+        }
+        
+        // Status nach 3 Sekunden ausblenden
+        setTimeout(() => {
+            if (statusElement) {
+                statusElement.textContent = '';
+            }
+        }, 3000);
+        
+    }).catch(error => {
+        console.error('Error saving settings:', error);
+        if (statusElement) {
+            statusElement.textContent = 'Error saving settings: ' + error.message;
+            statusElement.style.color = '#f44336';
+        } else {
+            alert('Error saving settings: ' + error.message);
+        }
+    });
+}
+
+// Funktion zum Wiederherstellen der Standardeinstellungen
+function restoreDefaultSettings() {
+    if (confirm('Are you sure you want to restore default settings? All custom settings will be lost.')) {
+        fetch('/api/settings/restore', {
+            method: 'POST'
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Default settings restored. Reloading...');
+                // Lade Einstellungen neu
+                loadDPVSettings();
+            } else {
+                alert('Error restoring default settings: ' + (data.error || 'Unknown error'));
+            }
+        }).catch(error => {
+            console.error('Error restoring default settings:', error);
+            alert('Error restoring default settings: ' + error.message);
+        });
+    }
+}
+
+// Funktion zum Neustarten des Systems
+function rebootSystem() {
+    if (confirm('Are you sure you want to reboot the system? This will disconnect you temporarily.')) {
+        fetch('/api/reboot', {
+            method: 'POST'
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('System is rebooting. Please wait about 10 seconds and refresh the page.');
+                // Zeige Countdown
+                const statusElement = document.getElementById('settingsStatus');
+                if (statusElement) {
+                    let countdown = 10;
+                    statusElement.textContent = 'System rebooting... Reconnect in ' + countdown + ' seconds';
+                    statusElement.style.color = '#ff9800';
+                    
+                    const interval = setInterval(() => {
+                        countdown--;
+                        if (countdown > 0) {
+                            statusElement.textContent = 'System rebooting... Reconnect in ' + countdown + ' seconds';
+                        } else {
+                            clearInterval(interval);
+                            statusElement.textContent = 'Attempting to reconnect...';
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        }
+                    }, 1000);
+                }
+            } else {
+                alert('Error rebooting system: ' + (data.error || 'Unknown error'));
+            }
+        }).catch(error => {
+            console.error('Error rebooting system:', error);
+            alert('Error rebooting system: ' + error.message);
+        });
+    }
+}
+
+// Funktion zum Exportieren der Einstellungen
+function exportSettings() {
+    fetch('/api/settings')
+        .then(response => response.json())
+        .then(settings => {
+            // Erstelle JSON-Datei zum Download
+            const dataStr = JSON.stringify(settings, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            // Erstelle Download-Link
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dpv_settings.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        })
+        .catch(error => {
+            console.error('Error exporting settings:', error);
+            alert('Error exporting settings: ' + error.message);
+        });
+}
+
+// Funktion zum Importieren der Einstellungen
+function importSettings() {
+    // Klicke auf den versteckten Datei-Input
+    const fileInput = document.getElementById('settingsFileInput');
+    if (fileInput) {
+        fileInput.click();
+    } else {
+        alert('Error: Settings file input not found!');
+    }
+}
+
+// Funktion zum Verarbeiten der importierten Einstellungsdatei
+function handleSettingsFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const settings = JSON.parse(e.target.result);
+            
+            // Bestätige Import
+            if (confirm('Are you sure you want to import these settings? Current settings will be overwritten.')) {
+                // Sende importierte Einstellungen an API
+                fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                }).then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Settings imported successfully. Reloading...');
+                        // Lade Einstellungen neu
+                        loadDPVSettings();
+                    } else {
+                        alert('Error importing settings: ' + (data.error || 'Unknown error'));
+                    }
+                }).catch(error => {
+                    console.error('Error importing settings:', error);
+                    alert('Error importing settings: ' + error.message);
+                });
+            }
+        } catch (error) {
+            console.error('Error parsing settings file:', error);
+            alert('Error parsing settings file: ' + error.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Funktion zum Aktualisieren der Lampen-Helligkeit
+function updateLampBrightness(level, value) {
+    console.log(`Updating lamp brightness for level ${level} to ${value}%`);
+    
+    // Hier könnte man auch direkt die API aufrufen, wenn gewünscht
+    // Für jetzt speichern wir nur den Wert, der dann beim Speichern der Einstellungen übertragen wird
+}
+
+// Funktion zum dynamischen Generieren der Lampen-Level-Auswahl
+function generateLampLevels() {
+    console.log('Generating lamp level controls...');
+    
+    // Hole die Einstellungen vom Server
+    fetch('/api/settings')
+        .then(response => response.json())
+        .then(settings => {
+            const maxLevels = settings.lampMaxLevels || 5;
+            const container = document.getElementById('lampLevelRadios');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            // Level 0 ist immer "Aus"
+            const levelDiv0 = document.createElement('div');
+            levelDiv0.className = 'lamp-level-option';
+            
+            const radio0 = document.createElement('input');
+            radio0.type = 'radio';
+            radio0.name = 'lampLevel';
+            radio0.id = 'lampLevel0';
+            radio0.value = '0';
+            radio0.checked = true;
+            radio0.onchange = () => setLampLevel(0);
+            
+            const label0 = document.createElement('label');
+            label0.htmlFor = 'lampLevel0';
+            label0.textContent = 'Off';
+            
+            levelDiv0.appendChild(radio0);
+            levelDiv0.appendChild(label0);
+            container.appendChild(levelDiv0);
+            
+            // Generiere die konfigurierten Level
+            for (let i = 1; i < maxLevels; i++) {
+                const levelDiv = document.createElement('div');
+                levelDiv.className = 'lamp-level-option';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'lampLevel';
+                radio.id = 'lampLevel' + i;
+                radio.value = i.toString();
+                radio.onchange = () => setLampLevel(i);
+                
+                const label = document.createElement('label');
+                label.htmlFor = 'lampLevel' + i;
+                label.textContent = `Level ${i} (${settings.lampBrightness[i-1] || 0}%)`;
+                
+                levelDiv.appendChild(radio);
+                levelDiv.appendChild(label);
+                container.appendChild(levelDiv);
+            }
+            
+            console.log(`Generated ${maxLevels} lamp level options`);
+        })
+        .catch(error => {
+            console.error('Error loading lamp levels:', error);
+        });
+}
+
+// Funktion zum Setzen des Lampen-Levels
+function setLampLevel(level) {
+    console.log(`Setting lamp level to ${level}`);
+    
+    fetch('/api/lamp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level: parseInt(level) })
+    }).then(() => {
+        // Update UI
+        if (document.getElementById('remoteLampStatus')) {
+            document.getElementById('remoteLampStatus').textContent = level > 0 ? 'ON (Level ' + level + ')' : 'OFF';
+        }
+        if (document.getElementById('remoteLastCommand')) {
+            document.getElementById('remoteLastCommand').textContent = 'Lamp set to level ' + level;
+        }
+        
+        // Update button
+        const button = document.getElementById('lampToggleBtn');
+        if (button) {
+            if (level > 0) {
+                button.textContent = '💡 LAMP ON';
+                button.style.backgroundColor = '#ff9800';
+                
+                // Enable brightness controls
+                const levelsContainer = document.getElementById('lampLevelsContainer');
+                if (levelsContainer) {
+                    levelsContainer.style.opacity = '1';
+                }
+            } else {
+                button.textContent = '💡 LAMP OFF';
+                button.style.backgroundColor = '#666';
+                
+                // Disable brightness controls
+                const levelsContainer = document.getElementById('lampLevelsContainer');
+                if (levelsContainer) {
+                    levelsContainer.style.opacity = '0.5';
+                }
+            }
+        }
+    }).catch(error => {
+        console.error('Error setting lamp level:', error);
+    });
+} 

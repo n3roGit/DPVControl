@@ -1,47 +1,41 @@
-# DPVControl Web Interface Files
+# Web Interface Files
 
-Dieses Verzeichnis enthält alle Web-Interface-Dateien, die über LittleFS auf den ESP32 geladen werden.
+This directory contains all web interface files that are loaded onto the ESP32 via LittleFS.
 
-## Dateien
+## File Structure
+- `index.html` - Main HTML file with status and charts
+- `style.css` - CSS styling for the entire interface
+- `app.js` - JavaScript functionality for the interface
+- `remote.html` - HTML for Remote Control tab (loaded via AJAX)
+- `settings.html` - HTML for Settings tab (loaded via AJAX)
+- `info.html` - HTML for Info tab (loaded via AJAX)
+- `chart.min.js` - Chart.js library for data visualization
+- `jszip.min.js` - JSZip library for CSV export
 
-- `index.html` - Haupt-HTML-Datei mit Status- und Charts-Tabs
-- `style.css` - CSS-Styling für das gesamte Interface
-- `app.js` - JavaScript-Funktionalität für das Interface
-- `remote.html` - HTML für Remote Control Tab (wird via AJAX geladen)
-- `settings.html` - HTML für Settings Tab (wird via AJAX geladen)
-- `info.html` - HTML für Info Tab (wird via AJAX geladen)
-- `chart.min.js` - Chart.js Bibliothek für Datenvisualisierung
-- `jszip.min.js` - JSZip Bibliothek für CSV-Export
-- `version.txt` - Versionsinformation
+## Upload Process
 
-## Upload zu ESP32
-
-Um die Dateien auf den ESP32 zu übertragen, verwende in PlatformIO:
+To upload the files to the ESP32, use in PlatformIO:
 
 ```bash
-# Upload des Dateisystems (muss vor dem ersten Upload gemacht werden)
 pio run --target uploadfs
+```
 
-# Normaler Code-Upload (nach Änderungen am C++-Code)
+## Development Workflow
+
+# Normal code upload (after C++ changes)
+```bash
 pio run --target upload
 ```
 
-## Entwicklung
+When making changes to HTML/CSS/JS files:
+1. Edit files in `data/` directory
+2. Run `pio run --target uploadfs`
 
-Bei Änderungen an den HTML/CSS/JS-Dateien:
+**Important:** The ESP32 loads the files from LittleFS into memory at startup. After changes to web files, a restart is required.
 
-1. Dateien in diesem Verzeichnis bearbeiten
-2. `pio run --target uploadfs` ausführen
-3. ESP32 neustarten
+## Size Limitations
+- Total filesystem size: ~1.5MB
+- Individual file size: ~500KB
+- Recommended total size: <1MB
 
-**Wichtig:** Der ESP32 lädt die Dateien beim Start aus LittleFS in den Speicher. Nach Änderungen an den Web-Dateien muss ein Neustart erfolgen.
-
-## Größenbeschränkungen
-
-- LittleFS Partition: ~1.5MB (je nach ESP32-Konfiguration)
-- Einzelne Dateien: Sollten unter 100KB bleiben
-- Gesamte Web-Assets: Sollten unter 1MB bleiben
-
-## Fallback-System
-
-Falls Dateien nicht von LittleFS geladen werden können, stellt der Webserver JavaScript-Fallbacks für Chart.js und JSZip bereit. 
+If files cannot be loaded from LittleFS, the webserver provides JavaScript fallbacks for Chart.js and JSZip. 

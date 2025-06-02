@@ -1,96 +1,62 @@
-# DPVControl Webserver Refactoring
+# Webserver Refactoring
 
-## Übersicht der Änderungen
+## Overview of Changes
 
-Der Webserver wurde von eingebettetem HTML-Code auf ein LittleFS-basiertes System umgestellt.
+### Current Issues
+- Hard to maintain and unclear
+- Large memory usage due to string literals
 
-### Vorher (Probleme)
-- Gesamter HTML/CSS/JavaScript Code in `webserver.cpp` eingebettet (~2600 Zeilen)
-- Schwer wartbar und unübersichtlich
-- Keine Trennung von Markup, Styling und Logik
-- Großer Speicherverbrauch durch String-Literale
+### Improvements
+- Significantly reduced `webserver.cpp` size
+- Better separation of concerns
+- Improved maintainability
 
-### Nachher (Verbesserungen)
-- HTML/CSS/JavaScript in separate Dateien im `data/` Verzeichnis aufgeteilt
-- Modulare Struktur mit dynamisch geladenen Tab-Inhalten
-- Deutlich reduzierte `webserver.cpp` Größe
-- Bessere Wartbarkeit und Entwicklererfahrung
-
-## Neue Dateistruktur
-
+### New Structure
 ```
 data/
-├── index.html      # Hauptseite mit Status und Charts
-├── style.css       # Gesamtes CSS-Styling
-├── app.js          # JavaScript-Hauptlogik
-├── remote.html     # Remote Control Interface
-├── settings.html   # Einstellungen
-├── info.html       # Systeminformationen
-├── chart.min.js    # Chart.js Bibliothek
-├── jszip.min.js    # JSZip für CSV-Export
-├── version.txt     # Versionsinformation
-└── README.md       # Dokumentation
+├── index.html    # Main HTML file
+├── style.css     # CSS styles
+├── app.js        # Main JavaScript
+├── chart.min.js  # Chart.js for data visualization
+└── jszip.min.js  # JSZip for CSV export
 ```
 
-## Technische Verbesserungen
+### Key Changes
+- Main HTML loads basic structure
+- CSS: Styling and layout
+- JavaScript: Functionality and interaction
 
-### 1. Modulares Laden
-- Haupt-HTML lädt grundlegende Struktur
-- Tab-Inhalte werden dynamisch via AJAX nachgeladen
-- Reduziert initiale Ladezeit
+### Implementation
+- Files are transferred to ESP32 at build time
+- Webserver loads files directly from filesystem
+- Fallback system for missing files
 
-### 2. Saubere Trennung
-- HTML: Struktur und Inhalt
-- CSS: Styling und Layout  
-- JavaScript: Funktionalität und Interaktion
-
-### 3. LittleFS Integration
-- Dateien werden zur Buildzeit auf ESP32 übertragen
-- Webserver lädt Dateien direkt aus Filesystem
-- Fallback-System für fehlende Dateien
-
-## Code-Reduktion
-
-- `webserver.cpp`: Von ~4400 auf ~1600 Zeilen (-63%)
-- Eingebetteter HTML-Block entfernt: ~2600 Zeilen
-- Bessere Lesbarkeit der C++-Logik
-
-## Build-Prozess
-
-### Neuer Workflow
-1. HTML/CSS/JS Dateien in `data/` bearbeiten
-2. `pio run --target uploadfs` - LittleFS Upload
-3. `pio run --target upload` - Firmware Upload
-
-### Wichtige Befehle
+### Usage
+# Upload filesystem (after HTML changes)
 ```bash
-# Dateisystem hochladen (nach HTML-Änderungen)
 pio run --target uploadfs
+```
 
-# Firmware hochladen (nach C++-Änderungen)  
+# Upload firmware (after C++ changes)
+```bash
 pio run --target upload
 ```
 
-## Vorteile für Entwicklung
+## Development Benefits
+1. **Better Tools**: Syntax highlighting for HTML/CSS/JS
+2. **Easier Maintenance**: Changes without C++ recompilation
+3. **Faster Development**: Live preview possible
+4. **Version Control**: Better diff view for web changes
 
-1. **Bessere Tools**: Syntax-Highlighting für HTML/CSS/JS
-2. **Einfachere Wartung**: Änderungen ohne C++-Neukompilierung
-3. **Modulare Entwicklung**: Einzelne Komponenten isoliert bearbeitbar
-4. **Version Control**: Bessere Diff-Ansicht für Web-Änderungen
-5. **Performance**: Reduzierter RAM-Verbrauch durch externes Laden
+## Backward Compatibility
+- All API endpoints remain unchanged
+- Same functionality as before
+- JavaScript fallbacks for Chart.js and JSZip
 
-## Rückwärtskompatibilität
-
-- Alle API-Endpunkte bleiben unverändert
-- Gleiche Funktionalität wie vorher
-- Fallback-JavaScript für Chart.js und JSZip
-
-## Nächste Schritte
-
-1. Weitere JavaScript-Funktionen aus dem ursprünglichen Code migrieren
-2. Progressive Web App (PWA) Features hinzufügen
-3. CSS-Framework für bessere Mobile-Unterstützung
-4. Komponenten-basierte Architektur implementieren
+## Next Steps
+1. Migrate more JavaScript functions from original code
+2. Add Progressive Web App (PWA) features
+3. Add CSS framework for better mobile support
 
 ## Git Commit Message
 

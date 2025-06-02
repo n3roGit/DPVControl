@@ -45,5 +45,5 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-          LOG_LEVEL: DEBUG        # Aktiviert ausführliches Logging
-          VERBOSE: true           # Zeigt detaillierte Informationen zu jedem Linter-Durchlauf
+          LOG_LEVEL: DEBUG        # Enable detailed logging
+          VERBOSE: true           # Show detailed information for each linter run
