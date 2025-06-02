@@ -19,3 +19,37 @@ Tasks:
 - Always run and update tests when making code changes
 - Tests must be adapted when API or functionality changes
 - Test failures must be fixed before proceeding with changes 
+
+
+
+
+
+// Test automation rules
+When any file in src/ is modified:
+  - Run all tests in test/ directory
+  - If tests fail, show error message and prevent commit
+
+// API test coverage rules
+When modifying any API endpoint in src/webserver.cpp:
+  - Ensure corresponding test exists in test/test_api.cpp
+  - Test must cover both success and error cases
+  - Test must validate JSON response structure
+
+// Mock implementation rules
+When adding new hardware dependencies:
+  - Create corresponding mock implementation in test/mock_*.h
+  - Update mock_hardware.cpp with new mock functions
+  - Ensure mocks are used in tests
+
+// Test structure rules
+When adding new tests:
+  - Place in appropriate test/ subdirectory
+  - Include setup/teardown functions
+  - Use Unity test framework
+  - Follow existing test naming conventions
+
+// Hardware abstraction rules
+When modifying hardware interactions:
+  - Use mock implementations for testing
+  - Keep hardware-specific code in separate files
+  - Document hardware dependencies 
