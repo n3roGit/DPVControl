@@ -1,7 +1,10 @@
+#include <algorithm>
 #include "mock_hardware.h"
+#include "mock_arduino.h"
 #include <string>
 #include <mutex>
 #include <cmath>
+#include <vector>
 
 // Mock hardware variables
 int LED_State = 0;
@@ -18,11 +21,12 @@ int mockLastDisplayedMotorState = -1;
 int mockLastDisplayedBattery = -1;
 bool mockWaterSensorFront = false;
 bool mockWaterSensorBack = false;
-float mockTemperature = 0.0f;
-float mockHumidity = 0.0f;
+float mockTemperature = 25.0f;
+float mockHumidity = 50.0f;
 bool mockDHTValid = true;
 bool mockDHTError = false;
 bool mockDHTTimeout = false;
+std::vector<std::string> mockInvalidInputs = {"invalid1", "invalid2"};
 
 std::mutex mockMutex;
 
@@ -419,17 +423,17 @@ float mock_computeDewPoint(float temperature, float humidity) {
     return (b * temp) / (a - temp);
 }
 
-float mock_getComfortRatio(ComfortState& comfort, float temperature, float humidity) {
+float mock_getComfortRatio(ComfortState& comfort, float temp, float humidity) {
     // Simplified comfort ratio calculation
     float ratio = 100.0;
     
     // Temperature comfort
-    if (temperature > 30.0) {
+    if (temp > 30.0) {
         comfort = Comfort_TooHot;
-        ratio -= (temperature - 30.0) * 10.0;
-    } else if (temperature < 18.0) {
+        ratio -= (temp - 30.0) * 10.0;
+    } else if (temp < 18.0) {
         comfort = Comfort_TooCold;
-        ratio -= (18.0 - temperature) * 10.0;
+        ratio -= (18.0 - temp) * 10.0;
     } else {
         comfort = Comfort_OK;
     }
@@ -441,10 +445,10 @@ float mock_getComfortRatio(ComfortState& comfort, float temperature, float humid
         ratio -= (30.0 - humidity) * 0.5;
     }
     
-    return max(0.0f, min(100.0f, ratio));
+    return std::max(0.0f, std::min(100.0f, ratio));
 }
 
-byte mock_computePerception(float temperature, float humidity) {
+uint8_t mock_computePerception(float temperature, float humidity) {
     // Simplified perception calculation
     if (temperature < 15.0) return Perception_Cold;
     if (temperature > 30.0) return Perception_Hot;
@@ -463,4 +467,38 @@ float mock_computeAbsoluteHumidity(float temperature, float humidity) {
     // Simplified absolute humidity calculation (g/m³)
     float vaporPressure = (humidity / 100.0) * 6.112 * exp(17.67 * temperature / (temperature + 243.5));
     return (vaporPressure * 100.0) / (461.5 * (temperature + 273.15));
+}
+
+// Dummy Printable für ArduinoJson
+class Printable {};
+
+void mock_resetAllStates() {
+    std::lock_guard<std::mutex> lock(mockMutex);
+    LED_State = 0;
+    currentMotorStep = 0;
+    remoteControlActive = false;
+    lastActionTime = 0;
+    mockLEDBarStates.fill(false);
+    mockLEDBarColors.fill(0);
+    mockLEDBarBrightness = 15;
+    mockLEDBarBrightnessSecond = 3;
+    mockLEDUpdateInProgress = false;
+    mockLastDisplayedSpeed = -1;
+    mockLastDisplayedMotorState = -1;
+    mockLastDisplayedBattery = -1;
+    mockWaterSensorFront = false;
+    mockWaterSensorBack = false;
+    mockTemperature = 0.0f;
+    mockHumidity = 0.0f;
+    mockDHTValid = true;
+    mockDHTError = false;
+    mockDHTTimeout = false;
+}
+
+std::string mockHandleApiStatus() {
+    return "{\"temperature\": 25.0, \"humidity\": 50.0, \"motorSpeed\": 0}";
+}
+
+bool mockIsInputValid(const std::string& input) {
+    return std::find(mockInvalidInputs.begin(), mockInvalidInputs.end(), input) == mockInvalidInputs.end();
 } 

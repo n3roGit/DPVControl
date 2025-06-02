@@ -1,13 +1,31 @@
+#pragma once
 #ifndef MOCK_ARDUINO_H
 #define MOCK_ARDUINO_H
 
 #include <cstdint>
 #include <string>
 #include <cstring>
+#include <chrono>
 
 // Basic Arduino types
 typedef uint8_t byte;
 typedef bool boolean;
+
+// Comfort states
+enum ComfortState {
+    Comfort_TooHot,
+    Comfort_TooCold,
+    Comfort_OK
+};
+
+enum PerceptionState {
+    Perception_Cold,
+    Perception_Hot,
+    Perception_Dry,
+    Perception_Wet,
+    Perception_Comfy,
+    Perception_UnComfy
+};
 
 // Mock Arduino functions
 unsigned long millis();
@@ -60,8 +78,18 @@ public:
         return std::stoi(str_);
     }
     
+    bool concat(const char* str) { return true; }
+    bool concat(const String& str) { return true; }
+
 private:
     std::string str_;
 };
+
+// millis() Ersatz
+inline unsigned long millis() {
+    static auto start = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    return (unsigned long)std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+}
 
 #endif // MOCK_ARDUINO_H 

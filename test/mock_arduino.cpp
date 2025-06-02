@@ -3,11 +3,6 @@
 
 static auto start_time = std::chrono::steady_clock::now();
 
-unsigned long millis() {
-    auto now = std::chrono::steady_clock::now();
-    return std::chrono::duration_cast<std::chrono::milliseconds>(now - start_time).count();
-}
-
 void delay(unsigned long ms) {
     // No-op in tests
 }

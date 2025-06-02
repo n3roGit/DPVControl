@@ -5,6 +5,8 @@
 #include <array>
 #include <mutex>
 #include <cstdint>
+#include "mock_arduino.h"
+#include <vector>
 
 // Mock hardware variables
 extern int LED_State;
@@ -26,6 +28,9 @@ extern float mockHumidity;
 extern bool mockDHTValid;
 extern bool mockDHTError;
 extern bool mockDHTTimeout;
+extern bool mockLedState;
+extern int mockMotorSteps;
+extern std::vector<std::string> mockInvalidInputs;
 
 // Mock hardware functions
 void mock_ledBarSetup();
@@ -65,7 +70,12 @@ int mock_calculateBrightnessCorrectedValue(int red, int green, int blue, int tar
 float mock_computeHeatIndex(float temperature, float humidity);
 float mock_computeDewPoint(float temperature, float humidity);
 float mock_getComfortRatio(ComfortState& comfort, float temperature, float humidity);
-byte mock_computePerception(float temperature, float humidity);
+uint8_t mock_computePerception(float temperature, float humidity);
 float mock_computeAbsoluteHumidity(float temperature, float humidity);
 
-#endif // MOCK_HARDWARE_H 
+// Rename functions to match usage
+void mock_resetAllStates();
+std::string mockHandleApiStatus();
+bool mockIsInputValid(const std::string& input);
+
+#endif 
