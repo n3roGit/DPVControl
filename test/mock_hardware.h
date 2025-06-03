@@ -59,6 +59,10 @@ bool mock_getDHTValid();
 int mock_getTotalDataPoints(const std::string& timeRange);
 std::string* mock_listSessionFiles(int* count);
 std::string mock_getCurrentSessionFile();
+void simulateOverload(bool overload);
+unsigned long micros();
+void advanceTime(unsigned long ms);
+void resetMockTime();
 
 // Helper functions
 uint32_t mock_color(uint8_t r, uint8_t g, uint8_t b);

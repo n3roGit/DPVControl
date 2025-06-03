@@ -1,0 +1,77 @@
+#include <unity.h>
+#include "mock_arduino.h"
+#include "mock_hardware.h"
+#include "motor.h"
+
+void setUp(void) {
+    // Reset motor state before each test
+    motorState = off;
+    currentMotorStep = 0;
+    lastActionTime = 0;
+    remoteControlActive = false;
+}
+
+void test_motor_speed_steps() {
+    // Test speed step calculation
+    int maxSteps = getSpeedSteps();
+    TEST_ASSERT_GREATER_THAN(0, maxSteps);
+    
+    // Test minimum speed
+    setMotorSpeed(0);
+    TEST_ASSERT_EQUAL(0, currentMotorStep);
+    
+    // Test maximum speed
+    setMotorSpeed(100);
+    TEST_ASSERT_EQUAL(maxSteps, currentMotorStep);
+    
+    // Test middle speed
+    setMotorSpeed(50);
+    TEST_ASSERT_EQUAL(maxSteps/2, currentMotorStep);
+}
+
+void test_motor_state_transitions() {
+    // Test motor off state
+    setMotorSpeed(0);
+    TEST_ASSERT_EQUAL(off, motorState);
+    
+    // Test motor on state
+    setMotorSpeed(50);
+    TEST_ASSERT_EQUAL(on, motorState);
+    
+    // Test standby transition
+    lastActionTime = micros() - (getStandbyDelay() * 1000000);
+    updateMotorState();
+    TEST_ASSERT_EQUAL(standby, motorState);
+}
+
+void test_motor_overload_protection() {
+    // Test overload detection
+    setMotorSpeed(100);
+    simulateOverload(true);
+    delay(getMaxTimeOverloaded() + 100);
+    updateMotorState();
+    TEST_ASSERT_EQUAL(off, motorState);
+}
+
+void test_motor_remote_control() {
+    // Test remote control activation
+    remoteControlActive = true;
+    setMotorSpeed(75);
+    TEST_ASSERT_EQUAL(on, motorState);
+    TEST_ASSERT_GREATER_THAN(0, currentMotorStep);
+    
+    // Test remote control deactivation
+    remoteControlActive = false;
+    setMotorSpeed(0);
+    TEST_ASSERT_EQUAL(off, motorState);
+}
+
+int main(int argc, char **argv) {
+    UNITY_BEGIN();
+    RUN_TEST(test_motor_speed_steps);
+    RUN_TEST(test_motor_state_transitions);
+    RUN_TEST(test_motor_overload_protection);
+    RUN_TEST(test_motor_remote_control);
+    UNITY_END();
+    return 0;
+} 

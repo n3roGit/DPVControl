@@ -278,3 +278,46 @@ void motorLoop(){
   controlStandby();
   controlMotor();
 }
+
+// Motor control functions
+void setMotorSpeed(int speed) {
+    // Convert percentage (0-100) to motor steps (0-maxSteps)
+    int maxSteps = getSpeedSteps();
+    currentMotorStep = (speed * maxSteps) / 100;
+    
+    // Update motor state
+    if (speed > 0) {
+        motorState = on;
+    } else {
+        motorState = off;
+    }
+    
+    // Update LED bar
+    setBarSpeed(currentMotorStep);
+    
+    // Update last action time
+    lastActionTime = micros();
+}
+
+void updateMotorState() {
+    // Check for standby timeout
+    if (motorState == on && !remoteControlActive) {
+        unsigned long currentTime = micros();
+        if (currentTime - lastActionTime > getStandbyDelay() * 1000000) {
+            motorState = standby;
+            setBarStandby();
+        }
+    }
+}
+
+int getSpeedSteps() {
+    return currentSettings.speedSteps;
+}
+
+int getStandbyDelay() {
+    return currentSettings.standbyDelaySeconds;
+}
+
+int getMaxTimeOverloaded() {
+    return currentSettings.maxTimeOverloadedMs;
+}

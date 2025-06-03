@@ -30,6 +30,10 @@ std::vector<std::string> mockInvalidInputs = {"invalid1", "invalid2"};
 
 std::mutex mockMutex;
 
+// Motor simulation variables
+bool motorOverload = false;
+unsigned long mockMicros = 0;
+
 // Helper functions
 uint32_t mock_color(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
@@ -498,4 +502,20 @@ std::string mockHandleApiStatus() {
 
 bool mockIsInputValid(const std::string& input) {
     return std::find(mockInvalidInputs.begin(), mockInvalidInputs.end(), input) == mockInvalidInputs.end();
+}
+
+void simulateOverload(bool overload) {
+    motorOverload = overload;
+}
+
+unsigned long micros() {
+    return mockMicros;
+}
+
+void advanceTime(unsigned long ms) {
+    mockMicros += ms * 1000;
+}
+
+void resetMockTime() {
+    mockMicros = 0;
 } 
