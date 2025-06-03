@@ -47,3 +47,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           LOG_LEVEL: DEBUG        # Enable detailed logging
           VERBOSE: true           # Show detailed information for each linter run
+          VALIDATE_CPP: true
+          VALIDATE_CPP_CPPLINT: true
+          VALIDATE_CPP_CPPCHECK: false
+          VALIDATE_CPP_CLANG_FORMAT: false
+          VALIDATE_CPP_CLANG_TIDY: false
+          VALIDATE_CPP_CPPLINT_FILTER_REGEX: ".*\\.(cpp|h)$"
+          VALIDATE_CPP_CPPLINT_OPTIONS: "--filter=-legal/copyright,-build/include_order,-build/include_what_you_use,-build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length"

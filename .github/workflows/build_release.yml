@@ -17,30 +17,7 @@ on:
       - '!**/*.jpeg'
 
 jobs:
-  lint:
-    name: Lint Code Base
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Run Super-Linter
-        uses: github/super-linter@v5
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          LINTER_RULES_PATH: ./
-          VALIDATE_ALL_CODEBASE: false
-          VALIDATE_CPP: true
-          VALIDATE_CPP_CPPLINT: true
-          VALIDATE_CPP_CPPCHECK: false
-          VALIDATE_CPP_CLANG_FORMAT: false
-          VALIDATE_CPP_CLANG_TIDY: false
-          VALIDATE_CPP_CPPLINT_FILTER_REGEX: ".*\\.(cpp|h)$"
-          VALIDATE_CPP_CPPLINT_OPTIONS: "--filter=-legal/copyright,-build/include_order,-build/include_what_you_use,-build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length"
-
   build-and-version:
-    needs: lint
     runs-on: ubuntu-latest
     permissions:
       contents: write
