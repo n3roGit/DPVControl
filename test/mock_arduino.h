@@ -2,6 +2,7 @@
 #ifndef MOCK_ARDUINO_H
 #define MOCK_ARDUINO_H
 
+#include "mock_print.h"
 #include <cstdint>
 #include <string>
 #include <cstring>
@@ -49,15 +50,41 @@ public:
 extern SerialClass Serial;
 
 // Mock String class
-class String {
+class String : public Printable {
 public:
     String() {}
-    String(const char* str) : str_(str) {}
+    String(const char* str) : str_(str ? str : "") {}
     String(const String& other) : str_(other.str_) {}
     
     String& operator=(const String& other) {
         str_ = other.str_;
         return *this;
+    }
+    String& operator=(const char* str) {
+        str_ = str ? str : "";
+        return *this;
+    }
+    
+    String& operator+=(const String& other) {
+        str_ += other.str_;
+        return *this;
+    }
+    
+    String& operator+=(const char* str) {
+        str_ += str;
+        return *this;
+    }
+    
+    friend String operator+(const String& lhs, const String& rhs) {
+        String result(lhs);
+        result += rhs;
+        return result;
+    }
+    
+    friend String operator+(const String& lhs, const char* rhs) {
+        String result(lhs);
+        result += rhs;
+        return result;
     }
     
     const char* c_str() const { return str_.c_str(); }
@@ -80,6 +107,11 @@ public:
     
     bool concat(const char* str) { return true; }
     bool concat(const String& str) { return true; }
+
+    // Implement Printable interface
+    size_t printTo(Print& p) const override {
+        return p.write(reinterpret_cast<const uint8_t*>(str_.c_str()), str_.length());
+    }
 
 private:
     std::string str_;

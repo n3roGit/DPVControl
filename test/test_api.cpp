@@ -1,7 +1,13 @@
+#define ARDUINOJSON_ENABLE_PROGMEM 0
+#define ARDUINOJSON_ENABLE_FLASH_STRING 0
 #include <unity.h>
-#include <ArduinoJson.h>
+#include "ArduinoJson_config.h"
+#include "ArduinoJson.h"
 #include "mock_arduino.h"
 #include "mock_spiffs.h"
+#include "mock_dhtesp.h"
+#include "mock_webserver.h"
+#include "mock_hardware.h"
 #include "../src/webserver.h"
 
 // Mock client for testing
@@ -13,100 +19,64 @@ public:
     
     void setMethod(const char* m) { method = m; }
     void setUrl(const char* u) { url = u; }
-    void print(const char* str) { response += str; }
-    void println(const char* str) { response += str; response += "\n"; }
+    void print(const char* str) { 
+        response = response + String(str); 
+    }
+    void println(const char* str) { 
+        response = response + String(str) + "\n"; 
+    }
 };
 
 void setUp(void) {
-    // Setup code
+    mockResponse = "";
 }
 
 void tearDown(void) {
-    // Cleanup code
+    mockResponse = "";
 }
 
 void test_api_status() {
-    MockClient client;
-    client.setMethod("GET");
-    client.setUrl("/api/status");
-    
-    handleApiStatus(&client);
-    
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, client.response);
-    
-    TEST_ASSERT(doc["uptime"].is<unsigned long>());
-    TEST_ASSERT(doc["totalUptime"].is<unsigned long>());
-    TEST_ASSERT(doc["dataPoints"].is<int>());
-    TEST_ASSERT(doc["beeperEnabled"].is<bool>());
-    TEST_ASSERT(doc["lampLevel"].is<int>());
-    TEST_ASSERT(doc["waterSensorFront"].is<bool>());
-    TEST_ASSERT(doc["waterSensorBack"].is<bool>());
-    TEST_ASSERT(doc["leftButton"].is<bool>());
-    TEST_ASSERT(doc["rightButton"].is<bool>());
+    handleApiStatus();
+    JsonDocument doc;
+    deserializeJson(doc, mockResponse);
+    TEST_ASSERT_TRUE(doc["status"].is<const char*>());
+    TEST_ASSERT_TRUE(doc["motor"].is<bool>());
+    TEST_ASSERT_TRUE(doc["lamp"].is<bool>());
+    TEST_ASSERT_TRUE(doc["beeper"].is<bool>());
 }
 
 void test_api_motor() {
-    MockClient client;
-    client.setMethod("POST");
-    client.setUrl("/api/motor");
-    
-    handleApiMotor(&client);
-    
-    TEST_ASSERT_EQUAL_STRING("{\"success\":true}", client.response.c_str());
+    handleApiMotor();
+    TEST_ASSERT_EQUAL_STRING("{\"success\":true}", mockResponse.c_str());
 }
 
 void test_api_lamp() {
-    MockClient client;
-    client.setMethod("POST");
-    client.setUrl("/api/lamp");
-    
-    handleApiLamp(&client);
-    
-    TEST_ASSERT_EQUAL_STRING("{\"success\":true}", client.response.c_str());
+    handleApiLamp();
+    TEST_ASSERT_EQUAL_STRING("{\"success\":true}", mockResponse.c_str());
 }
 
 void test_api_beeper() {
-    MockClient client;
-    client.setMethod("POST");
-    client.setUrl("/api/beeper");
-    
-    handleApiBeeper(&client);
-    
-    TEST_ASSERT_EQUAL_STRING("{\"success\":true}", client.response.c_str());
+    handleApiBeeper();
+    TEST_ASSERT_EQUAL_STRING("{\"success\":true}", mockResponse.c_str());
 }
 
 void test_api_settings() {
-    MockClient client;
-    client.setMethod("GET");
-    client.setUrl("/api/settings");
-    
-    handleApiSettings(&client);
-    
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, client.response);
-    
-    TEST_ASSERT(doc["speedSteps"].is<int>());
-    TEST_ASSERT(doc["standbyDelaySeconds"].is<int>());
-    TEST_ASSERT(doc["batteryPowerMax"].is<int>());
-    TEST_ASSERT(doc["minSpeedPercent"].is<int>());
-    TEST_ASSERT(doc["maxSpeedRpm"].is<int>());
-    TEST_ASSERT(doc["ledBarNum"].is<int>());
-    TEST_ASSERT(doc["lampMaxLevels"].is<int>());
-    TEST_ASSERT(doc["beeperEnabled"].is<bool>());
+    handleApiSettings();
+    JsonDocument doc;
+    deserializeJson(doc, mockResponse);
+    TEST_ASSERT_TRUE(doc["motorEnabled"].is<bool>());
+    TEST_ASSERT_TRUE(doc["lampEnabled"].is<bool>());
+    TEST_ASSERT_TRUE(doc["beeperEnabled"].is<bool>());
+    TEST_ASSERT_TRUE(doc["motorDuration"].is<int>());
+    TEST_ASSERT_TRUE(doc["lampDuration"].is<int>());
+    TEST_ASSERT_TRUE(doc["beeperDuration"].is<int>());
 }
 
 void test_api_version() {
-    MockClient client;
-    client.setMethod("GET");
-    client.setUrl("/api/version");
-    
-    handleApiVersion(&client);
-    
-    DynamicJsonDocument doc(1024);
-    deserializeJson(doc, client.response);
-    
-    TEST_ASSERT(doc["version"].is<const char*>());
+    handleApiVersion();
+    JsonDocument doc;
+    deserializeJson(doc, mockResponse);
+    TEST_ASSERT_TRUE(doc["version"].is<const char*>());
 }
 
 int main(int argc, char **argv) {

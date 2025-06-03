@@ -469,9 +469,6 @@ float mock_computeAbsoluteHumidity(float temperature, float humidity) {
     return (vaporPressure * 100.0) / (461.5 * (temperature + 273.15));
 }
 
-// Dummy Printable für ArduinoJson
-class Printable {};
-
 void mock_resetAllStates() {
     std::lock_guard<std::mutex> lock(mockMutex);
     LED_State = 0;

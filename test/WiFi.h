@@ -2,15 +2,8 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-// Dummy WiFi header for compatibility
+#include "Arduino.h"
 
-class WiFiClass {
-public:
-    static int status() { return 0; }
-    static void begin(const char*, const char*) {}
-    static void disconnect() {}
-};
-
-static WiFiClass WiFi;
+// WiFi-Funktionen werden durch die WiFiClass in Arduino.h bereitgestellt
 
 #endif // WIFI_H 

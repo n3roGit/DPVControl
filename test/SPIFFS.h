@@ -1,6 +1,8 @@
-#pragma once
+#ifndef SPIFFS_H
+#define SPIFFS_H
 
-namespace SPIFFS {
-    inline bool begin() { return true; }
-    inline bool exists(const char*) { return false; }
-} 
+#include "mock_spiffs.h"
+
+// SPIFFS-Funktionen werden durch die SPIFFSClass in mock_spiffs.h bereitgestellt
+
+#endif // SPIFFS_H 

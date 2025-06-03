@@ -1,5 +1,12 @@
+#define ARDUINOJSON_ENABLE_PROGMEM 0
+#define ARDUINOJSON_ENABLE_FLASH_STRING 0
 #pragma once
+
+#include "mock_print.h"
 #include "mock_arduino.h"
+#include "mock_webserver.h"
+#include "mock_hardware.h"
+#include "mock_spiffs.h"
 
 // ArduinoJson compatibility shims for native test
 #ifndef PROGMEM
@@ -19,28 +26,7 @@ typedef char __FlashStringHelper;
 #define pgm_read_dword(addr) (*(const unsigned long *)(addr))
 #define PSTR(x) (x)
 
-// Dummy Print/Stream base classes
-class Print {
-public:
-    size_t write(uint8_t) { return 1; }
-    size_t write(const char*) { return 1; }
-    size_t write(const uint8_t*, size_t) { return 1; }
-    size_t print(const char*) { return 1; }
-    size_t println(const char*) { return 1; }
-    size_t printTo(Print&) { return 1; }
-};
-
-class Stream : public Print {
-public:
-    int available() { return 0; }
-    int read() { return -1; }
-    int peek() { return -1; }
-    void flush() {}
-    size_t readBytes(char* buffer, size_t length) { return 0; }
-};
-
-// Dummy readBytes für Stream
-inline size_t readBytes(char* buffer, size_t length) { return 0; }
+#include <ArduinoJson.h>
 
 // WiFi dummy
 class WiFiClass {

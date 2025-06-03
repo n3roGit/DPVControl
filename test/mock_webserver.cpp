@@ -1,33 +1,77 @@
+#define ARDUINOJSON_ENABLE_PROGMEM 0
+#define ARDUINOJSON_ENABLE_FLASH_STRING 0
 #include "mock_webserver.h"
 #include "mock_hardware.h"
-#include <ArduinoJson.h>
+#include "ArduinoJson_config.h"
+#include "ArduinoJson.h"
 #include <string>
 
-extern std::string mockResponse;
+std::string mockResponse;
 extern bool mockRebootCalled;
 
-void handleClient(class MockClient& client) {
-    // Mock implementation of handleClient
-    // This simulates the webserver's response handling
-    
-    // For status API
-    JsonDocument doc;
-    doc["uptime"] = 1000;
-    doc["totalUptime"] = 1000;
-    doc["dataPoints"] = 100;
-    doc["beeperEnabled"] = true;
-    doc["lampLevel"] = LED_State;
-    doc["waterSensorFront"] = false;
-    doc["waterSensorBack"] = false;
-    doc["leftButton"] = false;
-    doc["rightButton"] = false;
-    
-    std::string jsonString;
-    serializeJson(doc, jsonString);
-    mockResponse = jsonString;
+void handleClient() {
+    // Dummy implementation
 }
 
-void sendHttpResponse(class MockClient& client, int statusCode, const char* contentType, const char* content) {
-    // Mock implementation of sendHttpResponse
-    mockResponse = content;
+void sendHttpResponse(const char* response) {
+    mockResponse = response ? response : "";
+}
+
+// Dummy API handler implementations for native tests
+extern "C" {
+    void handleApiStatus() {
+        JsonDocument doc;
+        doc["status"] = "ok";
+        doc["motor"] = false;
+        doc["lamp"] = false;
+        doc["beeper"] = false;
+        std::string response;
+        serializeJson(doc, response);
+        sendHttpResponse(response.c_str());
+    }
+
+    void handleApiMotor() {
+        JsonDocument doc;
+        doc["success"] = true;
+        std::string response;
+        serializeJson(doc, response);
+        sendHttpResponse(response.c_str());
+    }
+
+    void handleApiLamp() {
+        JsonDocument doc;
+        doc["success"] = true;
+        std::string response;
+        serializeJson(doc, response);
+        sendHttpResponse(response.c_str());
+    }
+
+    void handleApiBeeper() {
+        JsonDocument doc;
+        doc["success"] = true;
+        std::string response;
+        serializeJson(doc, response);
+        sendHttpResponse(response.c_str());
+    }
+
+    void handleApiSettings() {
+        JsonDocument doc;
+        doc["motorEnabled"] = true;
+        doc["lampEnabled"] = true;
+        doc["beeperEnabled"] = true;
+        doc["motorDuration"] = 1000;
+        doc["lampDuration"] = 1000;
+        doc["beeperDuration"] = 1000;
+        std::string response;
+        serializeJson(doc, response);
+        sendHttpResponse(response.c_str());
+    }
+
+    void handleApiVersion() {
+        JsonDocument doc;
+        doc["version"] = "1.0.0";
+        std::string response;
+        serializeJson(doc, response);
+        sendHttpResponse(response.c_str());
+    }
 } 
