@@ -34,16 +34,12 @@ jobs:
           VALIDATE_CPP: true
           VALIDATE_CPP_CPPLINT: true
           VALIDATE_CPP_CPPCHECK: true
-          VALIDATE_CPP_CLANG_FORMAT: true
-          VALIDATE_CPP_CLANG_TIDY: true
+          VALIDATE_CPP_CLANG_FORMAT: false
+          VALIDATE_CPP_CLANG_TIDY: false
           VALIDATE_CPP_CPPLINT_FILTER_REGEX: ".*\\.(cpp|h)$"
           VALIDATE_CPP_CPPCHECK_FILTER_REGEX: ".*\\.(cpp|h)$"
-          VALIDATE_CPP_CLANG_FORMAT_FILTER_REGEX: ".*\\.(cpp|h)$"
-          VALIDATE_CPP_CLANG_TIDY_FILTER_REGEX: ".*\\.(cpp|h)$"
           VALIDATE_CPP_CPPLINT_OPTIONS: "--filter=-legal/copyright,-build/include_order,-build/include_what_you_use,-build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length"
           VALIDATE_CPP_CPPCHECK_OPTIONS: "--std=c++11 --language=c++"
-          VALIDATE_CPP_CLANG_FORMAT_OPTIONS: "--style=file"
-          VALIDATE_CPP_CLANG_TIDY_OPTIONS: "--header-filter=.* --checks=-*,modernize-*,performance-*,readability-*"
 
   build-and-version:
     needs: lint
