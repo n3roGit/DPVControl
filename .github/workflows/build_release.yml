@@ -17,7 +17,26 @@ on:
       - '!**/*.jpeg'
 
 jobs:
+  lint:
+    name: Lint Code Base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Super-Linter
+        uses: github/super-linter@v5
+        env:
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINTER_RULES_PATH: ./
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_CPP: true
+          VALIDATE_CPP_CPPLINT: true
+          VALIDATE_CPP_CPPCHECK: true
+
   build-and-version:
+    needs: lint
     runs-on: ubuntu-latest
     permissions:
       contents: write
