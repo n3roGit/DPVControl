@@ -9,7 +9,7 @@
 // Mock hardware variables
 int LED_State = 0;
 int currentMotorStep = 0;
-bool remoteControlActive = false;
+extern bool remoteControlActive;  // Declare as extern
 unsigned long lastActionTime = 0;
 std::array<bool, 20> mockLEDBarStates = {false};
 std::array<uint32_t, 20> mockLEDBarColors = {0};
@@ -32,7 +32,7 @@ std::mutex mockMutex;
 
 // Motor simulation variables
 bool motorOverload = false;
-unsigned long mockMicros = 0;
+unsigned long mockTime = 0;
 
 // Helper functions
 uint32_t mock_color(uint8_t r, uint8_t g, uint8_t b) {
@@ -509,13 +509,13 @@ void simulateOverload(bool overload) {
 }
 
 unsigned long micros() {
-    return mockMicros;
+    return mockTime;
 }
 
 void advanceTime(unsigned long ms) {
-    mockMicros += ms * 1000;
+    mockTime += ms * 1000;
 }
 
 void resetMockTime() {
-    mockMicros = 0;
+    mockTime = 0;
 } 

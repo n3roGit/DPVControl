@@ -3,8 +3,9 @@
 // Mocked motor state variables
 MotorState motorState = off;
 bool remoteControlActive = false;
-int currentMotorStep = 0;
-unsigned long lastActionTime = 0;
+extern int currentMotorStep;
+extern unsigned long lastActionTime;
+extern bool motorOverload;
 
 // Mocked settings
 int mockSpeedSteps = 10;
@@ -23,10 +24,20 @@ void setMotorSpeed(int speed) {
 }
 
 void updateMotorState() {
+    unsigned long currentTime = micros();
+    
+    // Check for overload condition
+    if (motorOverload && (currentTime - lastActionTime > getMaxTimeOverloaded() * 1000)) {
+        motorState = off;
+        currentMotorStep = 0;
+        return;
+    }
+    
+    // Check for standby condition
     if (motorState == on && !remoteControlActive) {
-        unsigned long currentTime = micros();
-        if (currentTime - lastActionTime > getStandbyDelay() * 1000000) {
+        if (currentTime - lastActionTime > getStandbyDelay() * 1000) { // ms statt us
             motorState = standby;
+            currentMotorStep = 0;
         }
     }
 }

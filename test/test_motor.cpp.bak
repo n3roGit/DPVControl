@@ -4,11 +4,15 @@
 #include "motor.h"
 
 void setUp(void) {
-    // Reset motor state before each test
+    // Reset all mock states before each test
     motorState = off;
     currentMotorStep = 0;
-    lastActionTime = 0;
     remoteControlActive = false;
+    resetMockTime();
+}
+
+void tearDown(void) {
+    // Cleanup after each test
 }
 
 void test_motor_speed_steps() {
@@ -39,7 +43,7 @@ void test_motor_state_transitions() {
     TEST_ASSERT_EQUAL(on, motorState);
     
     // Test standby transition
-    lastActionTime = micros() - (getStandbyDelay() * 1000000);
+    advanceTime(getStandbyDelay() * 1000); // advance time in ms
     updateMotorState();
     TEST_ASSERT_EQUAL(standby, motorState);
 }
@@ -48,7 +52,7 @@ void test_motor_overload_protection() {
     // Test overload detection
     setMotorSpeed(100);
     simulateOverload(true);
-    delay(getMaxTimeOverloaded() + 100);
+    advanceTime(getMaxTimeOverloaded() + 100); // advance time in ms
     updateMotorState();
     TEST_ASSERT_EQUAL(off, motorState);
 }
