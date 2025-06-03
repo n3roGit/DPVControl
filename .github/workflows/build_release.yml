@@ -28,6 +28,7 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.ref }}
+          path: .
 
       - name: Setup Python
         uses: actions/setup-python@v5
