@@ -1022,15 +1022,10 @@ void handleClient(WiFiClient client) {
         log("API /api/status called");
         
         String json = "{";
-        json += "\"uptime\":" + String(millis()) + ",";
-        json += "\"totalUptime\":" + String(millis() / 1000) + ",";
-        json += "\"dataPoints\":" + String(getTotalDataPoints()) + ",";
-        json += "\"beeperEnabled\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
-        json += "\"lampLevel\":" + String(LED_State) + ",";
-        json += "\"waterSensorFront\":false,"; // Placeholder
-        json += "\"waterSensorBack\":false,"; // Placeholder
-        json += "\"leftButton\":false,"; // Placeholder
-        json += "\"rightButton\":false"; // Placeholder
+        json += "\"status\":\"ok\",";
+        json += "\"motor\":" + String(motorState == on ? "true" : "false") + ",";
+        json += "\"lamp\":" + String(LED_State > 0 ? "true" : "false") + ",";
+        json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false");
         json += "}";
         
         sendHttpResponse(client, 200, "application/json", json.c_str());
