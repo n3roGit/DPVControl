@@ -48,6 +48,9 @@ jobs:
       - name: Build PlatformIO Project
         run: pio run
 
+      - name: Run Unit Tests
+        run: pio test -e native
+
       - name: Determine and increment version
         id: version
         run: |
