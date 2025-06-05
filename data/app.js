@@ -1046,12 +1046,16 @@ function saveDPVSettings() {
         standbyBlinkDurationSeconds: parseInt(document.getElementById('standbyBlinkDurationSeconds').value)
     };
     
-    // Sammle Lampen-Helligkeitswerte
+    // Initialize lampBrightness array with Level 0 = 0 (OFF)
+    settings.lampBrightness[0] = 0;
+    
+    // Sammle Lampen-Helligkeitswerte (Level 1 bis N)
     const lampContainer = document.getElementById('lampBrightnessContainer');
     if (lampContainer) {
         const lampInputs = lampContainer.querySelectorAll('input[type="range"]');
         for (let i = 0; i < lampInputs.length; i++) {
-            settings.lampBrightness.push(parseInt(lampInputs[i].value));
+            // Map input index to correct lampBrightness index (Level 1+)
+            settings.lampBrightness[i + 1] = parseInt(lampInputs[i].value);
         }
         // Fülle fehlende Werte mit 0 auf, falls weniger als lampMaxLevels Werte vorhanden sind
         while (settings.lampBrightness.length < settings.lampMaxLevels) {
@@ -1059,6 +1063,11 @@ function saveDPVSettings() {
         }
         // Schneide ggf. überzählige Werte ab
         settings.lampBrightness = settings.lampBrightness.slice(0, settings.lampMaxLevels);
+    } else {
+        // Fallback: Fülle mit Standardwerten auf
+        for (let i = 1; i < settings.lampMaxLevels; i++) {
+            settings.lampBrightness[i] = 0;
+        }
     }
     
     console.log('Saving settings:', settings);
