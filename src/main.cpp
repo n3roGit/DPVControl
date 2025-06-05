@@ -48,6 +48,7 @@ void setup() {
   
   // Initialize settings system BEFORE hardware that depends on settings
   initializeSettings();
+  loadSettings();
 
   // Initialize button control system
   buttonSetup();
