@@ -1124,13 +1124,23 @@ void handleClient(WiFiClient client) {
         }
         
         bool success = false;
+        String errorMsg = "";
         if (body.length() > 0) {
             success = updateSettingsFromJson(body);
+            if (!success) {
+                errorMsg = "Settings validation or parsing failed. See device log for details.";
+            }
         } else {
             log("Settings: Cannot save - empty body");
+            errorMsg = "No settings data received.";
         }
         
-        String response = "{\"success\":" + String(success ? "true" : "false") + "}";
+        String response;
+        if (success) {
+            response = "{\"success\":true}";
+        } else {
+            response = "{\"success\":false,\"error\":\"" + errorMsg + "\"}";
+        }
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/settings/restore" && method == "POST") {
