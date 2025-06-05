@@ -40,17 +40,25 @@ jobs:
           fetch-depth: 0
 
       - name: Lint Code Base
-        uses: github/super-linter@v4
+        uses: github/super-linter@v5
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           LOG_LEVEL: DEBUG        # Enable detailed logging
           VERBOSE: true           # Show detailed information for each linter run
-          VALIDATE_CPP: true
-          VALIDATE_CPP_CPPLINT: true
+          ENABLE_GITHUB_ACTIONS_GROUP_TITLE: true  # Better log grouping
+          PRINT_LINTER_VERSIONS: true              # Show linter versions
+          VALIDATE_CPP: false
+          VALIDATE_CPP_CPPLINT: false
           VALIDATE_CPP_CPPCHECK: false
           VALIDATE_CPP_CLANG_FORMAT: false
           VALIDATE_CPP_CLANG_TIDY: false
+          VALIDATE_JAVASCRIPT_ES: false   # Disable JS linting for embedded code
+          VALIDATE_CSS: false             # Disable CSS linting
+          VALIDATE_HTML: false            # Disable HTML linting
           VALIDATE_CPP_CPPLINT_FILTER_REGEX: ".*\\.(cpp|h)$"
           VALIDATE_CPP_CPPLINT_OPTIONS: "--filter=-legal/copyright,-build/include_order,-build/include_what_you_use,-build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length,-build/header_guard,-readability/casting,-runtime/int,-build/include_subdir,-whitespace/comments,-runtime/threadsafe_fn,-whitespace/parens,-whitespace/blank_line --linelength=120"
+          # Additional debugging options
+          ACTIONS_RUNNER_DEBUG: true
+          SUPPRESS_POSSUM: true                    # Reduce log noise

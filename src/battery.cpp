@@ -1,3 +1,4 @@
+// Copyright 2025 BubTec
 #include "battery.h"
 #include "log.h"
 #include "beep.h"
@@ -100,11 +101,14 @@ void BatteryLevelAlert() {
 }
 
 int calculateStateOfCharge(float voltage) {
-  int cellsInSeries = getCellsInSeries();  // Use configurable value from settings
+  int cellsInSeries = getCellsInSeries();
   float voltagePerCell = voltage / cellsInSeries;
   // Move along the table until we find the row where we have a lower voltage
   int i = 0;
-    while (i < VOLT_TO_SOC_length && voltagePerCell < VOLT_TO_SOC[i].volt) i++;
+  while (i < VOLT_TO_SOC_length &&
+         voltagePerCell < VOLT_TO_SOC[i].volt) {
+    i++;
+  }
 
   // We did not move along the table at all. So our voltage is above the maximum.
   if (i == 0) return 100;
@@ -128,7 +132,8 @@ void recordVoltage(float voltage) {
     lastMeasurement = millis();
     voltageHistory[voltageHistoryIndex] = voltage;
     // Move Index
-    voltageHistoryIndex = voltageHistoryIndex == MEASUREMENTS ? 0 : voltageHistoryIndex + 1;
+    voltageHistoryIndex =
+        voltageHistoryIndex == MEASUREMENTS ? 0 : voltageHistoryIndex + 1;
   }
 }
 
