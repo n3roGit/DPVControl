@@ -28,6 +28,7 @@ extern int getTotalDataPoints(String timeRange); // From datalog.cpp
 extern LogdataRow* getLatestDataPoints(int count, String timeRange); // From datalog.cpp
 extern String* listSessionFiles(int* count); // From datalog.cpp
 extern String getCurrentSessionFile(); // From datalog.cpp
+extern unsigned long getTotalUptime(); // From datalog.cpp
 
 // Task handle for the webserver task
 TaskHandle_t webserverTaskHandle = NULL;
@@ -1024,6 +1025,8 @@ void handleClient(WiFiClient client) {
         
         String json = "{";
         json += "\"status\":\"ok\",";
+        json += "\"uptime\":" + String(millis()) + ",";
+        json += "\"totalUptime\":" + String(getTotalUptime()) + ",";
         json += "\"motor\":" + String(motorState == on ? "true" : "false") + ",";
         json += "\"lamp\":" + String(LED_State > 0 ? "true" : "false") + ",";
         json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
