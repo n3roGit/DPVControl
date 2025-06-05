@@ -44,6 +44,24 @@ This project uses **PlatformIO** for development, which provides better dependen
    - Click "Upload" (→) to flash to ESP32
    - Click "Serial Monitor" to view debug output
 
+### Pre-commit Hook for Automated Testing
+
+To ensure code quality, a pre-commit hook is provided that automatically runs all tests before each commit. This prevents commits if any test fails.
+
+**Installation:**
+1. Stelle sicher, dass die Datei `pre-commit.ps1` im Projekt-Root liegt (sie ist versioniert).
+2. Lege im Verzeichnis `.git/hooks/` eine Datei `pre-commit` (ohne Endung) mit folgendem Inhalt an:
+   ```bat
+   @echo off
+   REM pre-commit hook wrapper for PowerShell script
+   "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -ExecutionPolicy Bypass -File "%~dp0\..\..\pre-commit.ps1"
+   exit /b %ERRORLEVEL%
+   ```
+3. Ab sofort werden vor jedem Commit automatisch alle Tests ausgeführt.
+
+> **Hinweis:**
+> Der pre-commit-Hook funktioniert nur, wenn du Commits im Terminal (PowerShell, CMD, Git Bash) machst. Viele GUIs wie GitHub Desktop oder VSCode-Git führen keine lokalen Hooks aus oder unterstützen keine Batch-/Shellskripte als Hook.
+
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:
 - ArduinoJson, ESP32Servo, OneWire, DallasTemperature
