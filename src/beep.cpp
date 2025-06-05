@@ -38,7 +38,10 @@ BlinkSequence beepSequence = BlinkSequence(beepBlinker, beepDuration, PAUSE_MS);
 * Perform a beep for the given time. Works asynchronously. 
 */
 void beep(long length_ms){
-  if (!getBeeperEnabled()) return; // Use settings system
+  if (!getBeeperEnabled()) {
+    log("Beeper disabled, ignoring beep request");
+    return;
+  }
   log("Beeping for ms", length_ms);
   beepBlinker.blink(length_ms);
 }
@@ -49,7 +52,10 @@ void beep(long length_ms){
 * Works asynchronously(does not block).
 */
 void beep(const String& sequence) {
-  if (!getBeeperEnabled()) return; // Use settings system
+  if (!getBeeperEnabled()) {
+    log("Beeper disabled, ignoring beep sequence request");
+    return;
+  }
   log("beepSequence:"+sequence);
   beepSequence.blink(sequence);
 }
@@ -61,6 +67,10 @@ void beepLoop(){
 
 
 void BeepForLeak() {
+  if (!getBeeperEnabled()) {
+    log("Beeper disabled, ignoring leak beep request");
+    return;
+  }
   if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
     beep("12121212");                                                              // Here is the desired sequence for the sound
     log("WARNING LEAK", 12121212, true);

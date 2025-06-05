@@ -49,18 +49,25 @@ This project uses **PlatformIO** for development, which provides better dependen
 To ensure code quality, a pre-commit hook is provided that automatically runs all tests before each commit. This prevents commits if any test fails.
 
 **Installation:**
-1. Stelle sicher, dass die Datei `pre-commit.ps1` im Projekt-Root liegt (sie ist versioniert).
-2. Lege im Verzeichnis `.git/hooks/` eine Datei `pre-commit` (ohne Endung) mit folgendem Inhalt an:
+1. Make sure the file `pre-commit.ps1` is located in the project root (it is versioned).
+2. In the `.git/hooks/` directory, create a file named `pre-commit.bat` with the following content:
    ```bat
    @echo off
-   REM pre-commit hook wrapper for PowerShell script
-   "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -ExecutionPolicy Bypass -File "%~dp0\..\..\pre-commit.ps1"
-   exit /b %ERRORLEVEL%
+   REM pre-commit hook: runs all PlatformIO tests and prevents commit on failure
+   echo Running all tests before commit...
+   python -m platformio test -e native
+   if errorlevel 1 (
+       echo.
+       echo ERROR: Some tests failed. Commit aborted!
+       exit /b 1
+   )
+   echo All tests passed. Commit allowed.
+   exit /b 0
    ```
-3. Ab sofort werden vor jedem Commit automatisch alle Tests ausgeführt.
+3. From now on, all tests will be run automatically before each commit. The commit will be aborted if any test fails.
 
-> **Hinweis:**
-> Der pre-commit-Hook funktioniert nur, wenn du Commits im Terminal (PowerShell, CMD, Git Bash) machst. Viele GUIs wie GitHub Desktop oder VSCode-Git führen keine lokalen Hooks aus oder unterstützen keine Batch-/Shellskripte als Hook.
+> **Note:**
+> The pre-commit hook only works if you commit from the terminal (CMD). Many GUIs like GitHub Desktop or VSCode-Git do not execute local hooks or do not support batch/shell scripts as hooks.
 
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:

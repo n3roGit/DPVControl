@@ -417,6 +417,9 @@ function loadData() {
             const lampLevel = document.getElementById('lampLevel');
             if (lampLevel) lampLevel.textContent = 'Level ' + (data.lampLevel || 0);
             
+            const rpm = document.getElementById('rpm');
+            if (rpm) rpm.textContent = data.erpm ? data.erpm + ' RPM' : '0 RPM';
+            
             const beeperStatus = document.getElementById('beeperStatus');
             if (beeperStatus) beeperStatus.textContent = data.beeperEnabled === true ? 'Enabled' : 'Disabled';
             
@@ -462,9 +465,6 @@ function loadData() {
                 
                 const motorCurrent = document.getElementById('motorCurrent');
                 if (motorCurrent) motorCurrent.textContent = (latest.avgMotorCurrent || 0).toFixed(2) + ' A';
-                
-                const rpm = document.getElementById('rpm');
-                if (rpm) rpm.textContent = (latest.erpm || 0).toFixed(0) + ' eRPM';
                 
                 const dutyCycle = document.getElementById('dutyCycle');
                 if (dutyCycle) dutyCycle.textContent = (latest.dutyCycle || 0).toFixed(1) + ' %';

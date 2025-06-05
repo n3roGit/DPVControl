@@ -10,6 +10,7 @@
 #include "ledBar.h" // For LED bar functions
 #include <LittleFS.h> // Add missing LittleFS include
 #include <ArduinoJson.h> // For JSON parsing
+#include "button.h"
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -1025,7 +1026,10 @@ void handleClient(WiFiClient client) {
         json += "\"status\":\"ok\",";
         json += "\"motor\":" + String(motorState == on ? "true" : "false") + ",";
         json += "\"lamp\":" + String(LED_State > 0 ? "true" : "false") + ",";
-        json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false");
+        json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
+        json += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
+        json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
+        json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false");
         json += "}";
         
         sendHttpResponse(client, 200, "application/json", json.c_str());
