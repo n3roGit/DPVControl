@@ -128,7 +128,11 @@ The DPV Control system provides a comprehensive REST API for system monitoring, 
 ![logic](./Logic.drawio.png)
 
 # GUI
-![logic](./GUI.png)
+![logic](./images/GUI1.png)
+![logic](./images/GUI2.png)
+![logic](./images/GUI3.png)
+![logic](./images/GUI4.png)
+![logic](./images/GUI5.png)
 
 # Pinout
 ![ESP32](./ESP32.png)
