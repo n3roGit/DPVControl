@@ -2,6 +2,7 @@
 #include "log.h"
 #include "beep.h"
 #include "ledBar.h"
+#include "settings.h"
 #include "string"
 
 /*
@@ -36,7 +37,6 @@ const VoltToSoc VOLT_TO_SOC[] = {
 };
 const int VOLT_TO_SOC_length = sizeof(VOLT_TO_SOC) / sizeof(VOLT_TO_SOC[0]);
 
-const int CELLS_IN_SERIES = 13;//number of cells in series
 const int MEASUREMENTS = 60;
 const int MEASUREMENT_INTERVAL = 1000;//Time between measurements in ms
 const float EMPTY = -3.0;
@@ -103,7 +103,8 @@ void BatteryLevelAlert() {
 }
 
 int calculateStateOfCharge(float voltage){
-  float voltagePerCell = voltage/CELLS_IN_SERIES;
+  int cellsInSeries = getCellsInSeries(); // Use configurable value from settings
+  float voltagePerCell = voltage/cellsInSeries;
   //Move along the table until we find the row where we have a lower voltage; 
   int i = 0;
   while (i < VOLT_TO_SOC_length && voltagePerCell < VOLT_TO_SOC[i].volt) i++;
