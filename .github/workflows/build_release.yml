@@ -35,6 +35,9 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install Python dependencies
+        run: pip install requests
+
       - name: Cache PlatformIO
         uses: actions/cache@v4
         with:
@@ -83,12 +86,26 @@ jobs:
           git commit -m "Auto-increment version to ${{ steps.version.outputs.version }}" || exit 0
           git push
 
+      - name: Generate Release Notes
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        id: release_notes
+        run: |
+          python buildprocess/generate_release_notes.py "${{ steps.version.outputs.version }}" > release_notes.md
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
+          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           files: |
             .pio/build/esp32dev/*.bin
           draft: false
