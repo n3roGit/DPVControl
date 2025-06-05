@@ -575,7 +575,7 @@ function updateLampBrightnessInputs() {
             
             container.innerHTML = '';
             
-            for (let i = 0; i < maxLevels; i++) {
+            for (let i = 1; i < maxLevels; i++) {
                 const div = document.createElement('div');
                 div.className = 'lamp-level';
                 
@@ -1287,7 +1287,7 @@ function generateLampLevels() {
                 
                 const label = document.createElement('label');
                 label.htmlFor = 'lampLevel' + i;
-                label.textContent = `Level ${i} (${settings.lampBrightness[i-1] || 0}%)`;
+                label.textContent = `Level ${i} (${settings.lampBrightness[i] || 0}%)`;
                 
                 levelDiv.appendChild(radio);
                 levelDiv.appendChild(label);
