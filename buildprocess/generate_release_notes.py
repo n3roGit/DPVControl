@@ -87,12 +87,26 @@ def generate_ai_summary(commits: List[Dict[str, str]], version: str) -> str:
     
     # Get API configuration from organization secrets/variables
     api_key = os.getenv('LLM_API_KEY')
-    base_url = os.getenv('LLM_BASE_URL', 'https://api.openai.com')
-    model = os.getenv('LLM_MODEL', 'openai/gpt-4o-mini')
+    base_url = os.getenv('LLM_BASE_URL', '').strip()
+    model = os.getenv('LLM_MODEL', 'gpt-4o-mini').strip()
+    
+    # Handle empty base_url or ensure it's properly formatted for OpenAI
+    if not base_url or base_url == '':
+        base_url = 'https://api.openai.com'
+    elif not base_url.startswith('http'):
+        base_url = f'https://{base_url}'
+    
+    # Remove 'openai/' prefix from model if present (for direct OpenAI API)
+    if model.startswith('openai/'):
+        model = model[7:]
     
     if not api_key:
         print("No LLM_API_KEY found, generating basic summary")
         return generate_basic_summary(commits, version)
+    
+    print(f"Using API: {base_url}")
+    print(f"Using model: {model}")
+    print(f"API key present: {bool(api_key)}")
     
     # Prepare commits text
     commits_text = "\n".join([
