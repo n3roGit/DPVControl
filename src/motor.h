@@ -28,7 +28,7 @@ void setMotorSpeed(int speed);
 void updateMotorState();
 int getSpeedSteps();
 int getStandbyDelay();
-int getMaxTimeOverloaded();
+long getMaxTimeOverloaded();
 
 void motorSetup();
 void motorLoop();

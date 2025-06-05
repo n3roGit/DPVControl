@@ -309,15 +309,3 @@ void updateMotorState() {
         }
     }
 }
-
-int getSpeedSteps() {
-    return currentSettings.speedSteps;
-}
-
-int getStandbyDelay() {
-    return currentSettings.standbyDelaySeconds;
-}
-
-int getMaxTimeOverloaded() {
-    return currentSettings.maxTimeOverloadedMs;
-}

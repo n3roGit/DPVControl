@@ -50,6 +50,6 @@ int getStandbyDelay() {
     return mockStandbyDelay;
 }
 
-int getMaxTimeOverloaded() {
+long getMaxTimeOverloaded() {
     return mockMaxTimeOverloaded;
 } 
