@@ -1,52 +1,72 @@
 ---
-# .clang-format configuration for modern C++ code
-# Based on Google style with modifications for better readability
-
+# clang-format configuration for DPV Control Arduino/ESP32 project
+Language: Cpp
 BasedOnStyle: Google
 
-# Language and Standard
-Language: Cpp
-Standard: c++20
+# Line length settings
+ColumnLimit: 100
+ContinuationIndentWidth: 4
 
 # Indentation
-IndentWidth: 4
-TabWidth: 4
+IndentWidth: 2
 UseTab: Never
-ContinuationIndentWidth: 8
-
-# Line Length
-ColumnLimit: 120
+IndentCaseLabels: true
 
 # Braces
 BreakBeforeBraces: Attach
 Cpp11BracedListStyle: true
 
-# Spacing
+# Function calls and declarations  
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AlignTrailingComments: true
+
+# Spaces
 SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInContainerLiterals: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Line breaks
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# Include sorting
+SortIncludes: false  # Keep manual include order for Arduino
+
+# Comments
+ReflowComments: false  # Don't reformat comment blocks
+
+# Arduino/ESP32 specific settings
+NamespaceIndentation: None
+PointerAlignment: Left
+
+# Language and Standard
+Standard: c++20
+
+# Spacing
 SpaceAfterCStyleCast: false
 SpaceBeforeAssignmentOperators: true
-SpaceInEmptyParentheses: false
-SpacesInContainerLiterals: true
-SpacesInCStyleCastParentheses: false
+SpaceInContainerLiterals: true
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 
 # Alignment
 AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
 AlignConsecutiveMacros: false
 AlignEscapedNewlines: Left
-AlignOperands: true
-AlignTrailingComments: true
 
 # Breaking
-AllowShortBlocksOnASingleLine: Empty
-AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: WithoutElse
 AllowShortLambdasOnASingleLine: All
-AllowShortLoopsOnASingleLine: true
 
 # Function Arguments
 BinPackArguments: true
@@ -54,21 +74,16 @@ BinPackParameters: true
 AllowAllParametersOfDeclarationOnNextLine: true
 
 # Includes
-SortIncludes: true
 IncludeBlocks: Preserve
 
 # Namespaces
 CompactNamespaces: false
 FixNamespaceComments: true
-NamespaceIndentation: None
 
 # Constructors
 BreakConstructorInitializers: BeforeColon
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 4
-
-# Comments
-ReflowComments: true
 
 # Penalties (for line breaking decisions)
 PenaltyBreakAssignment: 2
@@ -81,7 +96,6 @@ PenaltyReturnTypeOnItsOwnLine: 200
 
 # Other
 DerivePointerAlignment: false
-PointerAlignment: Left
 AccessModifierOffset: -2
 MaxEmptyLinesToKeep: 1
 KeepEmptyLinesAtTheStartOfBlocks: false 

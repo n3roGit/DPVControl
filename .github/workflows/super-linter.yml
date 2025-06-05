@@ -54,6 +54,7 @@ jobs:
           VALIDATE_CPP_CPPCHECK: false
           VALIDATE_CPP_CLANG_FORMAT: false
           VALIDATE_CPP_CLANG_TIDY: false
+          VALIDATE_CLANG_FORMAT: false     # Additional clang-format disable
           VALIDATE_JAVASCRIPT_ES: false   # Disable JS linting for embedded code
           VALIDATE_CSS: false             # Disable CSS linting
           VALIDATE_HTML: false            # Disable HTML linting

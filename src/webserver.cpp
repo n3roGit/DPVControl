@@ -1659,20 +1659,25 @@ console.log('JSZip fallback loaded');
         currentSettings.beeperEnabled = newBeeperState;
         saveSettings(); // Save to unified settings system
         
-        String response = "{\"success\":true,\"enabled\":" + String(getBeeperEnabled() ? "true" : "false") + "}";
+        String response = "{\"success\":true,\"enabled\":" + 
+                         String(getBeeperEnabled() ? "true" : "false") + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
-        String beeperMsg = "Beeper setting updated: " + String(getBeeperEnabled() ? "enabled" : "disabled");
+        String beeperMsg = "Beeper setting updated: " + 
+                          String(getBeeperEnabled() ? "enabled" : "disabled");
         log(beeperMsg.c_str());
         
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
                path == "/connecttest.txt" || path == "/redirect" || 
-               path == "/hotspot-detect.html" || path.indexOf("success.txt") != -1 || 
+               path == "/hotspot-detect.html" || 
+               path.indexOf("success.txt") != -1 || 
                path.indexOf("success.html") != -1) {
         
         // Android/Windows/iOS captive portal detection
         log("Captive portal check detected");
-        sendHttpResponse(client, 302, "text/html", "<html><head><meta http-equiv='refresh' content='0; URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
+        sendHttpResponse(client, 302, "text/html", 
+            "<html><head><meta http-equiv='refresh' content='0; "
+            "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
     
     } else if (spiffsInitialized && LittleFS.exists(path)) {
         // Serve files from SPIFFS
@@ -1680,7 +1685,9 @@ console.log('JSZip fallback loaded');
     } else if (isCaptivePortalRequest) {
         // Captive portal detection - redirect to our server
         log("Captive portal request detected");
-        sendHttpResponse(client, 302, "text/html", "<html><head><meta http-equiv='refresh' content='0; URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
+        sendHttpResponse(client, 302, "text/html", 
+            "<html><head><meta http-equiv='refresh' content='0; "
+            "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
     } else {
         // Default: redirect to root
         sendHttpResponse(client, 302, "text/plain", "Redirecting...");
