@@ -47,7 +47,7 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
-        run: pio run
+        run: pio run -e esp32dev
 
       - name: Run Unit Tests
         run: pio test -e native
@@ -80,7 +80,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/version.txt
-          git commit -m "Auto-increment version to ${NEW_VERSION}" || exit 0
+          git commit -m "Auto-increment version to ${{ steps.version.outputs.version }}" || exit 0
           git push
 
       - name: Create Release
@@ -90,6 +90,6 @@ jobs:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
           files: |
-            .pio/build/*/*.bin
+            .pio/build/esp32dev/*.bin
           draft: false
           prerelease: false
