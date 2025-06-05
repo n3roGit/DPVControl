@@ -116,7 +116,7 @@ Instructions:
 - Don't mention commit hashes or authors in the final output
 
 Format example:
-## What's New in Version {version}
+# What's New in Version {version}
 
 🚀 **New Features**
 - Description of new functionality
@@ -164,9 +164,9 @@ If there are no significant changes, write: "Minor improvements and bug fixes."
 def generate_basic_summary(commits: List[Dict[str, str]], version: str) -> str:
     """Generate basic summary without AI"""
     if not commits:
-        return f"## Version {version}\n\nMinor improvements and bug fixes."
+        return f"# Version {version}\n\nMinor improvements and bug fixes."
     
-    summary = f"## Version {version}\n\n"
+    summary = f"# Version {version}\n\n"
     
     # Categorize commits
     features = []
@@ -223,7 +223,7 @@ def main():
     print(f"Filtered to {len(filtered_commits)} relevant commits")
     
     if not filtered_commits:
-        notes = f"## Version {version}\n\nKleine Verbesserungen und Bugfixes."
+        notes = f"# Version {version}\n\nMinor improvements and bug fixes."
     else:
         # Generate AI summary
         notes = generate_ai_summary(filtered_commits, version)
