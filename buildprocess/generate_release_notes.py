@@ -108,7 +108,7 @@ Please analyze these commits and create professional release notes in Markdown f
 
 Instructions:
 - Group changes into logical categories (🚀 Features, 🐛 Bug Fixes, 🔧 Improvements, 📚 Documentation, etc.)
-- Write in German, as this is a German project
+- Write in English
 - Be concise but informative
 - Focus on user-facing changes
 - Ignore technical details like linting fixes unless they're important
@@ -116,18 +116,18 @@ Instructions:
 - Don't mention commit hashes or authors in the final output
 
 Format example:
-## Was ist neu in Version {version}
+## What's New in Version {version}
 
-🚀 **Neue Features**
-- Beschreibung der neuen Funktionen
+🚀 **New Features**
+- Description of new functionality
 
-🐛 **Bugfixes**  
-- Behobene Probleme
+🐛 **Bug Fixes**  
+- Fixed issues and problems
 
-🔧 **Verbesserungen**
-- Performance und Code-Verbesserungen
+🔧 **Improvements**
+- Performance and code improvements
 
-If there are no significant changes, write: "Kleine Verbesserungen und Bugfixes."
+If there are no significant changes, write: "Minor improvements and bug fixes."
 """
 
     try:
@@ -164,7 +164,7 @@ If there are no significant changes, write: "Kleine Verbesserungen und Bugfixes.
 def generate_basic_summary(commits: List[Dict[str, str]], version: str) -> str:
     """Generate basic summary without AI"""
     if not commits:
-        return f"## Version {version}\n\nKleine Verbesserungen und Bugfixes."
+        return f"## Version {version}\n\nMinor improvements and bug fixes."
     
     summary = f"## Version {version}\n\n"
     
