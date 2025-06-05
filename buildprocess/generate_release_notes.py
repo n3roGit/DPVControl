@@ -245,11 +245,8 @@ def main():
         # Generate AI summary
         notes = generate_ai_summary(filtered_commits, version)
     
-    # Output to file and stdout (only release notes, no debug info)
-    with open('RELEASE_NOTES.md', 'w', encoding='utf-8') as f:
-        f.write(notes)
-    
     # Only output the release notes to stdout (used by GitHub Actions)
+    # No need to write to file - GitHub Actions captures stdout directly
     print(notes)
     
     return 0

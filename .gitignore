@@ -27,3 +27,6 @@ DPVController/localConfig.h
 .pio/
 .pioenvs/
 .piolibdeps/
+
+# Generated release notes (dynamically created by CI/CD)
+RELEASE_NOTES.md
