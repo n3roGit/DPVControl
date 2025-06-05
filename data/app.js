@@ -361,7 +361,7 @@ function initCharts() {
 }
 
 // Tab Navigation
-function showTab(tabName) {
+function showTab(tabName, event) {
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
@@ -376,7 +376,9 @@ function showTab(tabName) {
     });
     
     // Find the button that was clicked and make it active
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
 }
 
 // Load data from the API
@@ -1051,6 +1053,12 @@ function saveDPVSettings() {
         for (let i = 0; i < lampInputs.length; i++) {
             settings.lampBrightness.push(parseInt(lampInputs[i].value));
         }
+        // Fülle fehlende Werte mit 0 auf, falls weniger als lampMaxLevels Werte vorhanden sind
+        while (settings.lampBrightness.length < settings.lampMaxLevels) {
+            settings.lampBrightness.push(0);
+        }
+        // Schneide ggf. überzählige Werte ab
+        settings.lampBrightness = settings.lampBrightness.slice(0, settings.lampMaxLevels);
     }
     
     console.log('Saving settings:', settings);
