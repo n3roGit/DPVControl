@@ -54,7 +54,7 @@ String generateSessionListJson() {
     if (currentSession.startsWith("/datalog/")) {
         currentSession = currentSession.substring(9); // Remove "/datalog/"
     }
-    
+
     // Sort sessions by filename (newest first for 4-digit numbering)
     // Bubble sort for simplicity
     for (int i = 0; i < count - 1; i++) {
@@ -66,21 +66,21 @@ String generateSessionListJson() {
             }
         }
     }
-    
+
     String json = "[";
     for (int i = 0; i < count; i++) {
         if (i > 0) json += ",";
-        
+
         // Extract display name for session splits
         String displayName = sessions[i];
         String sessionNumber = "";
         String splitInfo = "";
-        
+
         // Parse session filename like "session_0001.bin" or "session_0001-02.bin"
         if (displayName.startsWith("session_") && displayName.endsWith(".bin")) {
             String numberPart = displayName.substring(8); // Remove "session_"
             numberPart = numberPart.substring(0, numberPart.length() - 4); // Remove ".bin"
-            
+
             int dashPos = numberPart.indexOf('-');
             if (dashPos != -1) {
                 sessionNumber = numberPart.substring(0, dashPos);
@@ -91,13 +91,13 @@ String generateSessionListJson() {
                 displayName = "Session " + sessionNumber;
             }
         }
-        
+
         // Add current session indicator
         bool isCurrent = (sessions[i] == currentSession);
         if (isCurrent) {
             displayName += " (Current)";
         }
-        
+
         // Create an object with filename, display name and current flag
         json += "{";
         json += "\"filename\":\"" + sessions[i] + "\",";
@@ -108,7 +108,7 @@ String generateSessionListJson() {
         json += "}";
     }
     json += "]";
-    
+
     return json;
 }
 
@@ -121,54 +121,54 @@ String generateSessionDataJson(String sessionFile) {
     if (!sessionFile.startsWith("/datalog/")) {
         fullPath = "/datalog/" + sessionFile;
     }
-    
+
     if (!LittleFS.exists(fullPath)) {
         return "{\"data\":[],\"meta\":{\"error\":\"File not found\"}}";
     }
-    
+
     File file = LittleFS.open(fullPath, "r");
     if (!file) {
         return "{\"data\":[],\"meta\":{\"error\":\"Cannot open file\"}}";
     }
-    
+
     // Get file size and calculate total datapoints
     size_t fileSize = file.size();
     int totalDatapoints = fileSize / sizeof(LogdataRow);
-    
+
     // Read first and last datapoint for metadata
     LogdataRow firstDataPoint, lastDataPoint;
     long realSessionStartMs = 0;
     long realSessionEndMs = 0;
     int realSessionDurationSeconds = 0;
-    
+
     if (totalDatapoints > 0) {
         file.seek(0);
         file.read((uint8_t*)&firstDataPoint, sizeof(LogdataRow));
         realSessionStartMs = firstDataPoint.timestamp;
-        
+
         file.seek((totalDatapoints - 1) * sizeof(LogdataRow));
         file.read((uint8_t*)&lastDataPoint, sizeof(LogdataRow));
         realSessionEndMs = lastDataPoint.timestamp;
-        
+
         realSessionDurationSeconds = (realSessionEndMs - realSessionStartMs) / 1000;
     }
-    
+
     // Calculate optimal number of points based on duration
     const int maxPoints = 1000; // Increased from 100 to support larger sessions (memory allows up to 1000 points)
     int targetPoints = maxPoints;
-    
+
     if (realSessionDurationSeconds > 0) {
         // One point per 3 seconds for better resolution on longer sessions
         targetPoints = min(maxPoints, realSessionDurationSeconds / 3);
         targetPoints = max(10, targetPoints); // At least 10 points
     }
-    
+
     // Calculate skip interval
     int skipInterval = totalDatapoints > targetPoints ? totalDatapoints / targetPoints : 1;
-    
+
     // Create JSON document with fixed size
     JsonDocument doc;
-    
+
     // Add metadata
     JsonObject meta = doc["meta"].to<JsonObject>();
     meta["realStartTimestamp"] = realSessionStartMs;
@@ -177,10 +177,10 @@ String generateSessionDataJson(String sessionFile) {
     meta["totalDatapoints"] = totalDatapoints;
     meta["chartDatapoints"] = targetPoints;
     meta["skipInterval"] = skipInterval;
-    
+
     // Add data array
     JsonArray data = doc["data"].to<JsonArray>();
-    
+
     // Read and add datapoints
     for (int i = 0; i < totalDatapoints && data.size() < targetPoints; i += skipInterval) {
         LogdataRow row;
@@ -203,13 +203,13 @@ String generateSessionDataJson(String sessionFile) {
             point["totalUptime"] = row.totalUptime;
         }
     }
-    
+
     file.close();
-    
+
     // Serialize to string
     String json;
     serializeJson(doc, json);
-    
+
     return json;
 }
 
@@ -220,7 +220,7 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
     client.print("HTTP/1.1 ");
     client.print(statusCode);
     client.print(" ");
-    
+
     // Status message based on code
     switch(statusCode) {
         case 200: client.println("OK"); break;
@@ -228,10 +228,10 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
         case 404: client.println("Not Found"); break;
         default: client.println("OK");
     }
-    
+
     client.print("Content-Type: ");
     client.println(contentType);
-    
+
     if (statusCode == 302) {
         client.print("Location: http://");
         client.println(apIP.toString());
@@ -239,7 +239,7 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
         client.println("Pragma: no-cache");
         client.println("Expires: -1");
     }
-    
+
     client.print("Content-Length: ");
     client.println(strlen(content));
     client.println("Connection: close");
@@ -250,7 +250,7 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
 // Helper function to load file from SPIFFS and send to client
 bool loadFromSPIFFS(WiFiClient client, String path) {
     String dataType = "text/plain";
-    
+
     // Set the correct dataType based on file extension
     if (path.endsWith(".html")) dataType = "text/html";
     else if (path.endsWith(".css")) dataType = "text/css";
@@ -258,30 +258,30 @@ bool loadFromSPIFFS(WiFiClient client, String path) {
     else if (path.endsWith(".png")) dataType = "image/png";
     else if (path.endsWith(".jpg")) dataType = "image/jpeg";
     else if (path.endsWith(".ico")) dataType = "image/x-icon";
-    
+
     // Open the file
     File dataFile = LittleFS.open(path.c_str(), "r");
-    
+
     if (!dataFile) {
         log("Failed to open file");
         return false;
     }
-    
+
     // HTTP response header
     client.println("HTTP/1.1 200 OK");
     client.print("Content-Type: ");
     client.println(dataType);
     client.println("Connection: close");
     client.println();
-    
+
     // Stream file to client
     byte buffer[64];
     int bytesRead;
-    
+
     while ((bytesRead = dataFile.read(buffer, sizeof(buffer))) > 0) {
         client.write(buffer, bytesRead);
     }
-    
+
     // Close the file
     dataFile.close();
     return true;
@@ -292,22 +292,22 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
     log("generateDataLoggerJson called");
     String countMsg = "Requested count: " + String(count) + ", range: " + timeRange + ", available: " + String(getTotalDataPoints(timeRange));
     log(countMsg.c_str());
-    
+
     LogdataRow* dataPoints = getLatestDataPoints(count, timeRange);
-    
+
     // If no data available, return empty array
     if (!dataPoints || getTotalDataPoints(timeRange) == 0) {
         log("No data available, returning empty array");
         return "[]";
     }
-    
+
     log("Building JSON from real data");
     String json = "[";
     int actualCount = count < getTotalDataPoints(timeRange) ? count : getTotalDataPoints(timeRange);
-    
+
     String actualCountMsg = "Building JSON with " + String(actualCount) + " data points from " + timeRange + " range";
     log(actualCountMsg.c_str());
-    
+
     for (int i = 0; i < actualCount; i++) {
         if (i > 0) json += ",";
         json += "{";
@@ -328,10 +328,10 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "}";
     }
     json += "]";
-    
+
     String jsonLengthMsg = "Generated JSON length: " + String(json.length());
     log(jsonLengthMsg.c_str());
-    
+
     // Debug: Show first part of JSON
     if (json.length() > 100) {
         String jsonPreview = "JSON preview: " + json.substring(0, 100) + "...";
@@ -340,7 +340,7 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         String jsonFull = "JSON full: " + json;
         log(jsonFull.c_str());
     }
-    
+
     return json;
 }
 
@@ -349,50 +349,50 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
  */
 String generateFullTripLogJson() {
     log("generateFullTripLogJson called");
-    
+
     if (!LittleFS.exists("/trip_log.bin")) {
         log("No trip log file found");
         return "";
     }
-    
+
     File tripFile = LittleFS.open("/trip_log.bin", "r");
     if (!tripFile) {
         log("Failed to open trip log file");
         return "";
     }
-    
+
     size_t fileSize = tripFile.size();
     size_t dataPointCount = fileSize / sizeof(LogdataRow);
-    
+
     String countMsg = "Trip log contains " + String(dataPointCount) + " data points (" + String(fileSize) + " bytes)";
     log(countMsg.c_str());
-    
+
     if (dataPointCount == 0) {
         tripFile.close();
         return "";
     }
-    
+
     // CSV Header
     String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
-    
+
     LogdataRow dataPoint;
-    
+
     // Read and convert each data point
     for (size_t i = 0; i < dataPointCount; i++) {
         size_t bytesRead = tripFile.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
-        
+
         if (bytesRead != sizeof(LogdataRow)) {
             String errorMsg = "Error reading data point " + String(i) + ", bytes read: " + String(bytesRead);
             log(errorMsg.c_str());
             break;
         }
-        
+
         // Convert timestamp to ISO format
         time_t timestamp = dataPoint.timestamp / 1000; // Convert to seconds
         struct tm* timeinfo = gmtime(&timestamp);
         char timeStr[30];
         strftime(timeStr, sizeof(timeStr), "%Y-%m-%dT%H:%M:%S.000Z", timeinfo);
-        
+
         // Add data row
         csv += String(timeStr) + ",";
         csv += String(dataPoint.tempMotor) + ",";
@@ -408,7 +408,7 @@ String generateFullTripLogJson() {
         csv += String(dataPoint.leakSensorState) + ",";
         csv += String(dataPoint.ledState) + ",";
         csv += String(dataPoint.totalUptime) + "\r\n";
-        
+
         // Prevent memory overflow for very large files
         if (csv.length() > 50000) { // Limit to ~50KB
             String limitMsg = "CSV size limit reached at " + String(i+1) + " points, truncating";
@@ -416,12 +416,12 @@ String generateFullTripLogJson() {
             break;
         }
     }
-    
+
     tripFile.close();
-    
+
     String resultMsg = "Generated full trip log CSV, length: " + String(csv.length()) + " for " + String(dataPointCount) + " points";
     log(resultMsg.c_str());
-    
+
     return csv;
 }
 
@@ -430,9 +430,9 @@ String generateFullTripLogJson() {
  */
 String generateSettingsJson() {
     log("generateSettingsJson called");
-    
+
     JsonDocument doc;
-    
+
     // Motor and speed settings
     doc["speedSteps"] = currentSettings.speedSteps;
     doc["standbyDelaySeconds"] = currentSettings.standbyDelaySeconds;
@@ -442,43 +442,43 @@ String generateSettingsJson() {
     doc["speedUpTimeMs"] = currentSettings.speedUpTimeMs;
     doc["speedDownTimeMs"] = currentSettings.speedDownTimeMs;
     doc["maxTimeOverloadedMs"] = currentSettings.maxTimeOverloadedMs;
-    
+
     // Jam detection
     doc["jamMin"] = currentSettings.jamMin;
     doc["jamDetectionThreshold"] = currentSettings.jamDetectionThreshold;
-    
+
     // Battery settings
     doc["cellsInSeries"] = currentSettings.cellsInSeries;
-    
+
     // LED Bar settings
     doc["ledBarNum"] = currentSettings.ledBarNum;
     doc["ledBarBrightness"] = currentSettings.ledBarBrightness;
     doc["ledBarBrightnessSecond"] = currentSettings.ledBarBrightnessSecond;
     doc["ledFrequency"] = currentSettings.ledFrequency;
-    
+
     // Lamp settings
     doc["lampMaxLevels"] = currentSettings.lampMaxLevels;
     JsonArray lampBrightness = doc["lampBrightness"].to<JsonArray>();
     for (int i = 0; i < 10; i++) {
         lampBrightness.add(currentSettings.lampBrightness[i]);
     }
-    
+
     // WiFi settings
     doc["wifiSSID"] = currentSettings.wifiSSID;
     doc["wifiPassword"] = currentSettings.wifiPassword;
-    
+
     // System settings
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
     doc["debugLoggingEnabled"] = currentSettings.debugLoggingEnabled;
     doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
     doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
-    
+
     String jsonString;
     serializeJson(doc, jsonString);
-    
+
     String jsonMsg = "Generated settings JSON, length: " + String(jsonString.length());
     log(jsonMsg.c_str());
-    
+
     return jsonString;
 }
 
@@ -489,27 +489,27 @@ bool updateSettingsFromJson(const String& jsonString) {
     log("updateSettingsFromJson called");
     String logMsg = "JSON length: " + String(jsonString.length());
     log(logMsg.c_str());
-    
+
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, jsonString);
-    
+
     if (error) {
         String errorMsg = "Failed to parse settings JSON: " + String(error.c_str());
         log(errorMsg.c_str());
         return false;
     }
-    
+
     log("JSON parsed successfully");
-    
+
     // Create temporary settings structure
     DPVSettings newSettings = currentSettings;
-    
+
     // Log current values before update
-    String currentMsg = "Current speedSteps: " + String(currentSettings.speedSteps) + 
+    String currentMsg = "Current speedSteps: " + String(currentSettings.speedSteps) +
                        ", standbyDelay: " + String(currentSettings.standbyDelaySeconds) +
                        ", beeperEnabled: " + String(currentSettings.beeperEnabled ? "true" : "false");
     log(currentMsg.c_str());
-    
+
     // Update settings from JSON with detailed logging
     int updatedFields = 0;
     if (doc["speedSteps"].is<int>()) {
@@ -568,17 +568,17 @@ bool updateSettingsFromJson(const String& jsonString) {
         log(msg.c_str());
         updatedFields++;
     }
-    
+
     if (doc["jamMin"].is<float>()) newSettings.jamMin = doc["jamMin"];
     if (doc["jamDetectionThreshold"].is<float>()) newSettings.jamDetectionThreshold = doc["jamDetectionThreshold"];
-    
+
     if (doc["cellsInSeries"].is<int>()) newSettings.cellsInSeries = doc["cellsInSeries"];
-    
+
     if (doc["ledBarNum"].is<int>()) newSettings.ledBarNum = doc["ledBarNum"];
     if (doc["ledBarBrightness"].is<int>()) newSettings.ledBarBrightness = doc["ledBarBrightness"];
     if (doc["ledBarBrightnessSecond"].is<int>()) newSettings.ledBarBrightnessSecond = doc["ledBarBrightnessSecond"];
     if (doc["ledFrequency"].is<int>()) newSettings.ledFrequency = doc["ledFrequency"];
-    
+
     if (doc["lampMaxLevels"].is<int>()) {
         int oldVal = newSettings.lampMaxLevels;
         newSettings.lampMaxLevels = doc["lampMaxLevels"];
@@ -595,17 +595,17 @@ bool updateSettingsFromJson(const String& jsonString) {
             if (i < 9) oldValues += ",";
         }
         log(oldValues.c_str());
-        
+
         String arrayInfo = "JSON lampBrightness array size: " + String(lampArray.size());
         log(arrayInfo.c_str());
-        
+
         for (int i = 0; i < 10 && i < lampArray.size(); i++) {
             int oldVal = newSettings.lampBrightness[i];
             newSettings.lampBrightness[i] = lampArray[i];
             String msg = "Updated lampBrightness[" + String(i) + "]: " + String(oldVal) + " -> " + String(newSettings.lampBrightness[i]);
             log(msg.c_str());
         }
-        
+
         String newValues = "New lampBrightness values: ";
         for (int i = 0; i < 10; i++) {
             newValues += String(newSettings.lampBrightness[i]);
@@ -614,7 +614,7 @@ bool updateSettingsFromJson(const String& jsonString) {
         log(newValues.c_str());
         updatedFields++;
     }
-    
+
     if (doc["wifiSSID"].is<const char*>()) {
         strncpy(newSettings.wifiSSID, doc["wifiSSID"], sizeof(newSettings.wifiSSID) - 1);
         newSettings.wifiSSID[sizeof(newSettings.wifiSSID) - 1] = '\0';
@@ -623,7 +623,7 @@ bool updateSettingsFromJson(const String& jsonString) {
         strncpy(newSettings.wifiPassword, doc["wifiPassword"], sizeof(newSettings.wifiPassword) - 1);
         newSettings.wifiPassword[sizeof(newSettings.wifiPassword) - 1] = '\0';
     }
-    
+
     if (doc["beeperEnabled"].is<bool>()) {
         bool oldVal = newSettings.beeperEnabled;
         newSettings.beeperEnabled = doc["beeperEnabled"];
@@ -652,10 +652,10 @@ bool updateSettingsFromJson(const String& jsonString) {
         log(msg.c_str());
         updatedFields++;
     }
-    
+
     String summaryMsg = "Total fields updated from JSON: " + String(updatedFields);
     log(summaryMsg.c_str());
-    
+
     // Validate new settings
     log("Validating new settings...");
     if (!validateSettings(newSettings)) {
@@ -663,21 +663,21 @@ bool updateSettingsFromJson(const String& jsonString) {
         return false;
     }
     log("Settings validation passed");
-    
+
     // Apply new settings
     log("Applying new settings to currentSettings...");
     currentSettings = newSettings;
-    
+
     log("Calling saveSettings()...");
     saveSettings();
-    
+
     // Log the new effective lamp settings
     String lampInfo = "NEW LAMP SETTINGS APPLIED - MaxLevels: " + String(getLampMaxLevels());
     for (int i = 0; i <= getLampMaxLevels(); i++) {
         lampInfo += ", L" + String(i) + ":" + String(getLampBrightness(i));
     }
     log(lampInfo.c_str());
-    
+
     // Log the new effective motor settings
     String motorInfo = "NEW MOTOR SETTINGS APPLIED - SpeedSteps: " + String(getSpeedSteps()) +
                       ", StandbyDelay: " + String(getStandbyDelay()) + "s" +
@@ -685,21 +685,21 @@ bool updateSettingsFromJson(const String& jsonString) {
                       ", MinSpeed: " + String(getMinSpeedPercent(), 2) +
                       ", MaxRPM: " + String(getMaxSpeedRpm(), 0);
     log(motorInfo.c_str());
-    
+
     String motorInfo2 = "MOTOR TIMING - SpeedUp: " + String(getSpeedUpTime()) + "ms" +
                        ", SpeedDown: " + String(getSpeedDownTime()) + "ms" +
                        ", MaxOverload: " + String(getMaxTimeOverloaded()) + "ms";
     log(motorInfo2.c_str());
-    
+
     String jamInfo = "JAM DETECTION - Min: " + String(getJamMin(), 2) +
                     ", Threshold: " + String(getJamDetectionThreshold(), 2);
     log(jamInfo.c_str());
-    
+
     String otherInfo = "OTHER SETTINGS - Beeper: " + String(getBeeperEnabled() ? "ON" : "OFF") +
                       ", Debug: " + String(getDebugLoggingEnabled() ? "ON" : "OFF") +
                       ", LEDBar: " + String(getLedBarNum()) + " LEDs";
     log(otherInfo.c_str());
-    
+
     log("Settings updated and saved successfully");
     return true;
 }
@@ -709,7 +709,7 @@ bool updateSettingsFromJson(const String& jsonString) {
  */
 String generateSessionCsvData(String sessionFile) {
     log(("Starting CSV generation for session: " + sessionFile).c_str());
-    
+
     // Try to open the session file
     File file = LittleFS.open("/" + sessionFile, "r");
     if (!file) {
@@ -717,34 +717,34 @@ String generateSessionCsvData(String sessionFile) {
         log(errorMsg.c_str());
         return "Error: Could not open session file " + sessionFile;
     }
-    
+
     // Calculate how many data points we have
     size_t fileSize = file.size();
     size_t dataPointCount = fileSize / sizeof(LogdataRow);
-    
+
     String fileSizeMsg = "Session file size: " + String(fileSize) + " bytes, estimated " + String(dataPointCount) + " data points";
     log(fileSizeMsg.c_str());
-    
+
     // Build CSV header with Total Uptime as primary time reference
     String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\\r\\n";
-    
+
     LogdataRow dataPoint;
     int exportedPoints = 0;
     int maxPoints = 1000; // Reasonable limit for ESP32 memory
-    
+
     // Read and convert each data point
     for (size_t i = 0; i < dataPointCount && exportedPoints < maxPoints; i++) {
         size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
-        
+
         if (bytesRead != sizeof(LogdataRow)) {
             String errorMsg = "Error reading data point " + String(i) + " from session " + sessionFile + ", bytes read: " + String(bytesRead);
             log(errorMsg.c_str());
             break;
         }
-        
+
         // Convert timestamp to total uptime in seconds
         float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
-        
+
         // Build CSV row with Total Uptime first
         csv += String(totalUptimeSeconds, 1) + ",";
         csv += String(dataPoint.tempMotor, 1) + ",";
@@ -759,34 +759,34 @@ String generateSessionCsvData(String sessionFile) {
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
         csv += String(dataPoint.ledState) + "\\r\\n";
-        
+
         exportedPoints++;
-        
+
         // Check memory usage more frequently
         if (csv.length() > 400000) { // 400KB limit for ESP32 safety
             String limitMsg = "Session CSV memory limit reached at " + String(exportedPoints) + " points for " + sessionFile + ", exported " + String((float)exportedPoints/dataPointCount*100, 1) + "% of session";
             log(limitMsg.c_str());
             break;
         }
-        
+
         // Give other tasks time to run
         if (i % 10 == 0) {
             vTaskDelay(1 / portTICK_PERIOD_MS);
         }
     }
-    
+
     file.close();
-    
+
     String resultMsg = "Generated session CSV for " + sessionFile + " with " + String(exportedPoints) + "/" + String(dataPointCount) + " points, size: " + String(csv.length()) + " bytes";
     log(resultMsg.c_str());
-    
+
     // Add summary footer if truncated
     if (exportedPoints < dataPointCount) {
         csv += "\\r\\n# Note: Session truncated due to memory limits\\r\\n";
         csv += "# Exported " + String(exportedPoints) + " of " + String(dataPointCount) + " total points (" + String((float)exportedPoints/dataPointCount*100, 1) + "%)\\r\\n";
         csv += "# Use session data API for complete dataset\\r\\n";
     }
-    
+
     return csv;
 }
 
@@ -795,7 +795,7 @@ String generateSessionCsvData(String sessionFile) {
  */
 void streamSessionCsvData(WiFiClient client, String sessionFile) {
     log(("Starting streaming CSV for session: " + sessionFile).c_str());
-    
+
     // Try to open the session file
     File file = LittleFS.open("/" + sessionFile, "r");
     if (!file) {
@@ -805,41 +805,41 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
         client.print(errorResponse);
         return;
     }
-    
+
     // Calculate how many data points we have
     size_t fileSize = file.size();
     size_t dataPointCount = fileSize / sizeof(LogdataRow);
-    
+
     String fileSizeMsg = "Session file size: " + String(fileSize) + " bytes, estimated " + String(dataPointCount) + " data points";
     log(fileSizeMsg.c_str());
-    
+
     // Send HTTP headers for CSV download
     client.print("HTTP/1.1 200 OK\r\n");
     client.print("Content-Type: text/csv\r\n");
     client.print("Content-Disposition: attachment; filename=\"" + sessionFile.substring(0, sessionFile.lastIndexOf('.')) + ".csv\"\r\n");
     client.print("Cache-Control: no-cache\r\n");
     client.print("\r\n");
-    
+
     // Send CSV header
     client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n");
-    
+
     LogdataRow dataPoint;
     int exportedPoints = 0;
     int maxPoints = 10000; // Much higher limit since we're streaming
-    
+
     // Stream each data point directly to client
     for (size_t i = 0; i < dataPointCount && exportedPoints < maxPoints; i++) {
         size_t bytesRead = file.read((uint8_t*)&dataPoint, sizeof(LogdataRow));
-        
+
         if (bytesRead != sizeof(LogdataRow)) {
             String errorMsg = "Error reading data point " + String(i) + " from session " + sessionFile;
             log(errorMsg.c_str());
             break;
         }
-        
+
         // Convert timestamp to total uptime in seconds
         float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
-        
+
         // Build and send CSV row directly (small string, immediately sent)
         String csvRow = String(totalUptimeSeconds, 1) + ",";
         csvRow += String(dataPoint.tempMotor, 1) + ",";
@@ -854,12 +854,12 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
         csvRow += String(dataPoint.batteryLevel) + ",";
         csvRow += String(dataPoint.leakSensorState) + ",";
         csvRow += String(dataPoint.ledState) + "\r\n";
-        
+
         // Send this row immediately
         client.print(csvRow);
-        
+
         exportedPoints++;
-        
+
         // Give other tasks time and check client connection
         if (i % 10 == 0) {
             vTaskDelay(1 / portTICK_PERIOD_MS);
@@ -868,22 +868,22 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
                 break;
             }
         }
-        
+
         // Progress logging
         if (exportedPoints % 100 == 0) {
             String progressMsg = "Streamed " + String(exportedPoints) + "/" + String(dataPointCount) + " CSV rows";
             log(progressMsg.c_str());
         }
     }
-    
+
     file.close();
-    
+
     // Send summary footer if truncated
     if (exportedPoints < dataPointCount) {
         client.print("\r\n# Note: Session truncated due to data limits\r\n");
         client.print("# Exported " + String(exportedPoints) + " of " + String(dataPointCount) + " total points (" + String((float)exportedPoints/dataPointCount*100, 1) + "%)\r\n");
     }
-    
+
     String resultMsg = "Completed streaming CSV for " + sessionFile + " with " + String(exportedPoints) + "/" + String(dataPointCount) + " points";
     log(resultMsg.c_str());
 }
@@ -892,10 +892,10 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
 // Setup the webserver task on Core 0
 void setupWebserver() {
     log("Setting up webserver on Core 0");
-    
+
     // Initialize SPIFFS and store HTML files
     spiffsInitialized = initializeFileSystem();
-    
+
     // Create task on Core 0
     xTaskCreatePinnedToCore(
         webserverTask,         // Task function
@@ -906,7 +906,7 @@ void setupWebserver() {
         &webserverTaskHandle,  // Task handle
         0                      // Core ID (0)
     );
-    
+
     log("Webserver task created on Core 0");
 }
 
@@ -917,13 +917,13 @@ void handleClient(WiFiClient client) {
     while (!client.available() && millis() < timeout) {
         delay(10);
     }
-    
+
     // If no data, close connection and return
     if (!client.available()) {
         client.stop();
         return;
     }
-    
+
     // Read the complete HTTP request
     String httpRequest = "";
     String line = "";
@@ -931,50 +931,50 @@ void handleClient(WiFiClient client) {
     String path = "";
     String host = "";
     String contentLength = "";
-    
+
     // Read request line
     line = client.readStringUntil('\n');
     httpRequest += line;
-    
+
     // Extract method and path from first line
     int firstSpace = line.indexOf(' ');
     int secondSpace = line.indexOf(' ', firstSpace + 1);
-    
+
     if (firstSpace != -1 && secondSpace != -1) {
         method = line.substring(0, firstSpace);
         path = line.substring(firstSpace + 1, secondSpace);
     }
-    
+
     log(("Request: " + method + " " + path).c_str());
-    
+
     // Read headers
     while (client.connected()) {
         line = client.readStringUntil('\n');
         line.trim();
         httpRequest += line + "\n";
-        
+
         if (line.startsWith("Host: ")) {
             host = line.substring(6);
             log(("Host: " + host).c_str());
         }
-        
+
         if (line.startsWith("Content-Length: ")) {
             contentLength = line.substring(16);
         }
-        
+
         // Empty line indicates end of headers
         if (line.length() == 0) {
             break;
         }
     }
-    
+
     // Check if this is a captive portal detection request
-    bool isCaptivePortalRequest = host.length() > 0 && 
+    bool isCaptivePortalRequest = host.length() > 0 &&
                                  !host.equals(apIP.toString()) &&
                                  !host.startsWith("4.3.2.") &&
                                  !host.equals("localhost") &&
                                  !host.equals("captive.apple.com");
-    
+
     // Handle the request based on the path
     if (path == "/" || path == "/index.html") {
         // Root path - serve HTML from LittleFS
@@ -987,11 +987,11 @@ void handleClient(WiFiClient client) {
         // API endpoint for datalogger data
         String range = "recent";
         int count = 100;
-        
+
         // Parse query parameters
         if (path.indexOf("?") != -1) {
             String queryString = path.substring(path.indexOf("?") + 1);
-            
+
             // Extract count parameter
             int countIndex = queryString.indexOf("count=");
             if (countIndex != -1) {
@@ -1003,7 +1003,7 @@ void handleClient(WiFiClient client) {
                 count = countStr.toInt();
                 if (count <= 0 || count > 1000) count = 100; // Limit to reasonable range
             }
-            
+
             // Extract range parameter
             int rangeIndex = queryString.indexOf("range=");
             if (rangeIndex != -1) {
@@ -1015,14 +1015,14 @@ void handleClient(WiFiClient client) {
                 range = rangeStr;
             }
         }
-        
+
         String jsonData = generateDataLoggerJson(count, range);
         sendHttpResponse(client, 200, "application/json", jsonData.c_str());
-        
+
     } else if (path == "/api/status") {
         // API endpoint for system status
         log("API /api/status called");
-        
+
         String json = "{";
         json += "\"status\":\"ok\",";
         json += "\"uptime\":" + String(millis()) + ",";
@@ -1034,48 +1034,48 @@ void handleClient(WiFiClient client) {
         json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
         json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false");
         json += "}";
-        
+
         sendHttpResponse(client, 200, "application/json", json.c_str());
-        
+
     } else if (path == "/api/sessions") {
         // API endpoint for session list
         log("API /api/sessions called");
-        
+
         String sessionsJson = generateSessionListJson();
         sendHttpResponse(client, 200, "application/json", sessionsJson.c_str());
-        
+
     } else if (path.startsWith("/api/sessions/") && path.endsWith("/data") && method == "GET") {
         // API endpoint for session data
         String sessionFile = path.substring(14); // Remove "/api/sessions/"
         sessionFile = sessionFile.substring(0, sessionFile.length() - 5); // Remove "/data"
-        
+
         log(("API session data request for: " + sessionFile).c_str());
-        
+
         String sessionData = generateSessionDataJson(sessionFile);
         sendHttpResponse(client, 200, "application/json", sessionData.c_str());
-        
+
     } else if (path.startsWith("/api/sessions/") && path.endsWith("/csv") && method == "GET") {
         // API endpoint for session CSV download
         String sessionFile = path.substring(14); // Remove "/api/sessions/"
         sessionFile = sessionFile.substring(0, sessionFile.length() - 4); // Remove "/csv"
-        
+
         log(("API session CSV request for: " + sessionFile).c_str());
-        
+
         // Stream CSV data directly to avoid memory issues
         streamSessionCsvData(client, sessionFile);
         return; // streamSessionCsvData handles client connection
-        
+
     } else if (path == "/api/settings" && method == "GET") {
         // API endpoint to get current settings
         log("API /api/settings GET called");
-        
+
         String settingsJson = generateSettingsJson();
         sendHttpResponse(client, 200, "application/json", settingsJson.c_str());
-        
+
     } else if (path == "/api/settings" && method == "POST") {
         // API endpoint to save settings
         log("API /api/settings POST called");
-        
+
         // Read POST body if Content-Length is specified
         String body = "";
         if (contentLength.length() > 0) {
@@ -1084,7 +1084,7 @@ void handleClient(WiFiClient client) {
                 char* buffer = new char[bodyLength + 1];
                 int bytesRead = 0;
                 unsigned long startTime = millis();
-                
+
                 // Read the exact number of bytes specified in Content-Length
                 while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 3000)) {
                     if (client.available()) {
@@ -1094,11 +1094,11 @@ void handleClient(WiFiClient client) {
                         delay(1);
                     }
                 }
-                
+
                 buffer[bytesRead] = '\0';
                 body = String(buffer);
                 delete[] buffer;
-                
+
                 String readMsg = "Settings: Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
                 log(readMsg.c_str());
             } else {
@@ -1112,10 +1112,10 @@ void handleClient(WiFiClient client) {
             }
             log("Settings: Using fallback reading method");
         }
-        
+
         String bodyMsg = "Settings POST body received, length: " + String(body.length());
         log(bodyMsg.c_str());
-        
+
         if (body.length() > 100) {
             String bodyPreview = "Settings body preview: " + body.substring(0, 100) + "...";
             log(bodyPreview.c_str());
@@ -1125,7 +1125,7 @@ void handleClient(WiFiClient client) {
         } else {
             log("Settings: ERROR - No body data received!");
         }
-        
+
         bool success = false;
         String errorMsg = "";
         if (body.length() > 0) {
@@ -1137,7 +1137,7 @@ void handleClient(WiFiClient client) {
             log("Settings: Cannot save - empty body");
             errorMsg = "No settings data received.";
         }
-        
+
         String response;
         if (success) {
             response = "{\"success\":true}";
@@ -1145,37 +1145,37 @@ void handleClient(WiFiClient client) {
             response = "{\"success\":false,\"error\":\"" + errorMsg + "\"}";
         }
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
     } else if (path == "/api/settings/restore" && method == "POST") {
         // API endpoint to restore default settings
         log("API /api/settings/restore called");
-        
+
         restoreDefaultSettings();
-        
+
         String response = "{\"success\":true}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
     } else if (path == "/api/reboot" && method == "POST") {
         // API endpoint to reboot the system
         log("API /api/reboot called");
-        
+
         String response = "{\"success\":true,\"message\":\"Reboot initiated\"}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
         // Close client connection properly before rebooting
         client.stop();
-        
+
         // Wait a moment to ensure response is sent
         delay(500);
-        
+
         // Reboot the ESP32
         log("System reboot requested via API - restarting now");
         ESP.restart();
-        
+
     } else if (path == "/api/motor" && method == "POST") {
         // API endpoint for motor control
         log("API /api/motor called");
-        
+
         // Read POST body if Content-Length is specified
         String body = "";
         if (contentLength.length() > 0) {
@@ -1184,7 +1184,7 @@ void handleClient(WiFiClient client) {
                 char* buffer = new char[bodyLength + 1];
                 int bytesRead = 0;
                 unsigned long startTime = millis();
-                
+
                 // Read the exact number of bytes specified in Content-Length
                 while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 2000)) {
                     if (client.available()) {
@@ -1194,11 +1194,11 @@ void handleClient(WiFiClient client) {
                         delay(1);
                     }
                 }
-                
+
                 buffer[bytesRead] = '\0';
                 body = String(buffer);
                 delete[] buffer;
-                
+
                 String readMsg = "Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
                 log(readMsg.c_str());
             }
@@ -1209,14 +1209,14 @@ void handleClient(WiFiClient client) {
                 body += (char)client.read();
             }
         }
-        
+
         String bodyMsg = "Motor control body: " + body;
         log(bodyMsg.c_str());
-        
+
         // Simple JSON parsing for motor control
         bool motorEnabled = body.indexOf("\"enabled\":true") != -1;
         int speed = 0;
-        
+
         // Extract speed value
         int speedIndex = body.indexOf("\"speed\":");
         if (speedIndex != -1) {
@@ -1228,52 +1228,52 @@ void handleClient(WiFiClient client) {
                 speed = speedStr.toInt();
             }
         }
-        
+
         // Integrate with actual motor control functions
         String controlMsg = "Remote motor control - Enabled: " + String(motorEnabled ? "true" : "false") + ", Speed: " + String(speed) + "%";
         log(controlMsg.c_str());
-        
+
         if (motorEnabled && speed > 0) {
             // Enable remote control mode
             remoteControlActive = true;
-            
+
             // Wake up motor if in standby
             if (motorState == standby) {
                 wakeUp();
             }
-            
+
             // Convert speed percentage (0-100) to motor steps (1-maxSteps)
             int maxSteps = getSpeedSteps();
             int targetStep = max(1, min(maxSteps, (speed * maxSteps) / 100));
             currentMotorStep = targetStep;
             motorState = on;
-            
+
             // Update lastActionTime to keep motor running (simulates button press)
             lastActionTime = micros();
-            
+
             // Update LED bar to show new speed
             setBarSpeed(currentMotorStep);
-            
+
             String speedMsg = "Remote control set motor to step " + String(currentMotorStep) + " (speed " + String(speed) + "%)";
             log(speedMsg.c_str());
-            
+
         } else {
             // Disable remote control mode and stop motor
             remoteControlActive = false;
             motorState = off;
             lastActionTime = micros(); // Prevent immediate standby
             setBarSpeed(currentMotorStep); // Update display but keep step setting
-            
+
             log("Remote control stopped motor");
         }
-        
+
         String response = "{\"success\":true,\"enabled\":" + String(motorEnabled ? "true" : "false") + ",\"speed\":" + String(speed) + ",\"motorStep\":" + String(currentMotorStep) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
     } else if (path == "/api/lamp" && method == "POST") {
         // API endpoint for lamp control
         log("API /api/lamp called");
-        
+
         // Read POST body if Content-Length is specified
         String body = "";
         if (contentLength.length() > 0) {
@@ -1282,7 +1282,7 @@ void handleClient(WiFiClient client) {
                 char* buffer = new char[bodyLength + 1];
                 int bytesRead = 0;
                 unsigned long startTime = millis();
-                
+
                 // Read the exact number of bytes specified in Content-Length
                 while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 2000)) {
                     if (client.available()) {
@@ -1292,11 +1292,11 @@ void handleClient(WiFiClient client) {
                         delay(1);
                     }
                 }
-                
+
                 buffer[bytesRead] = '\0';
                 body = String(buffer);
                 delete[] buffer;
-                
+
                 String readMsg = "Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
                 log(readMsg.c_str());
             }
@@ -1307,10 +1307,10 @@ void handleClient(WiFiClient client) {
                 body += (char)client.read();
             }
         }
-        
+
         String bodyMsg = "Lamp control body: " + body;
         log(bodyMsg.c_str());
-        
+
         // Extract level value (now direct level 0-maxLevels)
         int requestedLevel = 0;
         int levelIndex = body.indexOf("\"level\":");
@@ -1323,36 +1323,36 @@ void handleClient(WiFiClient client) {
                 requestedLevel = levelStr.toInt();
             }
         }
-        
+
         // Validate level against current settings
         int maxLevels = getLampMaxLevels();
         int actualLevel = requestedLevel;
-        
+
         // Validate level range
         if (actualLevel < 0) actualLevel = 0;
         if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
-        
+
         // Integrate with actual LED lamp functions
         String controlMsg = "Remote lamp control - Requested Level: " + String(requestedLevel) + ", Actual Level: " + String(actualLevel);
         log(controlMsg.c_str());
-        
+
         // Set level
         LED_State = actualLevel;
         setLEDState(LED_State);
         setBarLED(LED_State);
-        
+
         String levelMsg = "Remote control set lamp to level " + String(actualLevel) + " (max: " + String(maxLevels - 1) + ")";
         log(levelMsg.c_str());
-        
+
         String response = "{\"success\":true,\"level\":" + String(actualLevel) + ",\"maxLevels\":" + String(maxLevels) + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
     } else if (path == "/api/version") {
         // API endpoint for version information
         log("API /api/version called");
-        
+
         String version = "2.0.0"; // Default version
-        
+
         // Try to read version from file
         if (LittleFS.exists("/version.txt")) {
             File versionFile = LittleFS.open("/version.txt", "r");
@@ -1362,18 +1362,18 @@ void handleClient(WiFiClient client) {
                 versionFile.close();
             }
         }
-        
+
         String jsonVersion = "{\"version\":\"" + version + "\"}";
         sendHttpResponse(client, 200, "application/json", jsonVersion.c_str());
-        
+
     } else if (path == "/api/delete-all-sessions" && method == "POST") {
         // API endpoint to delete all session files
         log("API /api/delete-all-sessions called");
-        
+
         int deleteCount = 0;
         String errorMsg = "";
         bool success = true;
-        
+
         try {
             // Directly iterate through datalog directory to find all .bin files
             // This avoids the 50-session limit from listSessionFiles()
@@ -1385,7 +1385,7 @@ void handleClient(WiFiClient client) {
                     if (!file.isDirectory() && fileName.endsWith(".bin")) {
                         String fullPath = "/datalog/" + fileName;
                         file.close(); // Close file handle before deletion
-                        
+
                         if (LittleFS.exists(fullPath)) {
                             if (LittleFS.remove(fullPath)) {
                                 deleteCount++;
@@ -1408,15 +1408,15 @@ void handleClient(WiFiClient client) {
                 errorMsg = "Could not open /datalog directory";
                 success = false;
             }
-            
+
             String resultMsg = "Deleted " + String(deleteCount) + " session files";
             log(resultMsg.c_str());
-            
+
         } catch (...) {
             errorMsg = "Exception occurred during deletion";
             success = false;
         }
-        
+
         String response;
         if (success && deleteCount > 0) {
             response = "{\"success\":true,\"deleted\":" + String(deleteCount) + ",\"message\":\"Successfully deleted " + String(deleteCount) + " session files\"}";
@@ -1425,9 +1425,9 @@ void handleClient(WiFiClient client) {
         } else {
             response = "{\"success\":false,\"deleted\":" + String(deleteCount) + ",\"error\":\"" + errorMsg + "\"}";
         }
-        
+
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
     } else if (path == "/info.html") {
         // Serve info page
         if (loadFromSPIFFS(client, "/info.html")) {
@@ -1435,7 +1435,7 @@ void handleClient(WiFiClient client) {
         } else {
             sendHttpResponse(client, 404, "text/plain", "Info page not found");
         }
-        
+
     } else if (path == "/remote.html") {
         // Serve remote control page
         if (loadFromSPIFFS(client, "/remote.html")) {
@@ -1443,7 +1443,7 @@ void handleClient(WiFiClient client) {
         } else {
             sendHttpResponse(client, 404, "text/plain", "Remote control page not found");
         }
-        
+
     } else if (path == "/settings.html") {
         // Serve settings page
         if (loadFromSPIFFS(client, "/settings.html")) {
@@ -1451,7 +1451,7 @@ void handleClient(WiFiClient client) {
         } else {
             sendHttpResponse(client, 404, "text/plain", "Settings page not found");
         }
-        
+
     } else if (path == "/chart.min.js") {
         // Serve Chart.js library with enhanced fallback
         log("Serving Chart.js fallback");
@@ -1467,16 +1467,16 @@ window.Chart = class {
         this.canvas.height = 400;
         this.update();
     }
-    
+
     update() {
         const ctx = this.ctx;
         const canvas = this.canvas;
-        
+
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#2a2a2a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+
         // Check if we have valid data
         if (!this.data.datasets || this.data.datasets.length === 0 || !this.data.labels || this.data.labels.length === 0) {
             ctx.fillStyle = '#888';
@@ -1486,11 +1486,11 @@ window.Chart = class {
             ctx.fillText('Data points: 0', canvas.width / 2, canvas.height / 2 + 20);
             return;
         }
-        
+
         const margin = 60;
         const chartWidth = canvas.width - 2 * margin;
         const chartHeight = canvas.height - 2 * margin;
-        
+
         // Draw axes
         ctx.strokeStyle = '#555';
         ctx.lineWidth = 1;
@@ -1499,18 +1499,18 @@ window.Chart = class {
         ctx.lineTo(margin, canvas.height - margin);
         ctx.lineTo(canvas.width - margin, canvas.height - margin);
         ctx.stroke();
-        
+
         // Colors for different datasets
         const colors = [
-            '#4bc0c0', '#ff6384', '#ffce56', '#36a2eb', 
+            '#4bc0c0', '#ff6384', '#ffce56', '#36a2eb',
             '#9966ff', '#ff9f40', '#c7c7c7', '#ff63ff',
             '#63ff84', '#ffce84'
         ];
-        
+
         // Find global min/max for all visible datasets
         let globalMin = Infinity;
         let globalMax = -Infinity;
-        
+
         this.data.datasets.forEach(dataset => {
             if (dataset.data && dataset.data.length > 0) {
                 const values = dataset.data.map(d => typeof d === 'object' ? d.y : d);
@@ -1520,24 +1520,24 @@ window.Chart = class {
                 if (max > globalMax) globalMax = max;
             }
         });
-        
+
         const range = globalMax - globalMin || 1;
-        
+
         // Draw datasets
         this.data.datasets.forEach((dataset, datasetIndex) => {
             if (!dataset.data || dataset.data.length === 0) return;
-            
+
             const color = colors[datasetIndex % colors.length];
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            
+
             let hasValidPoint = false;
             for (let i = 0; i < dataset.data.length; i++) {
                 const x = margin + (i / (dataset.data.length - 1)) * chartWidth;
                 const val = typeof dataset.data[i] === 'object' ? dataset.data[i].y : dataset.data[i];
                 const y = margin + chartHeight - ((val - globalMin) / range) * chartHeight;
-                
+
                 if (i === 0 || !hasValidPoint) {
                     ctx.moveTo(x, y);
                     hasValidPoint = true;
@@ -1547,7 +1547,7 @@ window.Chart = class {
             }
             ctx.stroke();
         });
-        
+
         // Draw legend
         ctx.font = '12px Arial';
         ctx.textAlign = 'left';
@@ -1562,17 +1562,17 @@ window.Chart = class {
                 legendY += 15;
             }
         });
-        
-        // Draw title  
+
+        // Draw title
         ctx.fillStyle = '#ccc';
         ctx.font = '16px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('DPV Data Visualization', canvas.width / 2, 20);
-        
+
         // Draw data point count
         ctx.font = '12px Arial';
         ctx.fillText(`${this.data.labels.length} data points`, canvas.width / 2, canvas.height - 10);
-        
+
         // Draw Y-axis labels
         ctx.font = '10px Arial';
         ctx.textAlign = 'right';
@@ -1582,7 +1582,7 @@ window.Chart = class {
             const value = globalMax - (i / 5) * range;
             ctx.fillText(value.toFixed(1), margin - 5, y + 3);
         }
-        
+
         // Draw X-axis labels (time)
         ctx.textAlign = 'center';
         if (this.data.labels.length > 0) {
@@ -1593,13 +1593,13 @@ window.Chart = class {
             }
         }
     }
-    
+
     destroy() {}
 };
 console.log('Chart.js fallback loaded');
 )js";
         sendHttpResponse(client, 200, "application/javascript", chartJs.c_str());
-        
+
     } else if (path == "/jszip.min.js") {
         // Serve JSZip library with enhanced fallback
         log("Serving JSZip fallback");
@@ -1618,18 +1618,18 @@ window.JSZip = function() {
             // Create a simple CSV export instead of ZIP
             let csvContent = '';
             let fileCount = 0;
-            
+
             for (let filename in this.files) {
                 fileCount++;
                 csvContent += '=== ' + filename + ' ===\r\n';
                 csvContent += this.files[filename];
                 csvContent += '\r\n\r\n';
             }
-            
+
             if (fileCount === 0) {
                 csvContent = 'No data available for export';
             }
-            
+
             // Return a proper Blob
             const blob = new Blob([csvContent], { type: 'text/plain;charset=utf-8' });
             return Promise.resolve(blob);
@@ -1639,39 +1639,39 @@ window.JSZip = function() {
 console.log('JSZip fallback loaded');
 )js";
         sendHttpResponse(client, 200, "application/javascript", jszipJs.c_str());
-        
+
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings (legacy compatibility)
         log("API /api/beeper called");
-        
+
         // Read POST body
         String body = "";
         while (client.available()) {
             body += (char)client.read();
         }
-        
+
         // Simple JSON parsing for {"enabled": true/false}
         bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
-        
+
         // Update beeper setting in both old and new systems
         currentSettings.beeperEnabled = newBeeperState;
         saveSettings(); // Save to unified settings system
-        
+
         String response = "{\"success\":true,\"enabled\":" + String(getBeeperEnabled() ? "true" : "false") + "}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
-        
+
         String beeperMsg = "Beeper setting updated: " + String(getBeeperEnabled() ? "enabled" : "disabled");
         log(beeperMsg.c_str());
-        
-    } else if (path == "/generate_204" || path == "/ncsi.txt" || 
-               path == "/connecttest.txt" || path == "/redirect" || 
-               path == "/hotspot-detect.html" || path.indexOf("success.txt") != -1 || 
+
+    } else if (path == "/generate_204" || path == "/ncsi.txt" ||
+               path == "/connecttest.txt" || path == "/redirect" ||
+               path == "/hotspot-detect.html" || path.indexOf("success.txt") != -1 ||
                path.indexOf("success.html") != -1) {
-        
+
         // Android/Windows/iOS captive portal detection
         log("Captive portal check detected");
         sendHttpResponse(client, 302, "text/html", "<html><head><meta http-equiv='refresh' content='0; URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
-    
+
     } else if (spiffsInitialized && LittleFS.exists(path)) {
         // Serve files from SPIFFS
         loadFromSPIFFS(client, path);
@@ -1683,7 +1683,7 @@ console.log('JSZip fallback loaded');
         // Default: redirect to root
         sendHttpResponse(client, 302, "text/plain", "Redirecting...");
     }
-    
+
     // Close the connection
     client.stop();
 }
@@ -1691,37 +1691,37 @@ console.log('JSZip fallback loaded');
 // Webserver task that runs on Core 0
 void webserverTask(void *pvParameters) {
     log("Webserver task started on Core 0");
-    
+
     // Setup WiFi Access Point
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
     WiFi.softAP(getWifiSSID(), getWifiPassword());
-    
+
     // Log IP address - convert to String and then to char*
     String ipString = "IP: " + WiFi.softAPIP().toString();
     log(ipString.c_str());
-    
+
     // Start DNS Server for captive portal - redirect all requests to our IP
     dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
     dnsServer.start(DNS_PORT, "*", apIP);
     log("DNS Server started - redirecting all domains to captive portal");
-    
+
     // Start server
     server.begin();
     log("HTTP server started");
-    
+
     // Main loop for webserver task
     while (true) {
         // Process DNS requests for captive portal
         dnsServer.processNextRequest();
-        
+
         // Check for HTTP clients
         WiFiClient client = server.available();
         if (client) {
             handleClient(client);
         }
-        
+
         // Small delay to prevent watchdog trigger
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
-} 
+}

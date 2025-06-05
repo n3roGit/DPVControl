@@ -1,0 +1,17 @@
+# cpplint configuration for DPV Control project
+# This file configures the Google cpplint tool used by GitHub Actions
+
+# Filter out checks that are not relevant for Arduino/ESP32 projects
+filter=-legal/copyright,-build/include_order,-build/include_what_you_use,-build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length,-build/header_guard
+
+# Line length limit (default is 80, we allow 120 for better readability)
+linelength=120
+
+# Root directory for header guard calculation
+root=src
+
+# Extensions to check  
+extensions=cpp,h
+
+# Exclude directories that should not be linted
+exclude_files=test/.*,data/.*,.pio/.*,lib/.* 

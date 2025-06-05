@@ -3,25 +3,25 @@
 #include "beep.h"
 #include "ledBar.h"
 #include "settings.h"
-#include "string"
+#include <string>
 
 /*
-* Manages the battery 
-*/
+ * Manages the battery
+ */
 
-struct VoltToSoc{
+struct VoltToSoc {
   float volt;
   int soc;
 };
 
-//Battery
-int batteryLevel = 0;// 0 to 100% state of charge. 
+// Battery
+int batteryLevel = 0;  // 0 to 100% state of charge.
 
 /*
-*  CONSTANTS
-*/
+ * CONSTANTS
+ */
 
-//Mapping of voltage of one of our battery cells to its approximate soc. 
+// Mapping of voltage of one of our battery cells to its approximate soc.
 const VoltToSoc VOLT_TO_SOC[] = {
   {4.18, 100},
   {4.1, 96},
@@ -38,36 +38,34 @@ const VoltToSoc VOLT_TO_SOC[] = {
 const int VOLT_TO_SOC_length = sizeof(VOLT_TO_SOC) / sizeof(VOLT_TO_SOC[0]);
 
 const int MEASUREMENTS = 60;
-const int MEASUREMENT_INTERVAL = 1000;//Time between measurements in ms
+const int MEASUREMENT_INTERVAL = 1000;  // Time between measurements in ms
 const float EMPTY = -3.0;
 
 /*
-* GLOBAL VARIABLES
-*/
-float voltageHistory[MEASUREMENTS] ;
+ * GLOBAL VARIABLES
+ */
+float voltageHistory[MEASUREMENTS];
 int voltageHistoryIndex = 0;
-unsigned long lastMeasurement = 0; //ms timestamp of last time we made measurement
+unsigned long lastMeasurement = 0;  // ms timestamp of last measurement
 int batteryAlerted = 0;
 
 
-void batterySetup(){
-  //Clear measurement table
-  for(int i = 0;i<MEASUREMENTS;i++) voltageHistory[i] = EMPTY;
+void batterySetup() {
+  // Clear measurement table
+  for (int i = 0; i < MEASUREMENTS; i++) voltageHistory[i] = EMPTY;
 }
 
 
 /**
-*
-* Read the state of the main-battery
-*
-*/
-void outputBatteryInfo(){
+ * Read the state of the main-battery
+ */
+void outputBatteryInfo() {
   log("battery info", batteryLevel);
   if (batteryLevel < 10) {
     beep("1");
   } else {
     // Determine how many full 10% steps have been reached
-    int steps = (batteryLevel +5) / 10;
+    int steps = (batteryLevel + 5) / 10;
     steps = constrain(steps, 0, 10);
 
     // Generate a string with '1' for each full 10% step
@@ -98,52 +96,51 @@ void BatteryLevelAlert() {
     beep("2");  // One beep at 10%
     log("BatteryAlert", batteryLevel, true);
     batteryAlerted = 10;  // Sets the status to 10%
-
   }
 }
 
-int calculateStateOfCharge(float voltage){
-  int cellsInSeries = getCellsInSeries(); // Use configurable value from settings
-  float voltagePerCell = voltage/cellsInSeries;
-  //Move along the table until we find the row where we have a lower voltage; 
+int calculateStateOfCharge(float voltage) {
+  int cellsInSeries = getCellsInSeries();  // Use configurable value from settings
+  float voltagePerCell = voltage / cellsInSeries;
+  // Move along the table until we find the row where we have a lower voltage
   int i = 0;
-  while (i < VOLT_TO_SOC_length && voltagePerCell < VOLT_TO_SOC[i].volt) i++;
-  
-  //We did not move along the table at all. So our voltage is above the maxinum.
+    while (i < VOLT_TO_SOC_length && voltagePerCell < VOLT_TO_SOC[i].volt) i++;
+
+  // We did not move along the table at all. So our voltage is above the maximum.
   if (i == 0) return 100;
 
-  //We made it to the end without finding out voltage. So we are below the minimum. 
+  // We made it to the end without finding our voltage. So we are below the minimum.
   if (i == VOLT_TO_SOC_length) return 0;
 
-  VoltToSoc higher = VOLT_TO_SOC[i-1];
+  VoltToSoc higher = VOLT_TO_SOC[i - 1];
   VoltToSoc lower = VOLT_TO_SOC[i];
   float voltageRange = higher.volt - lower.volt;
   int percentageRange = higher.soc - lower.soc;
   float voltageDifference = voltagePerCell - lower.volt;
   float interpolationFactor = voltageDifference / voltageRange;
-  return lower.soc + interpolationFactor * percentageRange;  
+  return lower.soc + interpolationFactor * percentageRange;
 }
 
 
-void recordVoltage(float voltage){
-  if (millis() > lastMeasurement + MEASUREMENT_INTERVAL){
-    //log("recordVoltage(mV)", (int)(voltage*1000));
+void recordVoltage(float voltage) {
+  if (millis() > lastMeasurement + MEASUREMENT_INTERVAL) {
+    // log("recordVoltage(mV)", (int)(voltage*1000));
     lastMeasurement = millis();
     voltageHistory[voltageHistoryIndex] = voltage;
-    //Move Index
+    // Move Index
     voltageHistoryIndex = voltageHistoryIndex == MEASUREMENTS ? 0 : voltageHistoryIndex + 1;
   }
 }
 
-float getAvergageVoltage(){
+float getAvergageVoltage() {
   float sum = 0.0;
   int i = 0;
-  while (i < MEASUREMENTS && voltageHistory[i] != EMPTY){
+  while (i < MEASUREMENTS && voltageHistory[i] != EMPTY) {
     sum += voltageHistory[i];
     i++;
   }
-  if (i==0) return 0.0;
-  return sum/i;
+  if (i == 0) return 0.0;
+  return sum / i;
 }
 
 /**
@@ -154,7 +151,7 @@ float getBatteryVoltage() {
   float voltage = getAvergageVoltage();
   // If we don't have any measurements yet, return a default value
   if (voltage <= 0.1) {
-    return 48.0; // Default battery voltage for 13S Li-ion battery
+    return 48.0;  // Default battery voltage for 13S Li-ion battery
   }
   return voltage;
 }
@@ -168,13 +165,13 @@ void updateBatteryLevel(float voltage) {
 }
 
 /*
-* TESTING
-*/
+ * TESTING
+ */
 
-//Checks that the two battery calculation functions work the same. 
-void testBattery(){
-  for(int i = 0;i<40;i++){
-    float voltage = 35.0+i*0.5;
+// Checks that the two battery calculation functions work the same.
+void testBattery() {
+  for (int i = 0; i < 40; i++) {
+    float voltage = 35.0 + i * 0.5;
     int soc = calculateStateOfCharge(voltage);
     log(String(voltage) + "V " + String(soc) + "% SOC");
   }
