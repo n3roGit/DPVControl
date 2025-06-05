@@ -16,9 +16,10 @@ Tasks:
 - Always compile independently for major changes
 - The code and comments are always in English!
 - For every change, include in the chat a suggested git commit message in English.
-- Always run and update tests when making code changes (pio test -e native)
+- Always run and update tests when making code changes (python -m platformio test -e native or run_all_tests.ps1 to test all)
 - Tests must be adapted when API or functionality changes
 - Test failures must be fixed before proceeding with changes 
+- Dont ask to test something. just test it! If you find an error, fix it without asking!
 
 
 
