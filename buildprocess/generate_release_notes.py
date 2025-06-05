@@ -18,7 +18,7 @@ def run_git_command(cmd: List[str]) -> str:
         result = subprocess.run(['git'] + cmd, capture_output=True, text=True, check=True)
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
-        print(f"Git command failed: {e}")
+        print(f"Git command failed: {e}", file=sys.stderr)
         return ""
 
 def get_last_release_tag() -> str:
@@ -101,12 +101,13 @@ def generate_ai_summary(commits: List[Dict[str, str]], version: str) -> str:
         model = model[7:]
     
     if not api_key:
-        print("No LLM_API_KEY found, generating basic summary")
+        print("No LLM_API_KEY found, generating basic summary", file=sys.stderr)
         return generate_basic_summary(commits, version)
     
-    print(f"Using API: {base_url}")
-    print(f"Using model: {model}")
-    print(f"API key present: {bool(api_key)}")
+    # Debug info for logs (not included in release notes)
+    print(f"Using API: {base_url}", file=sys.stderr)
+    print(f"Using model: {model}", file=sys.stderr)
+    print(f"API key present: {bool(api_key)}", file=sys.stderr)
     
     # Prepare commits text
     commits_text = "\n".join([
@@ -174,7 +175,7 @@ If there are no significant changes, write: "Minor improvements and bug fixes."
         return content.strip() if content else generate_basic_summary(commits, version)
         
     except Exception as e:
-        print(f"AI generation failed: {e}")
+        print(f"AI generation failed: {e}", file=sys.stderr)
         return generate_basic_summary(commits, version)
 
 def generate_basic_summary(commits: List[Dict[str, str]], version: str) -> str:
@@ -221,22 +222,22 @@ def generate_basic_summary(commits: List[Dict[str, str]], version: str) -> str:
 def main():
     """Main function"""
     if len(sys.argv) != 2:
-        print("Usage: python generate_release_notes.py <version>")
+        print("Usage: python generate_release_notes.py <version>", file=sys.stderr)
         sys.exit(1)
     
     version = sys.argv[1]
     
     # Get last release tag
     last_tag = get_last_release_tag()
-    print(f"Last release tag: {last_tag or 'None found'}")
+    print(f"Last release tag: {last_tag or 'None found'}", file=sys.stderr)
     
     # Get commits since last release
     commits = get_commits_since_tag(last_tag)
-    print(f"Found {len(commits)} commits since last release")
+    print(f"Found {len(commits)} commits since last release", file=sys.stderr)
     
     # Filter commits
     filtered_commits = filter_commits(commits)
-    print(f"Filtered to {len(filtered_commits)} relevant commits")
+    print(f"Filtered to {len(filtered_commits)} relevant commits", file=sys.stderr)
     
     if not filtered_commits:
         notes = f"# Release Notes\n\n## Version {version}\n\nMinor improvements and bug fixes."
@@ -244,14 +245,12 @@ def main():
         # Generate AI summary
         notes = generate_ai_summary(filtered_commits, version)
     
-    # Output to file and stdout
+    # Output to file and stdout (only release notes, no debug info)
     with open('RELEASE_NOTES.md', 'w', encoding='utf-8') as f:
         f.write(notes)
     
-    print("Generated release notes:")
-    print("=" * 50)
+    # Only output the release notes to stdout (used by GitHub Actions)
     print(notes)
-    print("=" * 50)
     
     return 0
 
