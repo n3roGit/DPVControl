@@ -555,13 +555,24 @@ function loadVersionInfo() {
     fetch('/api/version')
         .then(response => response.json())
         .then(data => {
-            const versionElement = document.getElementById('version');
+            const versionElement = document.getElementById('currentVersion');
             if (versionElement) {
                 versionElement.textContent = data.version;
             }
         })
         .catch(error => {
             console.error('Error loading version info:', error);
+        });
+    fetch('/api/status')
+        .then(response => response.json())
+        .then(data => {
+            const uptime = document.getElementById('systemUptime');
+            if (uptime) uptime.textContent = formatTime(data.uptime || 0);
+            const totalUptime = document.getElementById('totalRuntime');
+            if (totalUptime) totalUptime.textContent = formatTime((data.totalUptime || 0) * 1000);
+        })
+        .catch(error => {
+            console.error('Error loading status info:', error);
         });
 }
 
