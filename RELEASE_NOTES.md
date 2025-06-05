@@ -1,4 +1,3 @@
-## Version 2.0.8
+## Version 2.0.9
 
-🔧 **Verbesserungen**
-- Integrate AI-powered release notes generation into CI/CD
+Kleine Verbesserungen und Bugfixes.
