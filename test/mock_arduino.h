@@ -117,11 +117,13 @@ private:
     std::string str_;
 };
 
-// millis() Ersatz
+// Time functions
+extern unsigned long mockTime;
+extern unsigned long mockMillisValue; // Use shared variable
+
 inline unsigned long millis() {
-    static auto start = std::chrono::steady_clock::now();
-    auto now = std::chrono::steady_clock::now();
-    return (unsigned long)std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+    extern unsigned long mockMillisValue;
+    return mockMillisValue;
 }
 
 #endif // MOCK_ARDUINO_H 

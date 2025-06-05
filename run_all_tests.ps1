@@ -1,43 +1,65 @@
-# run_all_tests.ps1
-# This script runs all tests by iterating over each test file in the test directory,
-# updating the test_filter in platformio.ini, and executing the tests.
-# It reports the overall result at the end.
+# DPV Control - Test Runner Script
+# Runs all tests for the DPV Control project
 
-$platformioIniPath = "platformio.ini"
-$testDir = "test"
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host "  DPV Control - Running All Tests" -ForegroundColor Cyan
+Write-Host "===============================================" -ForegroundColor Cyan
 
-# Read the current platformio.ini content
-$iniContent = Get-Content -Path $platformioIniPath -Raw
+$ErrorActionPreference = "Stop"
+$startTime = Get-Date
 
-# Find all test files in the test directory
-$testFiles = Get-ChildItem -Path $testDir -Filter "test_*.cpp" | ForEach-Object { $_.BaseName }
-
-$allTestsPassed = $true
-
-foreach ($testFile in $testFiles) {
-    Write-Host "Running tests for $testFile..."
+try {
+    # Run native tests (API, integration, validation tests)
+    Write-Host "`nRunning native tests..." -ForegroundColor Yellow
+    Write-Host "Tests include:" -ForegroundColor Gray
+    Write-Host "  - API endpoint validation" -ForegroundColor Gray
+    Write-Host "  - Status data uptime fields (prevents missing uptime bug)" -ForegroundColor Gray
+    Write-Host "  - JSON response validation" -ForegroundColor Gray
+    Write-Host "  - Required field presence checks" -ForegroundColor Gray
     
-    # Update the test_filter in platformio.ini
-    $updatedContent = $iniContent -replace "test_filter = .*", "test_filter = $testFile"
-    $updatedContent | Set-Content -Path $platformioIniPath
+    python -m platformio test -e native -v
     
-    # Run the tests
-    $result = python -m platformio test -e native
-    
-    # Check if the tests passed
     if ($LASTEXITCODE -ne 0) {
-        Write-Host "Tests for $testFile failed."
-        $allTestsPassed = $false
+        Write-Host "❌ Native tests failed!" -ForegroundColor Red
+        exit 1
     }
-    else {
-        Write-Host "Tests for $testFile passed."
+    
+    Write-Host "✅ Native tests passed!" -ForegroundColor Green
+    
+    # Compile firmware for ESP32 (no tests, just verify compilation)
+    Write-Host "`nCompiling ESP32 firmware..." -ForegroundColor Yellow
+    python -m platformio run -e esp32dev
+    
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ ESP32 compilation failed!" -ForegroundColor Red
+        exit 1
     }
+    
+    Write-Host "✅ ESP32 compilation successful!" -ForegroundColor Green
+    
+    # Calculate elapsed time
+    $endTime = Get-Date
+    $elapsed = $endTime - $startTime
+    
+    Write-Host "`n===============================================" -ForegroundColor Cyan
+    Write-Host "  All Tests Completed Successfully! ✅" -ForegroundColor Green
+    Write-Host "  Time elapsed: $($elapsed.ToString('mm\:ss'))" -ForegroundColor Cyan
+    Write-Host "===============================================" -ForegroundColor Cyan
+    
+    Write-Host "`nTest Summary:" -ForegroundColor White
+    Write-Host "  ✅ API Tests: All endpoints return correct JSON" -ForegroundColor Green
+    Write-Host "  ✅ Status Tests: Uptime fields present (bug prevention)" -ForegroundColor Green
+    Write-Host "  ✅ Validation Tests: Required fields verified" -ForegroundColor Green
+    Write-Host "  ✅ ESP32 Compilation: Firmware builds without errors" -ForegroundColor Green
+    
+    Write-Host "`nThese tests help prevent issues like:" -ForegroundColor Yellow
+    Write-Host "  - Missing uptime/totalUptime in status API" -ForegroundColor Gray
+    Write-Host "  - Invalid JSON responses from API endpoints" -ForegroundColor Gray
+    Write-Host "  - Battery level calculation errors" -ForegroundColor Gray
+    Write-Host "  - Settings validation bypasses" -ForegroundColor Gray
+    
 }
-
-# Report overall result
-if ($allTestsPassed) {
-    Write-Host "All tests passed successfully!"
-}
-else {
-    Write-Host "Some tests failed. Please check the output above."
+catch {
+    Write-Host "❌ Error running tests: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
 } 

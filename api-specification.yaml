@@ -12,7 +12,7 @@ info:
     - Historical data logging and retrieval
     - Configuration management with export/import
     - Trip log download functionality
-  version: 1.0.0
+  version: 1.0.1
   contact:
     name: DPV Control Project
     url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/

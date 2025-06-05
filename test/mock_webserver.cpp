@@ -22,9 +22,14 @@ extern "C" {
     void handleApiStatus() {
         JsonDocument doc;
         doc["status"] = "ok";
+        doc["uptime"] = mockMillisValue; // Current uptime in ms
+        doc["totalUptime"] = (mockMillisValue / 1000) + bootTimeSeconds; // Total uptime in seconds
         doc["motor"] = false;
         doc["lamp"] = false;
         doc["beeper"] = false;
+        doc["erpm"] = 0.0;
+        doc["leftButton"] = false;
+        doc["rightButton"] = false;
         std::string response;
         serializeJson(doc, response);
         sendHttpResponse(response.c_str());

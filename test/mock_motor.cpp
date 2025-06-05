@@ -2,7 +2,7 @@
 
 // Mocked motor state variables
 MotorState motorState = off;
-bool remoteControlActive = false;
+extern bool remoteControlActive;
 extern int currentMotorStep;
 extern unsigned long lastActionTime;
 extern bool motorOverload;

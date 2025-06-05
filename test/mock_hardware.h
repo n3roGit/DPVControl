@@ -13,6 +13,7 @@ extern int LED_State;
 extern int currentMotorStep;
 extern bool remoteControlActive;
 extern unsigned long lastActionTime;
+extern unsigned long bootTimeSeconds; // For uptime testing
 extern std::array<bool, 20> mockLEDBarStates;
 extern std::array<uint32_t, 20> mockLEDBarColors;
 extern int mockLEDBarBrightness;
@@ -69,6 +70,7 @@ uint32_t mock_color(uint8_t r, uint8_t g, uint8_t b);
 void mock_getStripBoundaries(int stripNumber, int& startIndex, int& endIndex);
 bool mock_safeSetPixelColor(int index, uint32_t color);
 int mock_calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBrightness);
+void setMockMillis(unsigned long ms); // For testing uptime calculations
 
 // DHT22 calculation functions
 float mock_computeHeatIndex(float temperature, float humidity);

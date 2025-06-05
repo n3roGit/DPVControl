@@ -8,25 +8,31 @@
 
 // Mock hardware variables
 int LED_State = 0;
-int currentMotorStep = 0;
-extern bool remoteControlActive;  // Declare as extern
+int currentMotorStep = 1;
+bool remoteControlActive = false;
 unsigned long lastActionTime = 0;
+unsigned long bootTimeSeconds = 0; // For uptime testing
 std::array<bool, 20> mockLEDBarStates = {false};
 std::array<uint32_t, 20> mockLEDBarColors = {0};
 int mockLEDBarBrightness = 15;
 int mockLEDBarBrightnessSecond = 3;
 bool mockLEDUpdateInProgress = false;
-int mockLastDisplayedSpeed = -1;
-int mockLastDisplayedMotorState = -1;
-int mockLastDisplayedBattery = -1;
+int mockLastDisplayedSpeed = 0;
+int mockLastDisplayedMotorState = 0;
+int mockLastDisplayedBattery = 0;
 bool mockWaterSensorFront = false;
 bool mockWaterSensorBack = false;
-float mockTemperature = 25.0f;
-float mockHumidity = 50.0f;
+float mockTemperature = 25.0;
+float mockHumidity = 50.0;
 bool mockDHTValid = true;
 bool mockDHTError = false;
 bool mockDHTTimeout = false;
-std::vector<std::string> mockInvalidInputs = {"invalid1", "invalid2"};
+bool mockLedState = false;
+int mockMotorSteps = 10;
+std::vector<std::string> mockInvalidInputs;
+
+// Mock time variables
+unsigned long mockMillisValue = 0;
 
 std::mutex mockMutex;
 
@@ -509,7 +515,7 @@ void simulateOverload(bool overload) {
 }
 
 unsigned long micros() {
-    return mockTime;
+    return mockMillisValue * 1000;
 }
 
 void advanceTime(unsigned long ms) {
@@ -518,4 +524,9 @@ void advanceTime(unsigned long ms) {
 
 void resetMockTime() {
     mockTime = 0;
+}
+
+// Time control functions for testing
+void setMockMillis(unsigned long ms) {
+    mockMillisValue = ms;
 } 
