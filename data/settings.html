@@ -96,10 +96,6 @@
                     <td><label for="ledBarBrightnessSecond">LED Bar Brightness Second:</label><span class="info-icon" title="Secondary brightness level for standby/dimmed mode (1-255). Used for low-power indication.">?</span></td>
                     <td><input type="number" id="ledBarBrightnessSecond" min="1" max="255" value="3"></td>
                 </tr>
-                <tr>
-                    <td><label for="ledFrequency">LED Frequency:</label><span class="info-icon" title="PWM frequency for LED control in Hz (100-10000). Higher frequencies reduce flicker.">?</span></td>
-                    <td><input type="number" id="ledFrequency" min="100" max="10000" value="960"></td>
-                </tr>
             </table>
         </div>
         
@@ -110,6 +106,10 @@
                 <tr>
                     <td><label for="lampMaxLevels">Number of Lamp Levels:</label><span class="info-icon" title="Number of brightness levels for front lamp (2-10). More levels = finer brightness control.">?</span></td>
                     <td><input type="number" id="lampMaxLevels" min="2" max="10" value="5" onchange="updateLampBrightnessInputs()"></td>
+                </tr>
+                <tr>
+                    <td><label for="ledFrequency">LED Frequency:</label><span class="info-icon" title="PWM frequency for LED control in Hz (100-10000). Higher frequencies reduce flicker.">?</span></td>
+                    <td><input type="number" id="ledFrequency" min="100" max="10000" value="960"></td>
                 </tr>
             </table>
             <div id="lampBrightnessContainer">

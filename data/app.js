@@ -1281,27 +1281,8 @@ function generateLampLevels() {
             
             container.innerHTML = '';
             
-            // Level 0 ist immer "Aus"
-            const levelDiv0 = document.createElement('div');
-            levelDiv0.className = 'lamp-level-option';
-            
-            const radio0 = document.createElement('input');
-            radio0.type = 'radio';
-            radio0.name = 'lampLevel';
-            radio0.id = 'lampLevel0';
-            radio0.value = '0';
-            radio0.checked = true;
-            radio0.onchange = () => setLampLevel(0);
-            
-            const label0 = document.createElement('label');
-            label0.htmlFor = 'lampLevel0';
-            label0.textContent = 'Off';
-            
-            levelDiv0.appendChild(radio0);
-            levelDiv0.appendChild(label0);
-            container.appendChild(levelDiv0);
-            
-            // Generiere die konfigurierten Level
+            // Entferne Level 0 (Off) Radio-Button, da ON/OFF über Toggle-Button erfolgt
+            // Generiere nur die konfigurierten Helligkeitslevel (ab 1)
             for (let i = 1; i < maxLevels; i++) {
                 const levelDiv = document.createElement('div');
                 levelDiv.className = 'lamp-level-option';
@@ -1322,7 +1303,7 @@ function generateLampLevels() {
                 container.appendChild(levelDiv);
             }
             
-            console.log(`Generated ${maxLevels} lamp level options`);
+            console.log(`Generated ${maxLevels - 1} lamp level options`);
         })
         .catch(error => {
             console.error('Error loading lamp levels:', error);
