@@ -1161,6 +1161,11 @@ void handleClient(WiFiClient client) {
         
         restoreDefaultSettings();
         
+        // Apply settings changes at runtime (no reboot required)
+        log("Applying default settings at runtime...");
+        applyLampSettings(); // Update lamp PWM frequency and other lamp settings
+        applyLedBarSettings(); // Update LED bar settings
+        
         String response = "{\"success\":true}";
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
