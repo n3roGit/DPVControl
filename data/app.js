@@ -1302,7 +1302,11 @@ function generateLampLevels() {
                 
                 const label = document.createElement('label');
                 label.htmlFor = 'lampLevel' + i;
-                label.textContent = `Level ${i} (${settings.lampBrightness[i] || 0}%)`;
+                
+                // Convert PWM value (0-255) to percentage (0-100%) for display
+                const pwmValue = settings.lampBrightness[i] || 0;
+                const percentageValue = Math.round((pwmValue / 255) * 100);
+                label.textContent = `Level ${i} (${percentageValue}%)`;
                 
                 levelDiv.appendChild(radio);
                 levelDiv.appendChild(label);
