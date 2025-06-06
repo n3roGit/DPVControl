@@ -15,6 +15,7 @@ void setBarPowerBank(bool status);
 void setBarLED(int num);
 void setBarFlasher(bool status);
 void forceRefreshLedBar();
+void applyLedBarSettings(); // Apply LED bar settings changes at runtime
 
 
 #endif

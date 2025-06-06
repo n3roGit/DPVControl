@@ -349,6 +349,36 @@ void forceRefreshLedBar() {
   lastDisplayedBattery = -1;
 }
 
+// Function to apply LED bar settings changes at runtime
+void applyLedBarSettings() {
+  log("Applying LED bar settings changes...");
+  
+  // Force refresh of all LED displays to use new settings
+  forceRefreshLedBar();
+  
+  // Re-apply current state with new settings
+  extern int currentMotorStep;
+  extern MotorState motorState;
+  extern int batteryLevel;
+  
+  // Update LED bar display based on current motor state
+  if (motorState == standby) {
+    setBarStandby();
+  } else {
+    setBarSpeed(currentMotorStep);
+  }
+  
+  // Update battery display
+  int steps = (batteryLevel + 5) / LedBar2_Num;
+  steps = constrain(steps, 0, LedBar2_Num);
+  setBarBattery(steps);
+  
+  String settingsMsg = "LED bar settings applied - LEDs: " + String(getLedBarNum()) + 
+                      ", Brightness: " + String(getLedBarBrightness()) + 
+                      ", Brightness2: " + String(getLedBarBrightnessSecond());
+  log(settingsMsg.c_str());
+}
+
 // Knight Rider startup animation
 void knightRiderStartup() {
   const int delayTime = 60; // ms between steps

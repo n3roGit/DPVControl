@@ -11,4 +11,5 @@ void flash();
 void setLEDState(int state); // For remote control
 void ledLampSetup();
 void ledLampLoop();
+void applyLampSettings(); // Apply lamp settings changes at runtime
 #endif

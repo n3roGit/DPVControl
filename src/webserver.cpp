@@ -13,6 +13,8 @@
 #include <ArduinoJson.h> // For JSON parsing
 #include "button.h"
 #include <algorithm>  // For min() and max()
+#include <WiFi.h>
+#include <WebServer.h>
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -702,7 +704,12 @@ bool updateSettingsFromJson(const String& jsonString) {
                       ", LEDBar: " + String(getLedBarNum()) + " LEDs";
     log(otherInfo.c_str());
     
-    log("Settings updated and saved successfully");
+    // Apply settings changes at runtime (no reboot required)
+    log("Applying settings changes at runtime...");
+    applyLampSettings(); // Update lamp PWM frequency and other lamp settings
+    applyLedBarSettings(); // Update LED bar settings
+    
+    log("Settings updated and saved successfully - changes applied immediately");
     return true;
 }
 

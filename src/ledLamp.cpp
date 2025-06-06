@@ -17,7 +17,7 @@
 */
 
 // LED PWM parameters
-const int LEDfrequency = 960;  // PWM frequency for LED control (Hz)
+// Note: LEDfrequency is now read from settings - see getLedFrequency()
 const int LEDresolution = 8;   // PWM resolution (8-bit = 0-255 values)
 const int LEDchannel = 0;      // PWM channel number (0-15 available)
 const int LAMP_OFF = 0;
@@ -65,8 +65,31 @@ BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, LAMP_BLINK
 void ledLampSetup(){
     // Initialize LED PWM
   pinMode(PIN_LAMP, OUTPUT);                            // Set GPIO pin as output for LED control
-  ledcSetup(0, LEDfrequency, LEDresolution);            // Configure PWM channel 0 with frequency and resolution
+  ledcSetup(0, getLedFrequency(), LEDresolution);            // Configure PWM channel 0 with frequency and resolution
   ledcAttachPin(PIN_LAMP, 0);                           // Attach pin to PWM channel 0
+}
+
+// Function to apply lamp settings changes at runtime
+void applyLampSettings() {
+  log("Applying lamp settings changes...");
+  
+  // Reconfigure PWM frequency if it has changed
+  int currentFreq = getLedFrequency();
+  String freqMsg = "Updating lamp PWM frequency to: " + String(currentFreq) + " Hz";
+  log(freqMsg.c_str());
+  
+  // Reconfigure the PWM channel with new frequency
+  ledcSetup(0, currentFreq, LEDresolution);
+  
+  // Reapply current brightness in case frequency change affected it
+  if (LED_State > 0) {
+    int brightness = getLampBrightness(LED_State);
+    ledcWrite(0, brightness);
+    String brightnessMsg = "Reapplied brightness: " + String(brightness) + " for level " + String(LED_State);
+    log(brightnessMsg.c_str());
+  }
+  
+  log("Lamp settings applied successfully");
 }
 
 void ledLampLoop(){
