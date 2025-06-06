@@ -599,7 +599,10 @@ function updateLampBrightnessInputs() {
                 input.type = 'range';
                 input.min = '0';
                 input.max = '100';
-                input.value = settings.lampBrightness[i] || 0;
+                // Convert PWM value (0-255) to percentage (0-100)
+                const pwmValue = settings.lampBrightness[i] || 0;
+                const percentageValue = Math.round((pwmValue / 255) * 100);
+                input.value = percentageValue;
                 input.onchange = () => updateLampBrightness(i, input.value);
                 
                 const value = document.createElement('span');
@@ -1054,8 +1057,11 @@ function saveDPVSettings() {
     if (lampContainer) {
         const lampInputs = lampContainer.querySelectorAll('input[type="range"]');
         for (let i = 0; i < lampInputs.length; i++) {
+            // Convert percentage (0-100) to PWM value (0-255)
+            const percentageValue = parseInt(lampInputs[i].value);
+            const pwmValue = Math.round((percentageValue / 100) * 255);
             // Map input index to correct lampBrightness index (Level 1+)
-            settings.lampBrightness[i + 1] = parseInt(lampInputs[i].value);
+            settings.lampBrightness[i + 1] = pwmValue;
         }
         // Fülle fehlende Werte mit 0 auf, falls weniger als lampMaxLevels Werte vorhanden sind
         while (settings.lampBrightness.length < settings.lampMaxLevels) {
