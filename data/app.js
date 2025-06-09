@@ -435,8 +435,6 @@ function initCharts() {
                     cornerRadius: 4,
                     displayColors: true
                 },
-                // TODO: Add zoom plugin when available
-                /*
                 zoom: {
                     pan: {
                         enabled: true,
@@ -459,13 +457,12 @@ function initCharts() {
                         x: {min: 'original', max: 'original'},
                     }
                 }
-                */
             }
         }
     };
 
     charts.combinedChart = new Chart(combinedCtx, chartConfig);
-    console.log('Chart.js visualization initialized with native zoom');
+    console.log('Chart.js visualization initialized with zoom plugin');
 }
 
 // Tab Navigation
