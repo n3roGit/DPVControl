@@ -4,6 +4,7 @@ let charts = {};
 let allDataPoints = [];
 let sessionMetadata = null; // Store session metadata (real duration, total datapoints, etc.)
 let timeSliderValue = 100;
+let currentZoomLevel = 1.0;
 let systemStartTime = null;
 let availableSessions = [];
 let selectedSession = null; // No "all sessions" option
@@ -149,88 +150,88 @@ function initCharts() {
             labels: [],
             datasets: [{
                 label: 'Battery Voltage (V)',
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderColor: 'rgb(0, 255, 255)', // Cyan for electrical
+                backgroundColor: 'rgba(0, 255, 255, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'voltage'
             }, {
                 label: 'Current (A)',
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                borderColor: 'rgb(255, 100, 100)', // Red for danger/high current
+                backgroundColor: 'rgba(255, 100, 100, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'current'
             }, {
                 label: 'Motor Temp (°C)',
-                borderColor: 'rgb(255, 206, 86)',
-                backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                borderColor: 'rgb(255, 165, 0)', // Orange for heat
+                backgroundColor: 'rgba(255, 165, 0, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'temperature'
             }, {
                 label: 'Ambient Temp (°C)',
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                borderColor: 'rgb(255, 215, 0)', // Gold for ambient heat
+                backgroundColor: 'rgba(255, 215, 0, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'temperature'
             }, {
                 label: 'Humidity (%)',
-                borderColor: 'rgb(153, 102, 255)',
-                backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                borderColor: 'rgb(30, 144, 255)', // Blue for water/humidity
+                backgroundColor: 'rgba(30, 144, 255, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'percent'
             }, {
                 label: 'eRPM',
-                borderColor: 'rgb(255, 159, 64)',
-                backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                borderColor: 'rgb(255, 20, 147)', // Deep pink for motor
+                backgroundColor: 'rgba(255, 20, 147, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'rpm'
             }, {
                 label: 'Duty Cycle (%)',
-                borderColor: 'rgb(199, 199, 199)',
-                backgroundColor: 'rgba(199, 199, 199, 0.1)',
+                borderColor: 'rgb(150, 150, 150)', // Gray for duty cycle
+                backgroundColor: 'rgba(150, 150, 150, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'percent'
             }, {
                 label: 'MOSFET Temp (°C)',
-                borderColor: 'rgb(255, 99, 255)',
-                backgroundColor: 'rgba(255, 99, 255, 0.1)',
+                borderColor: 'rgb(255, 140, 0)', // Dark orange for MOSFET heat
+                backgroundColor: 'rgba(255, 140, 0, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'temperature'
             }, {
                 label: 'Motor Current (A)',
-                borderColor: 'rgb(99, 255, 132)',
-                backgroundColor: 'rgba(99, 255, 132, 0.1)',
+                borderColor: 'rgb(220, 20, 60)', // Crimson for motor current
+                backgroundColor: 'rgba(220, 20, 60, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'current'
             }, {
                 label: 'Battery Level (%)',
-                borderColor: 'rgb(255, 206, 132)',
-                backgroundColor: 'rgba(255, 206, 132, 0.1)',
+                borderColor: 'rgb(50, 205, 50)', // Lime green for battery energy
+                backgroundColor: 'rgba(50, 205, 50, 0.1)',
                 borderWidth: 2,
                 data: [],
                 tension: 0.2,
                 yAxisID: 'percent'
             }, {
                 label: 'Beeper Enabled',
-                borderColor: 'rgb(255, 255, 0)',
-                backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                borderColor: 'rgb(255, 140, 0)', // Orange for warning beeper
+                backgroundColor: 'rgba(255, 140, 0, 0.1)',
                 borderWidth: 3,
                 data: [],
                 tension: 0,
@@ -238,8 +239,8 @@ function initCharts() {
                 yAxisID: 'boolean'
             }, {
                 label: 'Left Button',
-                borderColor: 'rgb(0, 255, 255)',
-                backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                borderColor: 'rgb(34, 139, 34)', // Forest green for left
+                backgroundColor: 'rgba(34, 139, 34, 0.1)',
                 borderWidth: 3,
                 data: [],
                 tension: 0,
@@ -247,8 +248,8 @@ function initCharts() {
                 yAxisID: 'boolean'
             }, {
                 label: 'Right Button',
-                borderColor: 'rgb(255, 0, 255)',
-                backgroundColor: 'rgba(255, 0, 255, 0.1)',
+                borderColor: 'rgb(178, 34, 34)', // Fire brick red for right
+                backgroundColor: 'rgba(178, 34, 34, 0.1)',
                 borderWidth: 3,
                 data: [],
                 tension: 0,
@@ -256,8 +257,8 @@ function initCharts() {
                 yAxisID: 'boolean'
             }, {
                 label: 'Leak Sensor',
-                borderColor: 'rgb(255, 100, 100)',
-                backgroundColor: 'rgba(255, 100, 100, 0.2)',
+                borderColor: 'rgb(255, 69, 0)', // Red orange for danger/leak
+                backgroundColor: 'rgba(255, 69, 0, 0.2)',
                 borderWidth: 4,
                 data: [],
                 tension: 0,
@@ -265,8 +266,8 @@ function initCharts() {
                 yAxisID: 'boolean'
             }, {
                 label: 'LED State',
-                borderColor: 'rgb(100, 255, 100)',
-                backgroundColor: 'rgba(100, 255, 100, 0.2)',
+                borderColor: 'rgb(255, 255, 0)', // Yellow for light/LED
+                backgroundColor: 'rgba(255, 255, 0, 0.2)',
                 borderWidth: 3,
                 data: [],
                 tension: 0,
@@ -284,31 +285,6 @@ function initCharts() {
                 mode: 'index',
                 intersect: false
             },
-            plugins: {
-                legend: {
-                    position: 'top',
-                    labels: {
-                        usePointStyle: true,
-                        boxWidth: 10,
-                        color: '#ddd'
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#fff',
-                    bodyColor: '#fff',
-                    titleFont: {
-                        size: 14
-                    },
-                    bodyFont: {
-                        size: 13
-                    },
-                    padding: 10,
-                    caretSize: 8,
-                    cornerRadius: 4,
-                    displayColors: true
-                }
-            },
             scales: {
                 x: {
                     grid: {
@@ -325,10 +301,10 @@ function initCharts() {
                     title: {
                         display: true,
                         text: 'Voltage (V)',
-                        color: 'rgb(75, 192, 192)'
+                        color: 'rgb(0, 255, 255)'
                     },
                     grid: {
-                        color: 'rgba(75, 192, 192, 0.2)'
+                        color: 'rgba(0, 255, 255, 0.2)'
                     },
                     ticks: {
                         color: '#aaa'
@@ -341,7 +317,7 @@ function initCharts() {
                     title: {
                         display: true,
                         text: 'Current (A)',
-                        color: 'rgb(255, 99, 132)'
+                        color: 'rgb(255, 100, 100)'
                     },
                     grid: {
                         display: false
@@ -357,7 +333,7 @@ function initCharts() {
                     title: {
                         display: true,
                         text: 'Temperature (°C)',
-                        color: 'rgb(255, 206, 86)'
+                        color: 'rgb(255, 165, 0)'
                     },
                     grid: {
                         display: false
@@ -373,7 +349,7 @@ function initCharts() {
                     title: {
                         display: true,
                         text: 'Percent (%)',
-                        color: 'rgb(153, 102, 255)'
+                        color: 'rgb(50, 205, 50)'
                     },
                     min: 0,
                     max: 100,
@@ -391,7 +367,7 @@ function initCharts() {
                     title: {
                         display: true,
                         text: 'eRPM',
-                        color: 'rgb(255, 159, 64)'
+                        color: 'rgb(255, 20, 147)'
                     },
                     grid: {
                         display: false
@@ -421,6 +397,31 @@ function initCharts() {
                             return value === 0 ? 'OFF' : value === 1 ? 'ON' : '';
                         }
                     }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        boxWidth: 10,
+                        color: '#ddd'
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    titleFont: {
+                        size: 14
+                    },
+                    bodyFont: {
+                        size: 13
+                    },
+                    padding: 10,
+                    caretSize: 8,
+                    cornerRadius: 4,
+                    displayColors: true
                 }
             }
         }
@@ -768,6 +769,29 @@ function updateTimeWindow() {
 function refreshChart() {
     loadChartData();
 }
+
+// Zoom chart function
+function zoomChart(zoomLevel) {
+    currentZoomLevel = zoomLevel;
+    console.log('Setting zoom level to:', currentZoomLevel);
+    
+    // Update time slider to show zoomed data
+    updateChart();
+    
+    // Update UI feedback
+    const zoomButtons = document.querySelectorAll('button[onclick^="zoomChart"]');
+    zoomButtons.forEach(btn => {
+        btn.style.opacity = '0.7';
+        btn.style.fontWeight = 'normal';
+    });
+    
+    // Highlight current zoom level
+    const currentButton = document.querySelector(`button[onclick="zoomChart(${zoomLevel})"]`);
+    if (currentButton) {
+        currentButton.style.opacity = '1.0';
+        currentButton.style.fontWeight = 'bold';
+    }
+}
 function deleteAllSessions() {
     if (!confirm('Are you sure you want to delete all sessions? This cannot be undone.')) {
         return;
@@ -857,8 +881,10 @@ function updateTimeSlider() {
 function updateChart() {
     if (!allDataPoints || !sessionMetadata) return;
     
-    // Calculate visible data points based on time slider
-    const startIndex = Math.max(0, allDataPoints.length - timeSliderValue);
+    // Calculate visible data points based on time slider and zoom level
+    const totalDataPoints = Math.floor(timeSliderValue * currentZoomLevel);
+    const maxDataPoints = Math.min(totalDataPoints, allDataPoints.length);
+    const startIndex = Math.max(0, allDataPoints.length - maxDataPoints);
     const visibleData = allDataPoints.slice(startIndex);
     
     // Format timestamps for better readability

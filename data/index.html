@@ -134,6 +134,16 @@
                             </div>
                         </div>
                         
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <label style="color: #b0b0b0; font-weight: bold; font-size: 12px;">Zoom Level:</label>
+                            <div style="display: flex; gap: 5px;">
+                                <button class="button" onclick="zoomChart(0.25)" style="padding: 4px 8px; font-size: 12px; background-color: #4caf50;">25%</button>
+                                <button class="button" onclick="zoomChart(0.5)" style="padding: 4px 8px; font-size: 12px; background-color: #4caf50;">50%</button>
+                                <button class="button" onclick="zoomChart(1.0)" style="padding: 4px 8px; font-size: 12px; background-color: #2196f3;">100%</button>
+                                <button class="button" onclick="zoomChart(2.0)" style="padding: 4px 8px; font-size: 12px; background-color: #ff9800;">200%</button>
+                            </div>
+                        </div>
+                        
                         <button class="button" onclick="refreshChart()">Refresh</button>
                         
                         <button class="button" onclick="deleteAllSessions()" style="background-color: #f44336; margin-left: 20px;">Delete All Sessions</button>
