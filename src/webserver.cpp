@@ -223,7 +223,7 @@ String generateSessionDataJson(String sessionFile) {
                 point["humidity"] = row.humidity;
                 point["batteryLevel"] = row.batteryLevel;
                 point["leakSensorState"] = row.leakSensorState;
-                point["ledState"] = row.ledState;
+                point["ledBrightness"] = row.ledBrightness;
                 point["leftButton"] = row.leftButton;
                 point["rightButton"] = row.rightButton;
                 point["beeperEnabled"] = row.beeperEnabled;
@@ -361,7 +361,7 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "\"humidity\":" + String(dataPoints[i].humidity) + ",";
         json += "\"batteryLevel\":" + String(dataPoints[i].batteryLevel) + ",";
         json += "\"leakSensorState\":" + String(dataPoints[i].leakSensorState) + ",";
-        json += "\"ledState\":" + String(dataPoints[i].ledState) + ",";
+        json += "\"ledBrightness\":" + String(dataPoints[i].ledBrightness) + ",";
         json += "\"leftButton\":" + String(dataPoints[i].leftButton) + ",";
         json += "\"rightButton\":" + String(dataPoints[i].rightButton) + ",";
                         json += "\"beeperEnabled\":" + String(dataPoints[i].beeperEnabled) + ",";
@@ -415,7 +415,7 @@ String generateFullTripLogJson() {
     }
     
     // CSV Header
-    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Total Uptime (s)\r\n";
+    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Total Uptime (s)\r\n";
     
     LogdataRow dataPoint;
     
@@ -448,7 +448,7 @@ String generateFullTripLogJson() {
         csv += String(dataPoint.humidity) + ",";
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
-        csv += String(dataPoint.ledState) + ",";
+        csv += String(dataPoint.ledBrightness) + ",";
         csv += String(dataPoint.leftButton) + ",";
         csv += String(dataPoint.rightButton) + ",";
                     csv += String(dataPoint.beeperEnabled) + ",";
@@ -786,7 +786,7 @@ String generateSessionCsvData(String sessionFile) {
     log(fileSizeMsg.c_str());
     
     // Build CSV header with Total Uptime as primary time reference
-    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Beeper Active\\r\\n";
+    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Beeper Active\\r\\n";
     
     LogdataRow dataPoint;
     int exportedPoints = 0;
@@ -823,10 +823,10 @@ String generateSessionCsvData(String sessionFile) {
             csv += String(dataPoint.dutyCycle, 3) + ",";
             csv += String(dataPoint.temperature, 1) + ",";
             csv += String(dataPoint.humidity, 1) + ",";
-            csv += String(dataPoint.batteryLevel) + ",";
-            csv += String(dataPoint.leakSensorState) + ",";
-            csv += String(dataPoint.ledState) + ",";
-            csv += String(dataPoint.leftButton) + ",";
+                    csv += String(dataPoint.batteryLevel) + ",";
+        csv += String(dataPoint.leakSensorState) + ",";
+        csv += String(dataPoint.ledBrightness) + ",";
+        csv += String(dataPoint.leftButton) + ",";
             csv += String(dataPoint.rightButton) + ",";
             csv += String(dataPoint.beeperEnabled) + ",";
             csv += String(dataPoint.beeperActive) + "\\r\\n";
@@ -902,7 +902,7 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
     client.print("\r\n");
     
     // Send CSV header
-    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Beeper Active\r\n");
+    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Beeper Active\r\n");
     
     LogdataRow dataPoint;
     int exportedPoints = 0;
@@ -941,7 +941,7 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
             csvRow += String(dataPoint.humidity, 1) + ",";
             csvRow += String(dataPoint.batteryLevel) + ",";
             csvRow += String(dataPoint.leakSensorState) + ",";
-            csvRow += String(dataPoint.ledState) + ",";
+            csvRow += String(dataPoint.ledBrightness) + ",";
             csvRow += String(dataPoint.leftButton) + ",";
             csvRow += String(dataPoint.rightButton) + ",";
             csvRow += String(dataPoint.beeperEnabled) + ",";

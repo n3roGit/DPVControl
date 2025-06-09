@@ -105,7 +105,7 @@ function exportToCSV(data, filename) {
     }
     
     // Create proper CSV header matching backend format
-    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Beeper Active\r\n";
+    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Beeper Active\r\n";
     
     data.forEach(item => {
         // Convert totalUptime from milliseconds to seconds
@@ -116,7 +116,7 @@ function exportToCSV(data, filename) {
         const leftButton = item.leftButton ? 1 : 0;
         const rightButton = item.rightButton ? 1 : 0;
         const leakSensorState = item.leakSensorState ? 1 : 0;
-        const ledState = item.ledState ? 1 : 0;
+        const ledBrightness = item.ledBrightness || 0;
         
         csv += [
             totalUptimeSeconds.toFixed(1),
@@ -131,7 +131,7 @@ function exportToCSV(data, filename) {
             (item.humidity || 0).toFixed(1),
             item.batteryLevel || 0,
             leakSensorState,
-            ledState,
+            ledBrightness,
             leftButton,
             rightButton,
             item.beeperEnabled ? 1 : 0,
@@ -277,14 +277,14 @@ function initCharts() {
                 stepped: true,
                 yAxisID: 'boolean'
             }, {
-                label: 'LED State',
+                label: 'LED Brightness (%)',
                 borderColor: 'rgb(255, 255, 0)', // Yellow for light/LED
                 backgroundColor: 'rgba(255, 255, 0, 0.2)',
                 borderWidth: 3,
                 data: [],
                 tension: 0,
                 stepped: true,
-                yAxisID: 'boolean'
+                yAxisID: 'percent'
             }]
         },
         options: {
@@ -299,11 +299,23 @@ function initCharts() {
             },
             scales: {
                 x: {
+                    title: {
+                        display: true,
+                        text: 'Runtime (mm:ss)',
+                        color: '#aaa'
+                    },
                     grid: {
                         color: 'rgba(255, 255, 255, 0.1)'
                     },
                     ticks: {
-                        color: '#aaa'
+                        color: '#aaa',
+                        callback: function(value) {
+                            // Convert seconds to mm:ss format
+                            const totalSeconds = Math.floor(value);
+                            const minutes = Math.floor(totalSeconds / 60);
+                            const seconds = totalSeconds % 60;
+                            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                        }
                     }
                 },
                 voltage: {
@@ -654,7 +666,7 @@ function updateChartData() {
     
     console.log('Updating chart with', allDataPoints.length, 'data points');
     
-    // Use totalUptime (in seconds) for X-axis
+    // Use totalUptime (already in milliseconds, convert to seconds for display)
     const xData = allDataPoints.map(d => (d.totalUptime || 0) / 1000);
     
     // Update chart data
@@ -673,7 +685,7 @@ function updateChartData() {
     charts.combinedChart.data.datasets[11].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leftButton ? 1 : 0}));
     charts.combinedChart.data.datasets[12].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.rightButton ? 1 : 0}));
     charts.combinedChart.data.datasets[13].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorState ? 1 : 0}));
-    charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledState ? 1 : 0}));
+    charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledBrightness || 0}));
     
     // Update chart
     charts.combinedChart.update('none'); // No animation for better performance

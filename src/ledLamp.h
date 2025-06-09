@@ -5,6 +5,7 @@
 
 void BlinkForLongStandby();
 float getLedLampPower();    
+int getLedBrightnessPercent(); // Get current LED brightness as percentage (0-100%)
 void blinkLED(const String& sequence);
 void toggleLED();
 void flash();

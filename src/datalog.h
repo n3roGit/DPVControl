@@ -32,7 +32,7 @@ struct LogdataRow {
   float humidity;
   int batteryLevel;
   int leakSensorState;
-  int ledState;
+  int ledBrightness;   // LED brightness as percentage (0-100%)
   int leftButton;      // Left button state (0=released, 1=pressed)
   int rightButton;     // Right button state (0=released, 1=pressed)
   int beeperEnabled;   // Beeper status (0=disabled, 1=enabled)

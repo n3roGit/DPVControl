@@ -4,9 +4,9 @@
 #include <LittleFS.h>
 #include "motor.h"
 #include "main.h"
+#include "ledLamp.h"  // For LED_State and getLedBrightnessPercent()
 #include "battery.h"
 #include "button.h"   // For button states
-#include "ledLamp.h"  // For LED_State
 #include "settings.h" // For getBeeperEnabled()
 #include "beep.h"     // For isBeeperActive()
 
@@ -542,7 +542,7 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   
   // Check safety-critical and user-interaction states at fast interval (5s)
   dp.leakSensorState = leakSensorState;  // Safety-critical: leak detection
-  dp.ledState = LED_State;               // User interaction: lamp changes
+  dp.ledBrightness = getLedBrightnessPercent(); // User interaction: lamp brightness in percent
       dp.beeperEnabled = getBeeperEnabled() ? 1 : 0;  // User setting changes
     dp.beeperActive = isBeeperActive() ? 1 : 0;      // Current beeping state
   dp.batteryLevel = batteryLevel;        // Battery can change faster than 30s
@@ -552,7 +552,7 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   stateDebugCounter++;
   if (stateDebugCounter % 20 == 0) {
     String stateDebug = "Fast States - Buttons L/R: " + String(dp.leftButton) + "/" + String(dp.rightButton) + 
-                       ", Leak: " + String(dp.leakSensorState) + ", LED: " + String(dp.ledState) + 
+                       ", Leak: " + String(dp.leakSensorState) + ", LED: " + String(dp.ledBrightness) + "%" + 
                        ", Beeper: " + String(dp.beeperEnabled) + ", Battery: " + String(dp.batteryLevel) + "%";
     log(stateDebug.c_str());
   }
@@ -630,7 +630,7 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(",");
   file.print(datapoint.leakSensorState);
   file.print(",");
-  file.print(datapoint.ledState);
+  file.print(datapoint.ledBrightness);
   file.print(",");
   file.print(datapoint.leftButton);
   file.print(",");
@@ -1191,7 +1191,7 @@ void dataloggerTask(void *pvParameters) {
   testData.humidity = 45.0;
   testData.batteryLevel = 75;
   testData.leakSensorState = 0;
-  testData.ledState = 0;
+     testData.ledBrightness = 0;
   testData.totalUptime = 123; // Simple fixed value
   
   log("Test datapoint struct filled");
@@ -1359,7 +1359,7 @@ bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
   // Check discrete values
   if (newData.batteryLevel != lastData.batteryLevel) return true;
   if (newData.leakSensorState != lastData.leakSensorState) return true;
-  if (newData.ledState != lastData.ledState) return true;
+  if (newData.ledBrightness != lastData.ledBrightness) return true;
   if (newData.leftButton != lastData.leftButton) return true;
   if (newData.rightButton != lastData.rightButton) return true;
   if (newData.beeperEnabled != lastData.beeperEnabled) return true;
@@ -1418,7 +1418,7 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].humidity = before.humidity;
         interpolatedData[i].batteryLevel = before.batteryLevel;
         interpolatedData[i].leakSensorState = before.leakSensorState;
-        interpolatedData[i].ledState = before.ledState;
+        interpolatedData[i].ledBrightness = before.ledBrightness;
         interpolatedData[i].leftButton = before.leftButton;
         interpolatedData[i].rightButton = before.rightButton;
         interpolatedData[i].beeperEnabled = before.beeperEnabled;
@@ -1433,7 +1433,7 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].humidity = after.humidity;
         interpolatedData[i].batteryLevel = after.batteryLevel;
         interpolatedData[i].leakSensorState = after.leakSensorState;
-        interpolatedData[i].ledState = after.ledState;
+        interpolatedData[i].ledBrightness = after.ledBrightness;
         interpolatedData[i].leftButton = after.leftButton;
         interpolatedData[i].rightButton = after.rightButton;
         interpolatedData[i].beeperEnabled = after.beeperEnabled;

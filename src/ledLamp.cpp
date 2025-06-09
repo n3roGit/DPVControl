@@ -226,6 +226,18 @@ void BlinkForLongStandby() {
 }
 
 /**
+* Return current LED brightness as percentage (0-100%)
+*/
+int getLedBrightnessPercent(){
+  if (LED_State <= 0) return 0;
+  
+  int brightness = getLampBrightness(LED_State);
+  
+  // Convert PWM value (0-255) to percentage (0-100)
+  return (int)((brightness / 255.0) * 100.0);
+}
+
+/**
 * Return current power consumption in Ampere. 
 */
 float getLedLampPower(){
