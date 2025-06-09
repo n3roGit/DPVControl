@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: DPVControl API
   description: API for controlling and monitoring the Diver Propulsion Vehicle (DPV)
-  version: 1.0.9
+  version: 1.1.0
   contact:
     name: DPV Control Project
     url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
@@ -690,6 +690,10 @@ components:
           type: boolean
           description: Whether the beeper is enabled
           example: false
+        beeperActive:
+          type: boolean
+          description: Whether the beeper is currently actively beeping
+          example: false
 
     DataPoint:
       type: object
@@ -769,6 +773,10 @@ components:
           type: integer
           description: Beeper enabled state (0=disabled, 1=enabled)
           example: 1
+        beeperActive:
+          type: integer
+          description: Beeper currently beeping state (0=silent, 1=active)
+          example: 0
         totalUptime:
           type: integer
           description: Total uptime in seconds at time of measurement

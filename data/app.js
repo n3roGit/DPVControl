@@ -107,7 +107,7 @@ function exportToCSV(data, filename) {
     }
     
     // Create proper CSV header with Total Uptime as primary time reference
-    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n";
+    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Beeper Active,Left Button,Right Button,Leak Sensor State,LED State\r\n";
     
     data.forEach(item => {
         csv += [
@@ -122,6 +122,9 @@ function exportToCSV(data, filename) {
             item.temperature || 0,
             item.humidity || 0,
             item.batteryLevel || 0,
+            item.beeperActive || 0,
+            item.leftButton || 0,
+            item.rightButton || 0,
             item.leakSensorState || 0,
             item.ledState || 0
         ].join(',') + "\r\n";
@@ -229,7 +232,7 @@ function initCharts() {
                 tension: 0.2,
                 yAxisID: 'percent'
             }, {
-                label: 'Beeper Enabled',
+                label: 'Beeper Active',
                 borderColor: 'rgb(255, 140, 0)', // Orange for warning beeper
                 backgroundColor: 'rgba(255, 140, 0, 0.1)',
                 borderWidth: 3,
@@ -906,7 +909,7 @@ function updateChart() {
         charts.combinedChart.data.datasets[7].data = visibleData.map(d => d.tempMosfet);
         charts.combinedChart.data.datasets[8].data = visibleData.map(d => d.avgMotorCurrent);
         charts.combinedChart.data.datasets[9].data = visibleData.map(d => d.batteryLevel);
-        charts.combinedChart.data.datasets[10].data = visibleData.map(d => d.beeperEnabled ? 1 : 0);
+        charts.combinedChart.data.datasets[10].data = visibleData.map(d => d.beeperActive ? 1 : 0);
         charts.combinedChart.data.datasets[11].data = visibleData.map(d => d.leftButton ? 1 : 0);
         charts.combinedChart.data.datasets[12].data = visibleData.map(d => d.rightButton ? 1 : 0);
         charts.combinedChart.data.datasets[13].data = visibleData.map(d => d.leakSensorState ? 1 : 0);

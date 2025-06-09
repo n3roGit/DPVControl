@@ -27,3 +27,7 @@ void BlinkSequence::blink(String sequence) {
     sequenceIndex = 0;
     startNextBeepAt = millis();
 }
+
+bool BlinkSequence::isBlinking() {
+    return sequenceIndex < sequence.length() || blinker.isBlinking();
+}

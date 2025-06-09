@@ -8,6 +8,7 @@
 #include "button.h"   // For button states
 #include "ledLamp.h"  // For LED_State
 #include "settings.h" // For getBeeperEnabled()
+#include "beep.h"     // For isBeeperActive()
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -542,7 +543,8 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   // Check safety-critical and user-interaction states at fast interval (5s)
   dp.leakSensorState = leakSensorState;  // Safety-critical: leak detection
   dp.ledState = LED_State;               // User interaction: lamp changes
-  dp.beeperEnabled = getBeeperEnabled() ? 1 : 0;  // User setting changes
+      dp.beeperEnabled = getBeeperEnabled() ? 1 : 0;  // User setting changes
+    dp.beeperActive = isBeeperActive() ? 1 : 0;      // Current beeping state
   dp.batteryLevel = batteryLevel;        // Battery can change faster than 30s
   
   // Debug logging for all fast-tracked states (every 20th cycle = ~100s)
@@ -635,6 +637,8 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(datapoint.rightButton);
   file.print(",");
   file.print(datapoint.beeperEnabled);
+  file.print(",");
+  file.print(datapoint.beeperActive);
   file.print(",");
   file.print(datapoint.totalUptime);
   file.println();
@@ -1359,6 +1363,7 @@ bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
   if (newData.leftButton != lastData.leftButton) return true;
   if (newData.rightButton != lastData.rightButton) return true;
   if (newData.beeperEnabled != lastData.beeperEnabled) return true;
+  if (newData.beeperActive != lastData.beeperActive) return true;
   
   // Don't save if no significant changes
   return false;
@@ -1372,8 +1377,8 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
   if (!rawData || rawCount == 0 || targetCount == 0) return NULL;
   
   // Reduced buffer size to save memory
-  static LogdataRow interpolatedData[200]; 
-  if (targetCount > 200) targetCount = 200; // Reduced safety limit
+  static LogdataRow interpolatedData[150]; 
+  if (targetCount > 150) targetCount = 150; // Reduced safety limit
   
   if (rawCount >= targetCount) {
     // If we have enough raw data, just copy it
@@ -1417,6 +1422,7 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].leftButton = before.leftButton;
         interpolatedData[i].rightButton = before.rightButton;
         interpolatedData[i].beeperEnabled = before.beeperEnabled;
+        interpolatedData[i].beeperActive = before.beeperActive;
         interpolatedData[i].totalUptime = before.totalUptime;
       } else {
         interpolatedData[i].tempMotor = after.tempMotor;
@@ -1431,6 +1437,7 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].leftButton = after.leftButton;
         interpolatedData[i].rightButton = after.rightButton;
         interpolatedData[i].beeperEnabled = after.beeperEnabled;
+        interpolatedData[i].beeperActive = after.beeperActive;
         interpolatedData[i].totalUptime = after.totalUptime;
       }
     }

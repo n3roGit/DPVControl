@@ -78,3 +78,10 @@ void BeepForLeak() {
   }
 }
 
+/**
+ * Check if the beeper is currently actively beeping (not just enabled)
+ */
+bool isBeeperActive() {
+  return beepSequence.isBlinking() || beepBlinker.isBlinking();
+}
+

@@ -19,3 +19,7 @@ void Blinker::loop() {
         stopAt = NEVER;
     }
 }
+
+bool Blinker::isBlinking() {
+    return stopAt != NEVER && millis() < stopAt;
+}

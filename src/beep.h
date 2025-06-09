@@ -26,5 +26,6 @@ void beep(const String& sequence);
 
 void beepLoop();
 void BeepForLeak();
+bool isBeeperActive();
 
 #endif

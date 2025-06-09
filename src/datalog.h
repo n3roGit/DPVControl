@@ -36,6 +36,7 @@ struct LogdataRow {
   int leftButton;      // Left button state (0=released, 1=pressed)
   int rightButton;     // Right button state (0=released, 1=pressed)
   int beeperEnabled;   // Beeper status (0=disabled, 1=enabled)
+  int beeperActive;    // Beeper currently beeping (0=silent, 1=active)
   unsigned long totalUptime;
 };
 
@@ -48,7 +49,7 @@ struct LogdataRow {
 #define HUMIDITY_THRESHOLD 2.0f    // Humidity threshold in %
 
 // Optimized logging system with longer sessions
-#define MAX_RECENT_POINTS 300     // RAM buffer for live display - 25 minutes @ 5s intervals
+#define MAX_RECENT_POINTS 250     // RAM buffer for live display - ~20 minutes @ 5s intervals
 // All data is immediately written to LittleFS for persistence
 
 extern LogdataRow recentData[MAX_RECENT_POINTS];        // RAM buffer for live display

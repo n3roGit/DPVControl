@@ -11,6 +11,7 @@ public:
     Blinker(void (*onFunction)(), void (*offFunction)());
     void blink(long ms);
     void loop();
+    bool isBlinking();
 
 private:
     void (*turnOnFunction)();

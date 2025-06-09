@@ -15,6 +15,7 @@ public:
       long pauseDuration);
     void loop();
     void blink(String sequence);
+    bool isBlinking();
 
 private:
     Blinker &blinker;

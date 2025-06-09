@@ -220,6 +220,7 @@ String generateSessionDataJson(String sessionFile) {
             point["leftButton"] = row.leftButton;
             point["rightButton"] = row.rightButton;
             point["beeperEnabled"] = row.beeperEnabled;
+        point["beeperActive"] = row.beeperActive;
             point["totalUptime"] = row.totalUptime;
         }
     }
@@ -355,7 +356,8 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "\"ledState\":" + String(dataPoints[i].ledState) + ",";
         json += "\"leftButton\":" + String(dataPoints[i].leftButton) + ",";
         json += "\"rightButton\":" + String(dataPoints[i].rightButton) + ",";
-        json += "\"beeperEnabled\":" + String(dataPoints[i].beeperEnabled) + ",";
+                        json += "\"beeperEnabled\":" + String(dataPoints[i].beeperEnabled) + ",";
+                json += "\"beeperActive\":" + String(dataPoints[i].beeperActive) + ",";
         json += "\"totalUptime\":" + String(dataPoints[i].totalUptime);
         json += "}";
     }
@@ -441,7 +443,8 @@ String generateFullTripLogJson() {
         csv += String(dataPoint.ledState) + ",";
         csv += String(dataPoint.leftButton) + ",";
         csv += String(dataPoint.rightButton) + ",";
-        csv += String(dataPoint.beeperEnabled) + ",";
+                    csv += String(dataPoint.beeperEnabled) + ",";
+            csv += String(dataPoint.beeperActive) + ",";
         csv += String(dataPoint.totalUptime) + "\r\n";
         
         // Prevent memory overflow for very large files
@@ -896,7 +899,8 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
         csvRow += String(dataPoint.ledState) + ",";
         csvRow += String(dataPoint.leftButton) + ",";
         csvRow += String(dataPoint.rightButton) + ",";
-        csvRow += String(dataPoint.beeperEnabled) + "\r\n";
+                    csvRow += String(dataPoint.beeperEnabled) + ",";
+            csvRow += String(dataPoint.beeperActive) + "\r\n";
         
         // Send this row immediately
         client.print(csvRow);
@@ -1076,6 +1080,7 @@ void handleClient(WiFiClient client) {
         json += "\"lampLevel\":" + String(LED_State) + ",";
         json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
         json += "\"beeperEnabled\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
+        json += "\"beeperActive\":" + String(isBeeperActive() ? "true" : "false") + ",";
         json += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
         json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
         json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false") + ",";
