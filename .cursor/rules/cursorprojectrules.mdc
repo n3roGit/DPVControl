@@ -21,6 +21,7 @@ Tasks:
 - Test failures must be fixed before proceeding with changes 
 - Dont ask to test something. just test it! If you find an error, fix it without asking!
 - If you've fixed a bug, check to see if a test already exists for it. If not, see if you can implement one.
+- If, during the course of this project, you have learned anything relevant to it that should be incorporated into these rules, please let me know.
 
 
 
