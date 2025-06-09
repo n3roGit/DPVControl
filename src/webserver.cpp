@@ -15,6 +15,8 @@
 #include <algorithm>  // For min() and max()
 #include <WiFi.h>
 #include <WebServer.h>
+#include "main.h" // For dhtSensor global variable
+#include "battery.h" // For batteryLevel global variable
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -51,9 +53,15 @@ bool spiffsInitialized = false;
  * Groups session splits together for better organization
  */
 String generateSessionListJson() {
+    log("generateSessionListJson called");
     int count;
     String* sessions = listSessionFiles(&count);
+    String countMsg = "Found " + String(count) + " session files";
+    log(countMsg.c_str());
+    
     String currentSession = getCurrentSessionFile();
+    String currentMsg = "Current session: " + currentSession;
+    log(currentMsg.c_str());
     // Extract filename from full path
     if (currentSession.startsWith("/datalog/")) {
         currentSession = currentSession.substring(9); // Remove "/datalog/"
@@ -126,12 +134,17 @@ String generateSessionDataJson(String sessionFile) {
         fullPath = "/datalog/" + sessionFile;
     }
     
+    String pathMsg = "Session data request - File: " + sessionFile + ", Full path: " + fullPath;
+    log(pathMsg.c_str());
+    
     if (!LittleFS.exists(fullPath)) {
+        log("Session file does not exist!");
         return "{\"data\":[],\"meta\":{\"error\":\"File not found\"}}";
     }
     
     File file = LittleFS.open(fullPath, "r");
     if (!file) {
+        log("Cannot open session file!");
         return "{\"data\":[],\"meta\":{\"error\":\"Cannot open file\"}}";
     }
     
@@ -204,6 +217,9 @@ String generateSessionDataJson(String sessionFile) {
             point["batteryLevel"] = row.batteryLevel;
             point["leakSensorState"] = row.leakSensorState;
             point["ledState"] = row.ledState;
+            point["leftButton"] = row.leftButton;
+            point["rightButton"] = row.rightButton;
+            point["beeperEnabled"] = row.beeperEnabled;
             point["totalUptime"] = row.totalUptime;
         }
     }
@@ -213,6 +229,15 @@ String generateSessionDataJson(String sessionFile) {
     // Serialize to string
     String json;
     serializeJson(doc, json);
+    
+    String resultMsg = "Session data JSON generated - Length: " + String(json.length()) + ", Data points: " + String(data.size());
+    log(resultMsg.c_str());
+    
+    // Log first 100 characters for debugging
+    if (json.length() > 100) {
+        String preview = "JSON preview: " + json.substring(0, 100) + "...";
+        log(preview.c_str());
+    }
     
     return json;
 }
@@ -328,6 +353,9 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "\"batteryLevel\":" + String(dataPoints[i].batteryLevel) + ",";
         json += "\"leakSensorState\":" + String(dataPoints[i].leakSensorState) + ",";
         json += "\"ledState\":" + String(dataPoints[i].ledState) + ",";
+        json += "\"leftButton\":" + String(dataPoints[i].leftButton) + ",";
+        json += "\"rightButton\":" + String(dataPoints[i].rightButton) + ",";
+        json += "\"beeperEnabled\":" + String(dataPoints[i].beeperEnabled) + ",";
         json += "\"totalUptime\":" + String(dataPoints[i].totalUptime);
         json += "}";
     }
@@ -377,7 +405,7 @@ String generateFullTripLogJson() {
     }
     
     // CSV Header
-    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Total Uptime (s)\r\n";
+    String csv = "Timestamp,Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Total Uptime (s)\r\n";
     
     LogdataRow dataPoint;
     
@@ -411,6 +439,9 @@ String generateFullTripLogJson() {
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
         csv += String(dataPoint.ledState) + ",";
+        csv += String(dataPoint.leftButton) + ",";
+        csv += String(dataPoint.rightButton) + ",";
+        csv += String(dataPoint.beeperEnabled) + ",";
         csv += String(dataPoint.totalUptime) + "\r\n";
         
         // Prevent memory overflow for very large files
@@ -735,7 +766,7 @@ String generateSessionCsvData(String sessionFile) {
     log(fileSizeMsg.c_str());
     
     // Build CSV header with Total Uptime as primary time reference
-    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\\r\\n";
+    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled\\r\\n";
     
     LogdataRow dataPoint;
     int exportedPoints = 0;
@@ -862,7 +893,10 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
         csvRow += String(dataPoint.humidity, 1) + ",";
         csvRow += String(dataPoint.batteryLevel) + ",";
         csvRow += String(dataPoint.leakSensorState) + ",";
-        csvRow += String(dataPoint.ledState) + "\r\n";
+        csvRow += String(dataPoint.ledState) + ",";
+        csvRow += String(dataPoint.leftButton) + ",";
+        csvRow += String(dataPoint.rightButton) + ",";
+        csvRow += String(dataPoint.beeperEnabled) + "\r\n";
         
         // Send this row immediately
         client.print(csvRow);
@@ -1036,12 +1070,51 @@ void handleClient(WiFiClient client) {
         json += "\"status\":\"ok\",";
         json += "\"uptime\":" + String(millis()) + ",";
         json += "\"totalUptime\":" + String(getTotalUptime()) + ",";
+        json += "\"dataPoints\":" + String(getTotalDataPoints("recent")) + ",";
         json += "\"motor\":" + String(motorState == on ? "true" : "false") + ",";
         json += "\"lamp\":" + String(LED_State > 0 ? "true" : "false") + ",";
+        json += "\"lampLevel\":" + String(LED_State) + ",";
         json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
+        json += "\"beeperEnabled\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
         json += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
         json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
-        json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false");
+        json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false") + ",";
+        json += "\"waterSensorFront\":" + String(digitalRead(PIN_LEAK_FRONT) == LOW ? "true" : "false") + ",";
+        json += "\"waterSensorBack\":" + String(digitalRead(PIN_LEAK_BACK) == LOW ? "true" : "false") + ",";
+        
+        // Add sensor data for status display
+        if (HAS_MOTOR) {
+            json += "\"batteryVoltage\":" + String(getVescUart().data.inpVoltage) + ",";
+            json += "\"motorTemperature\":" + String(getVescUart().data.tempMotor) + ",";
+            json += "\"mosfetTemperature\":" + String(getVescUart().data.tempMosfet) + ",";
+            json += "\"current\":" + String(getVescUart().data.avgInputCurrent) + ",";
+            json += "\"motorCurrent\":" + String(getVescUart().data.avgMotorCurrent) + ",";
+            json += "\"dutyCycle\":" + String(getVescUart().data.dutyCycleNow) + ",";
+            json += "\"rpm\":" + String(getVescUart().data.rpm);
+        } else {
+            // Fallback values if no motor
+            json += "\"batteryVoltage\":48.0,";
+            json += "\"motorTemperature\":25.0,";
+            json += "\"mosfetTemperature\":30.0,";
+            json += "\"current\":0.0,";
+            json += "\"motorCurrent\":0.0,";
+            json += "\"dutyCycle\":0.0,";
+            json += "\"rpm\":0";
+        }
+        
+        // Add environmental sensor data
+        TempAndHumidity envData = dhtSensor.getTempAndHumidity();
+        if (!isnan(envData.temperature) && !isnan(envData.humidity)) {
+            json += ",\"temperature\":" + String(envData.temperature);
+            json += ",\"humidity\":" + String(envData.humidity);
+        } else {
+            json += ",\"temperature\":22.0";
+            json += ",\"humidity\":50.0";
+        }
+        
+        // Add battery level
+        json += ",\"batteryLevel\":" + String(batteryLevel);
+        
         json += "}";
         
         sendHttpResponse(client, 200, "application/json", json.c_str());
@@ -1051,6 +1124,17 @@ void handleClient(WiFiClient client) {
         log("API /api/sessions called");
         
         String sessionsJson = generateSessionListJson();
+        String sessionsMsg = "Sessions JSON generated - Length: " + String(sessionsJson.length());
+        log(sessionsMsg.c_str());
+        
+        if (sessionsJson.length() > 100) {
+            String preview = "Sessions preview: " + sessionsJson.substring(0, 100) + "...";
+            log(preview.c_str());
+        } else {
+            String full = "Sessions full: " + sessionsJson;
+            log(full.c_str());
+        }
+        
         sendHttpResponse(client, 200, "application/json", sessionsJson.c_str());
         
     } else if (path.startsWith("/api/sessions/") && path.endsWith("/data") && method == "GET") {
@@ -1466,193 +1550,106 @@ void handleClient(WiFiClient client) {
             sendHttpResponse(client, 404, "text/plain", "Settings page not found");
         }
         
+
+        
     } else if (path == "/chart.min.js") {
-        // Serve Chart.js library with enhanced fallback
-        log("Serving Chart.js fallback");
-        String chartJs = R"js(
-window.Chart = class {
-    constructor(ctx, config) {
-        this.ctx = ctx;
-        this.config = config;
-        this.data = config.data || { labels: [], datasets: [] };
-        this.canvas = ctx.canvas;
-        this.canvas.style.backgroundColor = '#1e1e1e';
-        this.canvas.width = 800;
-        this.canvas.height = 400;
-        this.update();
-    }
-    
-    update() {
-        const ctx = this.ctx;
-        const canvas = this.canvas;
-        
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#2a2a2a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // Check if we have valid data
-        if (!this.data.datasets || this.data.datasets.length === 0 || !this.data.labels || this.data.labels.length === 0) {
-            ctx.fillStyle = '#888';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Chart.js not loaded - using fallback', canvas.width / 2, canvas.height / 2 - 20);
-            ctx.fillText('Data points: 0', canvas.width / 2, canvas.height / 2 + 20);
-            return;
-        }
-        
-        const margin = 60;
-        const chartWidth = canvas.width - 2 * margin;
-        const chartHeight = canvas.height - 2 * margin;
-        
-        // Draw axes
-        ctx.strokeStyle = '#555';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(margin, margin);
-        ctx.lineTo(margin, canvas.height - margin);
-        ctx.lineTo(canvas.width - margin, canvas.height - margin);
-        ctx.stroke();
-        
-        // Colors for different datasets
-        const colors = [
-            '#4bc0c0', '#ff6384', '#ffce56', '#36a2eb', 
-            '#9966ff', '#ff9f40', '#c7c7c7', '#ff63ff',
-            '#63ff84', '#ffce84'
-        ];
-        
-        // Find global min/max for all visible datasets
-        let globalMin = Infinity;
-        let globalMax = -Infinity;
-        
-        this.data.datasets.forEach(dataset => {
-            if (dataset.data && dataset.data.length > 0) {
-                const values = dataset.data.map(d => typeof d === 'object' ? d.y : d);
-                const min = Math.min(...values);
-                const max = Math.max(...values);
-                if (min < globalMin) globalMin = min;
-                if (max > globalMax) globalMax = max;
-            }
-        });
-        
-        const range = globalMax - globalMin || 1;
-        
-        // Draw datasets
-        this.data.datasets.forEach((dataset, datasetIndex) => {
-            if (!dataset.data || dataset.data.length === 0) return;
-            
-            const color = colors[datasetIndex % colors.length];
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            
-            let hasValidPoint = false;
-            for (let i = 0; i < dataset.data.length; i++) {
-                const x = margin + (i / (dataset.data.length - 1)) * chartWidth;
-                const val = typeof dataset.data[i] === 'object' ? dataset.data[i].y : dataset.data[i];
-                const y = margin + chartHeight - ((val - globalMin) / range) * chartHeight;
+        // Try to serve Chart.js from LittleFS first
+        if (LittleFS.exists("/chart.min.js")) {
+            File chartFile = LittleFS.open("/chart.min.js", "r");
+            if (chartFile) {
+                log("Serving Chart.js 4.4.9 from LittleFS");
+                size_t fileSize = chartFile.size();
                 
-                if (i === 0 || !hasValidPoint) {
-                    ctx.moveTo(x, y);
-                    hasValidPoint = true;
-                } else {
-                    ctx.lineTo(x, y);
+                // Send HTTP headers first
+                client.print("HTTP/1.1 200 OK\r\n");
+                client.print("Content-Type: application/javascript\r\n");
+                client.print("Content-Length: ");
+                client.print(fileSize);
+                client.print("\r\n");
+                client.print("Cache-Control: public, max-age=86400\r\n");
+                client.print("\r\n");
+                
+                // Stream file in chunks to avoid watchdog timeout
+                const size_t CHUNK_SIZE = 1024;
+                uint8_t buffer[CHUNK_SIZE];
+                size_t totalSent = 0;
+                
+                while (chartFile.available() && totalSent < fileSize) {
+                    size_t bytesToRead = min(CHUNK_SIZE, fileSize - totalSent);
+                    size_t bytesRead = chartFile.read(buffer, bytesToRead);
+                    
+                    if (bytesRead > 0) {
+                        client.write(buffer, bytesRead);
+                        totalSent += bytesRead;
+                        
+                        // Feed watchdog every chunk
+                        yield();
+                        
+                        // Small delay to prevent overwhelming the client
+                        if (totalSent % (CHUNK_SIZE * 4) == 0) {
+                            delay(1);
+                        }
+                    } else {
+                        break;
+                    }
                 }
+                
+                chartFile.close();
+                log(("Chart.js served successfully, " + String(totalSent) + " bytes").c_str());
+            } else {
+                log("Error: Could not open Chart.js file");
+                sendHttpResponse(client, 404, "text/plain", "Chart.js not found");
             }
-            ctx.stroke();
-        });
-        
-        // Draw legend
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'left';
-        let legendY = 20;
-        this.data.datasets.forEach((dataset, index) => {
-            if (dataset.label) {
-                const color = colors[index % colors.length];
-                ctx.fillStyle = color;
-                ctx.fillRect(10, legendY - 8, 15, 10);
-                ctx.fillStyle = '#ccc';
-                ctx.fillText(dataset.label, 30, legendY);
-                legendY += 15;
-            }
-        });
-        
-        // Draw title  
-        ctx.fillStyle = '#ccc';
-        ctx.font = '16px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('DPV Data Visualization', canvas.width / 2, 20);
-        
-        // Draw data point count
-        ctx.font = '12px Arial';
-        ctx.fillText(`${this.data.labels.length} data points`, canvas.width / 2, canvas.height - 10);
-        
-        // Draw Y-axis labels
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#888';
-        for (let i = 0; i <= 5; i++) {
-            const y = margin + (i / 5) * chartHeight;
-            const value = globalMax - (i / 5) * range;
-            ctx.fillText(value.toFixed(1), margin - 5, y + 3);
+        } else {
+            log("Chart.js file not found in LittleFS");
+            sendHttpResponse(client, 404, "text/plain", "Chart.js not found");
         }
-        
-        // Draw X-axis labels (time)
-        ctx.textAlign = 'center';
-        if (this.data.labels.length > 0) {
-            const labelStep = Math.max(1, Math.floor(this.data.labels.length / 5));
-            for (let i = 0; i < this.data.labels.length; i += labelStep) {
-                const x = margin + (i / (this.data.labels.length - 1)) * chartWidth;
-                ctx.fillText(this.data.labels[i], x, canvas.height - margin + 15);
-            }
-        }
-    }
-    
-    destroy() {}
-};
-console.log('Chart.js fallback loaded');
-)js";
-        sendHttpResponse(client, 200, "application/javascript", chartJs.c_str());
         
     } else if (path == "/jszip.min.js") {
-        // Serve JSZip library with enhanced fallback
-        log("Serving JSZip fallback");
-        String jszipJs = R"js(
-window.JSZip = function() {
-    return {
-        files: {},
-        file: function(name, content) {
-            if (content !== undefined) {
-                this.files[name] = content;
-                return this;
+        // Try to serve JSZip from LittleFS first
+        if (LittleFS.exists("/jszip.min.js")) {
+            File jszipFile = LittleFS.open("/jszip.min.js", "r");
+            if (jszipFile) {
+                log("Serving JSZip from LittleFS");
+                size_t fileSize = jszipFile.size();
+                
+                // Send HTTP headers first
+                client.print("HTTP/1.1 200 OK\r\n");
+                client.print("Content-Type: application/javascript\r\n");
+                client.print("Content-Length: ");
+                client.print(fileSize);
+                client.print("\r\n");
+                client.print("Cache-Control: public, max-age=86400\r\n");
+                client.print("\r\n");
+                
+                // Stream file in chunks
+                const size_t CHUNK_SIZE = 1024;
+                uint8_t buffer[CHUNK_SIZE];
+                size_t totalSent = 0;
+                
+                while (jszipFile.available() && totalSent < fileSize) {
+                    size_t bytesToRead = min(CHUNK_SIZE, fileSize - totalSent);
+                    size_t bytesRead = jszipFile.read(buffer, bytesToRead);
+                    
+                    if (bytesRead > 0) {
+                        client.write(buffer, bytesRead);
+                        totalSent += bytesRead;
+                        yield(); // Feed watchdog
+                    } else {
+                        break;
+                    }
+                }
+                
+                jszipFile.close();
+                log(("JSZip served successfully, " + String(totalSent) + " bytes").c_str());
+            } else {
+                log("Error: Could not open JSZip file");
+                sendHttpResponse(client, 404, "text/plain", "JSZip not found");
             }
-            return this.files[name];
-        },
-        generateAsync: function(options) {
-            // Create a simple CSV export instead of ZIP
-            let csvContent = '';
-            let fileCount = 0;
-            
-            for (let filename in this.files) {
-                fileCount++;
-                csvContent += '=== ' + filename + ' ===\r\n';
-                csvContent += this.files[filename];
-                csvContent += '\r\n\r\n';
-            }
-            
-            if (fileCount === 0) {
-                csvContent = 'No data available for export';
-            }
-            
-            // Return a proper Blob
-            const blob = new Blob([csvContent], { type: 'text/plain;charset=utf-8' });
-            return Promise.resolve(blob);
+        } else {
+            log("JSZip file not found in LittleFS");
+            sendHttpResponse(client, 404, "text/plain", "JSZip not found");
         }
-    };
-};
-console.log('JSZip fallback loaded');
-)js";
-        sendHttpResponse(client, 200, "application/javascript", jszipJs.c_str());
         
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings (legacy compatibility)

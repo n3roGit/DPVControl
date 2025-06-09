@@ -33,6 +33,9 @@ struct LogdataRow {
   int batteryLevel;
   int leakSensorState;
   int ledState;
+  int leftButton;      // Left button state (0=released, 1=pressed)
+  int rightButton;     // Right button state (0=released, 1=pressed)
+  int beeperEnabled;   // Beeper status (0=disabled, 1=enabled)
   unsigned long totalUptime;
 };
 

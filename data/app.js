@@ -57,10 +57,10 @@ function loadTabContent() {
         .then(html => {
             document.getElementById('remote-tab').innerHTML = html;
             
-            // Generiere die Lampen-Level nach dem Laden der Remote-Seite
+            // Generate lamp levels after loading remote page
             setTimeout(generateLampLevels, 100);
             
-            // Initialisiere die Remote-Control-Schnittstelle
+            // Initialize remote control interface
             setTimeout(enableRemoteControlInterface, 200);
         })
         .catch(error => {
@@ -827,7 +827,7 @@ function updateChart() {
 
 // Remote Control Functions
 function updateMotorSpeed(value) {
-    // Zeigt den aktuellen Wert im UI an
+    // Show current value in UI
     document.getElementById('motorSpeedValue').textContent = value;
     if (document.getElementById('remoteMotorSpeed')) {
         document.getElementById('remoteMotorSpeed').textContent = value + '%';
@@ -835,7 +835,7 @@ function updateMotorSpeed(value) {
 }
 
 function setMotorSpeed(value) {
-    // Sende den Wert an die API
+    // Send value to API
     fetch('/api/motor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -858,12 +858,12 @@ function setMotorSpeed(value) {
 }
 
 function toggleMotor() {
-    // Prüfe aktuellen Status
+    // Check current status
     const button = document.getElementById('motorToggle');
     const isRunning = button.textContent.includes('STOP');
     
     if (isRunning) {
-        // Motor stoppen
+        // Stop motor
         fetch('/api/motor', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -892,7 +892,7 @@ function toggleMotor() {
             console.error('Error stopping motor:', error);
         });
     } else {
-        // Motor starten
+        // Start motor
         const speed = document.getElementById('motorSpeedSlider') ? 
                      parseInt(document.getElementById('motorSpeedSlider').value) : 50;
         
@@ -921,7 +921,7 @@ function toggleMotor() {
 }
 
 function emergencyStop() {
-    // Sofort Motor stoppen
+    // Stop motor immediately
     fetch('/api/motor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -950,7 +950,7 @@ function emergencyStop() {
             document.getElementById('remoteLastCommand').textContent = 'EMERGENCY STOP activated';
         }
         
-        // Zeige Meldung
+        // Show message
         if (document.getElementById('remoteControlStatus')) {
             document.getElementById('remoteControlStatus').textContent = 'Emergency stop activated!';
             setTimeout(() => {
@@ -966,7 +966,7 @@ function toggleLamp() {
     const button = document.getElementById('lampToggleBtn');
     const isOn = button.textContent.includes('OFF') ? false : true;
     
-    // Neuer Status
+    // New status
     const newStatus = !isOn;
     const newLevel = newStatus ? 1 : 0;
     
@@ -1001,7 +1001,7 @@ function toggleLamp() {
 function saveDPVSettings() {
     console.log('saveDPVSettings called');
     
-    // Sammle alle Einstellungen aus dem Formular
+    // Collect all settings from form
     const form = document.getElementById('settingsForm');
     if (!form) {
         console.error('Settings form not found!');
@@ -1009,7 +1009,7 @@ function saveDPVSettings() {
         return;
     }
     
-    // Erstelle ein Objekt mit allen Einstellungen
+    // Create object with all settings
     const settings = {
         // Motor and Speed Settings
         speedSteps: parseInt(document.getElementById('speedSteps').value),
@@ -1052,7 +1052,7 @@ function saveDPVSettings() {
     // Initialize lampBrightness array with Level 0 = 0 (OFF)
     settings.lampBrightness[0] = 0;
     
-    // Sammle Lampen-Helligkeitswerte (Level 1 bis N)
+    // Collect lamp brightness values (Level 1 to N)
     const lampContainer = document.getElementById('lampBrightnessContainer');
     if (lampContainer) {
         const lampInputs = lampContainer.querySelectorAll('input[type="range"]');
@@ -1063,14 +1063,14 @@ function saveDPVSettings() {
             // Map input index to correct lampBrightness index (Level 1+)
             settings.lampBrightness[i + 1] = pwmValue;
         }
-        // Fülle fehlende Werte mit 0 auf, falls weniger als lampMaxLevels Werte vorhanden sind
+        // Fill missing values with 0 if fewer than lampMaxLevels values are present
         while (settings.lampBrightness.length < settings.lampMaxLevels) {
             settings.lampBrightness.push(0);
         }
-        // Schneide ggf. überzählige Werte ab
+        // Trim excess values if necessary
         settings.lampBrightness = settings.lampBrightness.slice(0, settings.lampMaxLevels);
     } else {
-        // Fallback: Fülle mit Standardwerten auf
+        // Fallback: Fill with default values
         for (let i = 1; i < settings.lampMaxLevels; i++) {
             settings.lampBrightness[i] = 0;
         }
@@ -1078,13 +1078,13 @@ function saveDPVSettings() {
     
     console.log('Saving settings:', settings);
     
-    // Zeige Status-Nachricht
+    // Show status message
     const statusElement = document.getElementById('settingsStatus');
     if (statusElement) {
         statusElement.textContent = 'Saving settings...';
     }
     
-    // Sende an API
+    // Send to API
     fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1112,7 +1112,7 @@ function saveDPVSettings() {
             }
         }
         
-        // Status nach 3 Sekunden ausblenden
+        // Hide status after 3 seconds
         setTimeout(() => {
             if (statusElement) {
                 statusElement.textContent = '';
@@ -1130,7 +1130,7 @@ function saveDPVSettings() {
     });
 }
 
-// Funktion zum Wiederherstellen der Standardeinstellungen
+// Function to restore default settings
 function restoreDefaultSettings() {
     if (confirm('Are you sure you want to restore default settings? All custom settings will be lost.')) {
         fetch('/api/settings/restore', {
@@ -1139,7 +1139,7 @@ function restoreDefaultSettings() {
         .then(data => {
             if (data.success) {
                 alert('Default settings restored. Reloading...');
-                // Lade Einstellungen neu
+                // Reload settings
                 loadDPVSettings();
             } else {
                 alert('Error restoring default settings: ' + (data.error || 'Unknown error'));
@@ -1151,7 +1151,7 @@ function restoreDefaultSettings() {
     }
 }
 
-// Funktion zum Neustarten des Systems
+// Function to reboot the system
 function rebootSystem() {
     if (confirm('Are you sure you want to reboot the system? This will disconnect you temporarily.')) {
         fetch('/api/reboot', {
@@ -1160,7 +1160,7 @@ function rebootSystem() {
         .then(data => {
             if (data.success) {
                 alert('System is rebooting. Please wait about 10 seconds and refresh the page.');
-                // Zeige Countdown
+                // Show countdown
                 const statusElement = document.getElementById('settingsStatus');
                 if (statusElement) {
                     let countdown = 10;
@@ -1190,17 +1190,17 @@ function rebootSystem() {
     }
 }
 
-// Funktion zum Exportieren der Einstellungen
+// Function to export settings
 function exportSettings() {
     fetch('/api/settings')
         .then(response => response.json())
         .then(settings => {
-            // Erstelle JSON-Datei zum Download
+            // Create JSON file for download
             const dataStr = JSON.stringify(settings, null, 2);
             const dataBlob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(dataBlob);
             
-            // Erstelle Download-Link
+            // Create download link
             const a = document.createElement('a');
             a.href = url;
             a.download = 'dpv_settings.json';
@@ -1215,9 +1215,9 @@ function exportSettings() {
         });
 }
 
-// Funktion zum Importieren der Einstellungen
+// Function to import settings
 function importSettings() {
-    // Klicke auf den versteckten Datei-Input
+    // Click on hidden file input
     const fileInput = document.getElementById('settingsFileInput');
     if (fileInput) {
         fileInput.click();
@@ -1226,7 +1226,7 @@ function importSettings() {
     }
 }
 
-// Funktion zum Verarbeiten der importierten Einstellungsdatei
+// Function to process imported settings file
 function handleSettingsFile(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1236,9 +1236,9 @@ function handleSettingsFile(event) {
         try {
             const settings = JSON.parse(e.target.result);
             
-            // Bestätige Import
+            // Confirm import
             if (confirm('Are you sure you want to import these settings? Current settings will be overwritten.')) {
-                // Sende importierte Einstellungen an API
+                // Send imported settings to API
                 fetch('/api/settings', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1247,7 +1247,7 @@ function handleSettingsFile(event) {
                 .then(data => {
                     if (data.success) {
                         alert('Settings imported successfully. Reloading...');
-                        // Lade Einstellungen neu
+                        // Reload settings
                         loadDPVSettings();
                     } else {
                         alert('Error importing settings: ' + (data.error || 'Unknown error'));
@@ -1265,19 +1265,19 @@ function handleSettingsFile(event) {
     reader.readAsText(file);
 }
 
-// Funktion zum Aktualisieren der Lampen-Helligkeit
+// Function to update lamp brightness
 function updateLampBrightness(level, value) {
     console.log(`Updating lamp brightness for level ${level} to ${value}%`);
     
-    // Hier könnte man auch direkt die API aufrufen, wenn gewünscht
-    // Für jetzt speichern wir nur den Wert, der dann beim Speichern der Einstellungen übertragen wird
+    // Could call API directly here if desired
+    // For now we just store the value, which is transmitted when saving settings
 }
 
-// Funktion zum dynamischen Generieren der Lampen-Level-Auswahl
+// Function to dynamically generate lamp level selection
 function generateLampLevels() {
     console.log('Generating lamp level controls...');
     
-    // Hole die Einstellungen vom Server
+    // Get settings from server
     fetch('/api/settings')
         .then(response => response.json())
         .then(settings => {
@@ -1287,8 +1287,8 @@ function generateLampLevels() {
             
             container.innerHTML = '';
             
-            // Entferne Level 0 (Off) Radio-Button, da ON/OFF über Toggle-Button erfolgt
-            // Generiere nur die konfigurierten Helligkeitslevel (ab 1)
+            // Remove Level 0 (Off) radio button, as ON/OFF is handled by toggle button
+            // Generate only configured brightness levels (starting from 1)
             for (let i = 1; i < maxLevels; i++) {
                 const levelDiv = document.createElement('div');
                 levelDiv.className = 'lamp-level-option';
@@ -1320,7 +1320,7 @@ function generateLampLevels() {
         });
 }
 
-// Funktion zum Setzen des Lampen-Levels
+// Function to set lamp level
 function setLampLevel(level) {
     console.log(`Setting lamp level to ${level}`);
     

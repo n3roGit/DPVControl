@@ -5,6 +5,14 @@
 #include "motor.h"
 #include "main.h"
 #include "battery.h"
+#include "button.h"   // For button states
+#include "ledLamp.h"  // For LED_State
+#include "settings.h" // For getBeeperEnabled()
+
+// External variables
+extern int LED_State; // From ledLamp.cpp
+extern int leftButtonState; // From button.cpp
+extern int rightButtonState; // From button.cpp
 
 // Session management
 String currentSessionFile = "";
@@ -158,7 +166,7 @@ String* listSessionFiles(int* count) {
 * CONSTANTS
 */ 
 
-const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,erpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,total_uptime";
+const String HEADER = "timestamp,motor_temp,mosfet_temp,battery_voltage,input_current,motor_current,erpm,duty_cycle,temperature,humidity,battery_level,leak_sensor,led_state,left_button,right_button,beeper_enabled,total_uptime";
 const String DATALOG_DIR = "/datalog";
 
 // Multi-interval logging for better storage efficiency
@@ -527,6 +535,26 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   dp.batteryVoltage = getBatteryVoltage();
   dp.totalUptime = getTotalUptime();
   
+  // Check button states every fast interval (5s) - buttons change quickly!
+  dp.leftButton = (leftButtonState == PRESSED) ? 1 : 0;
+  dp.rightButton = (rightButtonState == PRESSED) ? 1 : 0;
+  
+  // Check safety-critical and user-interaction states at fast interval (5s)
+  dp.leakSensorState = leakSensorState;  // Safety-critical: leak detection
+  dp.ledState = LED_State;               // User interaction: lamp changes
+  dp.beeperEnabled = getBeeperEnabled() ? 1 : 0;  // User setting changes
+  dp.batteryLevel = batteryLevel;        // Battery can change faster than 30s
+  
+  // Debug logging for all fast-tracked states (every 20th cycle = ~100s)
+  static int stateDebugCounter = 0;
+  stateDebugCounter++;
+  if (stateDebugCounter % 20 == 0) {
+    String stateDebug = "Fast States - Buttons L/R: " + String(dp.leftButton) + "/" + String(dp.rightButton) + 
+                       ", Leak: " + String(dp.leakSensorState) + ", LED: " + String(dp.ledState) + 
+                       ", Beeper: " + String(dp.beeperEnabled) + ", Battery: " + String(dp.batteryLevel) + "%";
+    log(stateDebug.c_str());
+  }
+  
   if (HAS_MOTOR) {
     dp.tempMotor = getVescUart().data.tempMotor;
     dp.tempMosfet = getVescUart().data.tempMosfet;
@@ -548,22 +576,16 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   bool updateSlowData = (currentTime - lastSlowLog >= DATALOG_INTERVAL_SLOW);
   
   if (updateSlowData) {
-    // Update slow-changing environmental data
+    // Update truly slow-changing environmental data only
     TempAndHumidity dhtData = dhtSensor.getTempAndHumidity();
     lastSlowData.temperature = isnan(dhtData.temperature) ? 0.0 : dhtData.temperature;
     lastSlowData.humidity = isnan(dhtData.humidity) ? 0.0 : dhtData.humidity;
-    lastSlowData.batteryLevel = batteryLevel;
-    lastSlowData.leakSensorState = leakSensorState;
-    lastSlowData.ledState = 0; // TODO: Get real LED state
     lastSlowLog = currentTime;
   }
   
-  // Use cached slow data for this datapoint
+  // Use cached slow data for truly slow-changing environmental data
   dp.temperature = lastSlowData.temperature;
   dp.humidity = lastSlowData.humidity;
-  dp.batteryLevel = lastSlowData.batteryLevel;
-  dp.leakSensorState = lastSlowData.leakSensorState;
-  dp.ledState = lastSlowData.ledState;
   
   return dp;
 }
@@ -607,6 +629,12 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(datapoint.leakSensorState);
   file.print(",");
   file.print(datapoint.ledState);
+  file.print(",");
+  file.print(datapoint.leftButton);
+  file.print(",");
+  file.print(datapoint.rightButton);
+  file.print(",");
+  file.print(datapoint.beeperEnabled);
   file.print(",");
   file.print(datapoint.totalUptime);
   file.println();
@@ -1328,6 +1356,9 @@ bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
   if (newData.batteryLevel != lastData.batteryLevel) return true;
   if (newData.leakSensorState != lastData.leakSensorState) return true;
   if (newData.ledState != lastData.ledState) return true;
+  if (newData.leftButton != lastData.leftButton) return true;
+  if (newData.rightButton != lastData.rightButton) return true;
+  if (newData.beeperEnabled != lastData.beeperEnabled) return true;
   
   // Don't save if no significant changes
   return false;
@@ -1383,6 +1414,9 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].batteryLevel = before.batteryLevel;
         interpolatedData[i].leakSensorState = before.leakSensorState;
         interpolatedData[i].ledState = before.ledState;
+        interpolatedData[i].leftButton = before.leftButton;
+        interpolatedData[i].rightButton = before.rightButton;
+        interpolatedData[i].beeperEnabled = before.beeperEnabled;
         interpolatedData[i].totalUptime = before.totalUptime;
       } else {
         interpolatedData[i].tempMotor = after.tempMotor;
@@ -1394,6 +1428,9 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].batteryLevel = after.batteryLevel;
         interpolatedData[i].leakSensorState = after.leakSensorState;
         interpolatedData[i].ledState = after.ledState;
+        interpolatedData[i].leftButton = after.leftButton;
+        interpolatedData[i].rightButton = after.rightButton;
+        interpolatedData[i].beeperEnabled = after.beeperEnabled;
         interpolatedData[i].totalUptime = after.totalUptime;
       }
     }

@@ -1,18 +1,8 @@
-openapi: 3.0.3
+openapi: 3.0.0
 info:
-  title: DPV Control API
-  description: |
-    REST API for the DPV (Diver Propulsion Vehicle) Control System.
-    
-    This API provides access to system status, sensor data, trip logs, and configuration settings
-    for the ESP32-based DPV controller with VESC motor control.
-    
-    **Key Features:**
-    - Real-time system status and sensor readings
-    - Historical data logging and retrieval
-    - Configuration management with export/import
-    - Trip log download functionality
-  version: 1.0.1
+  title: DPVControl API
+  description: API for controlling and monitoring the Diver Propulsion Vehicle (DPV)
+  version: 1.0.9
   contact:
     name: DPV Control Project
     url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
@@ -53,6 +43,10 @@ paths:
               schema:
                 type: object
                 properties:
+                  status:
+                    type: string
+                    description: Overall system status
+                    example: "ok"
                   uptime:
                     type: integer
                     description: Current system uptime in milliseconds
@@ -65,9 +59,17 @@ paths:
                     type: integer
                     description: Number of data points in current recording buffer
                     example: 120
-                  isDataloggerRunning:
+                  motor:
                     type: boolean
-                    description: Whether the datalogger is currently recording
+                    description: Whether the motor is currently running
+                    example: false
+                  lamp:
+                    type: boolean
+                    description: Whether the lamp is currently on
+                    example: true
+                  beeper:
+                    type: boolean
+                    description: Whether the beeper is currently enabled
                     example: true
                   waterSensorFront:
                     type: boolean
@@ -97,23 +99,23 @@ paths:
                     type: number
                     description: Current motor speed in electrical RPM
                     example: 12500
-                  motorTemp:
+                  batteryVoltage:
+                    type: number
+                    description: Current battery voltage in Volts
+                    example: 48.2
+                  motorTemperature:
                     type: number
                     description: Motor temperature in Celsius
                     example: 42.5
-                  mosfetTemp:
+                  mosfetTemperature:
                     type: number
                     description: MOSFET temperature in Celsius
                     example: 38.2
-                  inputVoltage:
-                    type: number
-                    description: Current input voltage
-                    example: 14.8
-                  avgInputCurrent:
+                  current:
                     type: number
                     description: Average input current in Amperes
                     example: 15.3
-                  avgMotorCurrent:
+                  motorCurrent:
                     type: number
                     description: Average motor current in Amperes
                     example: 20.1
@@ -121,15 +123,26 @@ paths:
                     type: number
                     description: Current duty cycle (0.0 to 1.0)
                     example: 0.75
-                  motorState:
-                    type: integer
-                    description: Current motor state (0=Standby, 1=On, 2=Off, 3=Cruise, 4=Turbo, 5=Jammed)
-                    example: 1
+                  rpm:
+                    type: number
+                    description: Current motor speed in electrical RPM
+                    example: 12500
+                  temperature:
+                    type: number
+                    description: Ambient temperature in Celsius from DHT sensor
+                    example: 22.5
+                  humidity:
+                    type: number
+                    description: Ambient humidity percentage from DHT sensor
+                    example: 65.2
               example:
+                status: "ok"
                 uptime: 3654000
                 totalUptime: 12345
                 dataPoints: 120
-                isDataloggerRunning: true
+                motor: false
+                lamp: true
+                beeper: true
                 waterSensorFront: false
                 waterSensorBack: false
                 leftButton: false
@@ -137,13 +150,15 @@ paths:
                 lampLevel: 2
                 beeperEnabled: true
                 erpm: 12500
-                motorTemp: 42.5
-                mosfetTemp: 38.2
-                inputVoltage: 14.8
-                avgInputCurrent: 15.3
-                avgMotorCurrent: 20.1
+                batteryVoltage: 48.2
+                motorTemperature: 42.5
+                mosfetTemperature: 38.2
+                current: 15.3
+                motorCurrent: 20.1
                 dutyCycle: 0.75
-                motorState: 1
+                rpm: 12500
+                temperature: 22.5
+                humidity: 65.2
 
   /api/data:
     get:
@@ -193,7 +208,10 @@ paths:
                   humidity: 65.2
                   batteryLevel: 85
                   leakSensorState: 0
-                  ledState: 0
+                  ledState: 2
+                  leftButton: 0
+                  rightButton: 0
+                  beeperEnabled: 1
                   totalUptime: 5649
 
   /api/trip-log:
@@ -737,8 +755,20 @@ components:
           example: 0
         ledState:
           type: integer
-          description: LED state indicator
+          description: LED lamp brightness level (0=off, 1-4=brightness levels)
           example: 0
+        leftButton:
+          type: integer
+          description: Left button state (0=released, 1=pressed)
+          example: 0
+        rightButton:
+          type: integer
+          description: Right button state (0=released, 1=pressed)
+          example: 0
+        beeperEnabled:
+          type: integer
+          description: Beeper enabled state (0=disabled, 1=enabled)
+          example: 1
         totalUptime:
           type: integer
           description: Total uptime in seconds at time of measurement
