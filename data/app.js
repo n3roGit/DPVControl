@@ -106,27 +106,38 @@ function exportToCSV(data, filename) {
         return;
     }
     
-    // Create proper CSV header with Total Uptime as primary time reference
-    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Beeper Active,Left Button,Right Button,Leak Sensor State,LED State\r\n";
+    // Create proper CSV header matching backend format
+    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Beeper Active\r\n";
     
     data.forEach(item => {
+        // Convert totalUptime from milliseconds to seconds
+        const totalUptimeSeconds = (item.totalUptime || 0) / 1000.0;
+        
+        // Ensure boolean values are properly converted to 0 or 1
+        const beeperActive = item.beeperActive ? 1 : 0;
+        const leftButton = item.leftButton ? 1 : 0;
+        const rightButton = item.rightButton ? 1 : 0;
+        const leakSensorState = item.leakSensorState ? 1 : 0;
+        const ledState = item.ledState ? 1 : 0;
+        
         csv += [
-            item.totalUptime || 0,
-            item.tempMotor || 0,
-            item.tempMosfet || 0,
-            item.batteryVoltage || 0,
-            item.current || 0,
-            item.avgMotorCurrent || 0,
+            totalUptimeSeconds.toFixed(1),
+            (item.tempMotor || 0).toFixed(1),
+            (item.tempMosfet || 0).toFixed(1),
+            (item.batteryVoltage || 0).toFixed(5),
+            (item.current || 0).toFixed(2),
+            (item.avgMotorCurrent || 0).toFixed(2),
             item.erpm || 0,
-            item.dutyCycle || 0,
-            item.temperature || 0,
-            item.humidity || 0,
+            (item.dutyCycle || 0).toFixed(3),
+            (item.temperature || 0).toFixed(1),
+            (item.humidity || 0).toFixed(1),
             item.batteryLevel || 0,
-            item.beeperActive || 0,
-            item.leftButton || 0,
-            item.rightButton || 0,
-            item.leakSensorState || 0,
-            item.ledState || 0
+            leakSensorState,
+            ledState,
+            leftButton,
+            rightButton,
+            item.beeperEnabled ? 1 : 0,
+            beeperActive
         ].join(',') + "\r\n";
     });
     
@@ -852,8 +863,21 @@ function exportCurrentViewAsCSV() {
             console.error('Error exporting session CSV:', error);
             alert('Error exporting session data. Falling back to current view data.');
             
-            // Fallback: export currently visible data
-            exportToCSV(allDataPoints, filename);
+            // Fallback: export currently visible data, filter out corrupted data points
+            const cleanData = allDataPoints.filter(item => {
+                // Filter out test data and corrupted boolean values
+                return item.batteryVoltage > 20 && // Real battery voltage should be > 20V
+                       (item.leftButton === 0 || item.leftButton === 1) && // Clean boolean values
+                       (item.rightButton === 0 || item.rightButton === 1) &&
+                       (item.beeperEnabled === 0 || item.beeperEnabled === 1) &&
+                       (item.beeperActive === 0 || item.beeperActive === 1);
+            });
+            
+            if (cleanData.length > 0) {
+                exportToCSV(cleanData, filename);
+            } else {
+                alert('No valid data points available for export.');
+            }
         });
 }
 function exportAllSessionsAsZip() {
@@ -984,7 +1008,14 @@ function updateChart() {
             const sliderEnd = document.getElementById('sliderEnd');
             
             if (sliderStart) sliderStart.textContent = startTime;
-            if (sliderEnd) sliderEnd.textContent = endTime;
+            if (sliderEnd) {
+                // For single point or very short sessions, show duration or "Start"
+                if (visibleData.length === 1 || startTime === endTime) {
+                    sliderEnd.textContent = "Start";
+                } else {
+                    sliderEnd.textContent = endTime;
+                }
+            }
         }
     }
 }

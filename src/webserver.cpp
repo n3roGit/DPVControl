@@ -203,25 +203,33 @@ String generateSessionDataJson(String sessionFile) {
         LogdataRow row;
         file.seek(i * sizeof(LogdataRow));
         if (file.read((uint8_t*)&row, sizeof(LogdataRow)) == sizeof(LogdataRow)) {
-            JsonObject point = data.add<JsonObject>();
-            point["timestamp"] = row.timestamp;
-            point["tempMotor"] = row.tempMotor;
-            point["tempMosfet"] = row.tempMosfet;
-            point["batteryVoltage"] = row.batteryVoltage;
-            point["current"] = row.current;
-            point["avgMotorCurrent"] = row.avgMotorCurrent;
-            point["rpm"] = row.erpm;
-            point["dutyCycle"] = row.dutyCycle;
-            point["temperature"] = row.temperature;
-            point["humidity"] = row.humidity;
-            point["batteryLevel"] = row.batteryLevel;
-            point["leakSensorState"] = row.leakSensorState;
-            point["ledState"] = row.ledState;
-            point["leftButton"] = row.leftButton;
-            point["rightButton"] = row.rightButton;
-            point["beeperEnabled"] = row.beeperEnabled;
-        point["beeperActive"] = row.beeperActive;
-            point["totalUptime"] = row.totalUptime;
+            // Filter out corrupted data points with invalid boolean values
+            if (row.batteryVoltage > 20.0 && row.batteryVoltage < 100.0 && // Valid battery voltage range
+                (row.leftButton == 0 || row.leftButton == 1) &&             // Clean boolean values
+                (row.rightButton == 0 || row.rightButton == 1) &&
+                (row.beeperEnabled == 0 || row.beeperEnabled == 1) &&
+                (row.beeperActive == 0 || row.beeperActive == 1)) {
+                
+                JsonObject point = data.add<JsonObject>();
+                point["timestamp"] = row.timestamp;
+                point["tempMotor"] = row.tempMotor;
+                point["tempMosfet"] = row.tempMosfet;
+                point["batteryVoltage"] = row.batteryVoltage;
+                point["current"] = row.current;
+                point["avgMotorCurrent"] = row.avgMotorCurrent;
+                point["rpm"] = row.erpm;
+                point["dutyCycle"] = row.dutyCycle;
+                point["temperature"] = row.temperature;
+                point["humidity"] = row.humidity;
+                point["batteryLevel"] = row.batteryLevel;
+                point["leakSensorState"] = row.leakSensorState;
+                point["ledState"] = row.ledState;
+                point["leftButton"] = row.leftButton;
+                point["rightButton"] = row.rightButton;
+                point["beeperEnabled"] = row.beeperEnabled;
+                point["beeperActive"] = row.beeperActive;
+                point["totalUptime"] = row.totalUptime;
+            }
         }
     }
     
@@ -753,10 +761,19 @@ bool updateSettingsFromJson(const String& jsonString) {
 String generateSessionCsvData(String sessionFile) {
     log(("Starting CSV generation for session: " + sessionFile).c_str());
     
+    // Ensure we have the full path
+    String fullPath = sessionFile;
+    if (!sessionFile.startsWith("/datalog/")) {
+        fullPath = "/datalog/" + sessionFile;
+    }
+    
+    String pathMsg = "CSV generation - File: " + sessionFile + ", Full path: " + fullPath;
+    log(pathMsg.c_str());
+    
     // Try to open the session file
-    File file = LittleFS.open("/" + sessionFile, "r");
+    File file = LittleFS.open(fullPath, "r");
     if (!file) {
-        String errorMsg = "Failed to open session file: " + sessionFile;
+        String errorMsg = "Failed to open session file: " + sessionFile + " at " + fullPath;
         log(errorMsg.c_str());
         return "Error: Could not open session file " + sessionFile;
     }
@@ -785,29 +802,37 @@ String generateSessionCsvData(String sessionFile) {
             break;
         }
         
-        // Convert timestamp to total uptime in seconds
-        float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
-        
-        // Build CSV row with Total Uptime first
-        csv += String(totalUptimeSeconds, 1) + ",";
-        csv += String(dataPoint.tempMotor, 1) + ",";
-        csv += String(dataPoint.tempMosfet, 1) + ",";
-        csv += String(dataPoint.batteryVoltage, 5) + ",";
-        csv += String(dataPoint.current, 2) + ",";
-        csv += String(dataPoint.avgMotorCurrent, 2) + ",";
-        csv += String(dataPoint.erpm) + ",";
-        csv += String(dataPoint.dutyCycle, 3) + ",";
-        csv += String(dataPoint.temperature, 1) + ",";
-        csv += String(dataPoint.humidity, 1) + ",";
-        csv += String(dataPoint.batteryLevel) + ",";
-        csv += String(dataPoint.leakSensorState) + ",";
-        csv += String(dataPoint.ledState) + ",";
-        csv += String(dataPoint.leftButton) + ",";
-        csv += String(dataPoint.rightButton) + ",";
-        csv += String(dataPoint.beeperEnabled) + ",";
-        csv += String(dataPoint.beeperActive) + "\\r\\n";
-        
-        exportedPoints++;
+        // Filter out corrupted data points with invalid boolean values
+        if (dataPoint.batteryVoltage > 20.0 && dataPoint.batteryVoltage < 100.0 && // Valid battery voltage range
+            (dataPoint.leftButton == 0 || dataPoint.leftButton == 1) &&             // Clean boolean values
+            (dataPoint.rightButton == 0 || dataPoint.rightButton == 1) &&
+            (dataPoint.beeperEnabled == 0 || dataPoint.beeperEnabled == 1) &&
+            (dataPoint.beeperActive == 0 || dataPoint.beeperActive == 1)) {
+            
+            // Convert timestamp to total uptime in seconds
+            float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
+            
+            // Build CSV row with Total Uptime first
+            csv += String(totalUptimeSeconds, 1) + ",";
+            csv += String(dataPoint.tempMotor, 1) + ",";
+            csv += String(dataPoint.tempMosfet, 1) + ",";
+            csv += String(dataPoint.batteryVoltage, 5) + ",";
+            csv += String(dataPoint.current, 2) + ",";
+            csv += String(dataPoint.avgMotorCurrent, 2) + ",";
+            csv += String(dataPoint.erpm) + ",";
+            csv += String(dataPoint.dutyCycle, 3) + ",";
+            csv += String(dataPoint.temperature, 1) + ",";
+            csv += String(dataPoint.humidity, 1) + ",";
+            csv += String(dataPoint.batteryLevel) + ",";
+            csv += String(dataPoint.leakSensorState) + ",";
+            csv += String(dataPoint.ledState) + ",";
+            csv += String(dataPoint.leftButton) + ",";
+            csv += String(dataPoint.rightButton) + ",";
+            csv += String(dataPoint.beeperEnabled) + ",";
+            csv += String(dataPoint.beeperActive) + "\\r\\n";
+            
+            exportedPoints++;
+        }
         
         // Check memory usage more frequently
         if (csv.length() > 400000) { // 400KB limit for ESP32 safety
@@ -843,10 +868,19 @@ String generateSessionCsvData(String sessionFile) {
 void streamSessionCsvData(WiFiClient client, String sessionFile) {
     log(("Starting streaming CSV for session: " + sessionFile).c_str());
     
+    // Ensure we have the full path
+    String fullPath = sessionFile;
+    if (!sessionFile.startsWith("/datalog/")) {
+        fullPath = "/datalog/" + sessionFile;
+    }
+    
+    String pathMsg = "CSV streaming - File: " + sessionFile + ", Full path: " + fullPath;
+    log(pathMsg.c_str());
+    
     // Try to open the session file
-    File file = LittleFS.open("/" + sessionFile, "r");
+    File file = LittleFS.open(fullPath, "r");
     if (!file) {
-        String errorMsg = "Failed to open session file: " + sessionFile;
+        String errorMsg = "Failed to open session file: " + sessionFile + " at " + fullPath;
         log(errorMsg.c_str());
         String errorResponse = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nError: Could not open session file " + sessionFile;
         client.print(errorResponse);
@@ -884,32 +918,40 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
             break;
         }
         
-        // Convert timestamp to total uptime in seconds
-        float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
-        
-        // Build and send CSV row directly (small string, immediately sent)
-        String csvRow = String(totalUptimeSeconds, 1) + ",";
-        csvRow += String(dataPoint.tempMotor, 1) + ",";
-        csvRow += String(dataPoint.tempMosfet, 1) + ",";
-        csvRow += String(dataPoint.batteryVoltage, 5) + ",";
-        csvRow += String(dataPoint.current, 2) + ",";
-        csvRow += String(dataPoint.avgMotorCurrent, 2) + ",";
-        csvRow += String(dataPoint.erpm) + ",";
-        csvRow += String(dataPoint.dutyCycle, 3) + ",";
-        csvRow += String(dataPoint.temperature, 1) + ",";
-        csvRow += String(dataPoint.humidity, 1) + ",";
-        csvRow += String(dataPoint.batteryLevel) + ",";
-        csvRow += String(dataPoint.leakSensorState) + ",";
-        csvRow += String(dataPoint.ledState) + ",";
-        csvRow += String(dataPoint.leftButton) + ",";
-        csvRow += String(dataPoint.rightButton) + ",";
-                    csvRow += String(dataPoint.beeperEnabled) + ",";
+        // Filter out corrupted data points with invalid boolean values
+        if (dataPoint.batteryVoltage > 20.0 && dataPoint.batteryVoltage < 100.0 && // Valid battery voltage range
+            (dataPoint.leftButton == 0 || dataPoint.leftButton == 1) &&             // Clean boolean values
+            (dataPoint.rightButton == 0 || dataPoint.rightButton == 1) &&
+            (dataPoint.beeperEnabled == 0 || dataPoint.beeperEnabled == 1) &&
+            (dataPoint.beeperActive == 0 || dataPoint.beeperActive == 1)) {
+            
+            // Convert timestamp to total uptime in seconds
+            float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
+            
+            // Build and send CSV row directly (small string, immediately sent)
+            String csvRow = String(totalUptimeSeconds, 1) + ",";
+            csvRow += String(dataPoint.tempMotor, 1) + ",";
+            csvRow += String(dataPoint.tempMosfet, 1) + ",";
+            csvRow += String(dataPoint.batteryVoltage, 5) + ",";
+            csvRow += String(dataPoint.current, 2) + ",";
+            csvRow += String(dataPoint.avgMotorCurrent, 2) + ",";
+            csvRow += String(dataPoint.erpm) + ",";
+            csvRow += String(dataPoint.dutyCycle, 3) + ",";
+            csvRow += String(dataPoint.temperature, 1) + ",";
+            csvRow += String(dataPoint.humidity, 1) + ",";
+            csvRow += String(dataPoint.batteryLevel) + ",";
+            csvRow += String(dataPoint.leakSensorState) + ",";
+            csvRow += String(dataPoint.ledState) + ",";
+            csvRow += String(dataPoint.leftButton) + ",";
+            csvRow += String(dataPoint.rightButton) + ",";
+            csvRow += String(dataPoint.beeperEnabled) + ",";
             csvRow += String(dataPoint.beeperActive) + "\r\n";
-        
-        // Send this row immediately
-        client.print(csvRow);
-        
-        exportedPoints++;
+            
+            // Send this row immediately
+            client.print(csvRow);
+            
+            exportedPoints++;
+        }
         
         // Give other tasks time and check client connection
         if (i % 10 == 0) {
