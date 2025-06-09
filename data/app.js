@@ -914,22 +914,32 @@ function updateTimeSlider() {
 function updateChart() {
     if (!allDataPoints || !sessionMetadata) return;
     
-    // Calculate visible window size based on zoom level
-    const windowSize = Math.floor(100 * currentZoomLevel);
+    // Calculate visible window size based on zoom level (minimum 50 points)
+    const baseWindowSize = 100;
+    const windowSize = Math.max(50, Math.floor(baseWindowSize * currentZoomLevel));
     
     // Calculate start position based on slider (0-100% of total data)
     const totalDataLength = allDataPoints.length;
     const sliderPercent = timeSliderValue / 100.0;  // Convert to 0.0 - 1.0
     
-    // Calculate start index based on slider position
-    const maxStartIndex = Math.max(0, totalDataLength - windowSize);
-    const startIndex = Math.floor(maxStartIndex * sliderPercent);
+    // Calculate start index - slider position determines where window starts
+    let startIndex;
+    if (windowSize >= totalDataLength) {
+        // If window is larger than data, show all data
+        startIndex = 0;
+    } else {
+        // Slider moves the window start position through available data
+        const maxStartIndex = totalDataLength - windowSize;
+        startIndex = Math.floor(maxStartIndex * sliderPercent);
+    }
     
     // Calculate end index
     const endIndex = Math.min(startIndex + windowSize, totalDataLength);
     
     // Extract visible data window
     const visibleData = allDataPoints.slice(startIndex, endIndex);
+    
+    console.log(`Chart window: showing ${visibleData.length} points from index ${startIndex} to ${endIndex-1} (total: ${totalDataLength}, zoom: ${currentZoomLevel}, slider: ${timeSliderValue}%)`);
     
     // Format timestamps for better readability
     const formattedLabels = visibleData.map(d => {
@@ -967,14 +977,14 @@ function updateChart() {
         
         // Update slider labels with actual time range
         if (visibleData.length > 0) {
-            const startTime = new Date(visibleData[0].timestamp);
-            const endTime = new Date(visibleData[visibleData.length - 1].timestamp);
+            const startTime = formatTime(visibleData[0].totalUptime);
+            const endTime = formatTime(visibleData[visibleData.length - 1].totalUptime);
             
             const sliderStart = document.getElementById('sliderStart');
             const sliderEnd = document.getElementById('sliderEnd');
             
-            if (sliderStart) sliderStart.textContent = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            if (sliderEnd) sliderEnd.textContent = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (sliderStart) sliderStart.textContent = startTime;
+            if (sliderEnd) sliderEnd.textContent = endTime;
         }
     }
 }

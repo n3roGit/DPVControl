@@ -769,7 +769,7 @@ String generateSessionCsvData(String sessionFile) {
     log(fileSizeMsg.c_str());
     
     // Build CSV header with Total Uptime as primary time reference
-    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled\\r\\n";
+    String csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Beeper Active\\r\\n";
     
     LogdataRow dataPoint;
     int exportedPoints = 0;
@@ -801,7 +801,11 @@ String generateSessionCsvData(String sessionFile) {
         csv += String(dataPoint.humidity, 1) + ",";
         csv += String(dataPoint.batteryLevel) + ",";
         csv += String(dataPoint.leakSensorState) + ",";
-        csv += String(dataPoint.ledState) + "\\r\\n";
+        csv += String(dataPoint.ledState) + ",";
+        csv += String(dataPoint.leftButton) + ",";
+        csv += String(dataPoint.rightButton) + ",";
+        csv += String(dataPoint.beeperEnabled) + ",";
+        csv += String(dataPoint.beeperActive) + "\\r\\n";
         
         exportedPoints++;
         
@@ -864,7 +868,7 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
     client.print("\r\n");
     
     // Send CSV header
-    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n");
+    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State,Left Button,Right Button,Beeper Enabled,Beeper Active\r\n");
     
     LogdataRow dataPoint;
     int exportedPoints = 0;
