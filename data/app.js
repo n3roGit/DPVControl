@@ -823,8 +823,38 @@ function exportCurrentViewAsCSV() {
         return;
     }
     
+    // Use backend CSV export to get complete session data
     const filename = selectedSession.replace('.bin', '.csv');
-    exportToCSV(allDataPoints, filename);
+    
+    // Fetch complete session data as CSV from backend
+    fetch(`/api/sessions/${selectedSession}/csv`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to export session data');
+            }
+            return response.text();
+        })
+        .then(csv => {
+            // Create download
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            console.log('Complete session CSV exported: ' + filename);
+        })
+        .catch(error => {
+            console.error('Error exporting session CSV:', error);
+            alert('Error exporting session data. Falling back to current view data.');
+            
+            // Fallback: export currently visible data
+            exportToCSV(allDataPoints, filename);
+        });
 }
 function exportAllSessionsAsZip() {
     if (!availableSessions || availableSessions.length === 0) {
@@ -884,11 +914,22 @@ function updateTimeSlider() {
 function updateChart() {
     if (!allDataPoints || !sessionMetadata) return;
     
-    // Calculate visible data points based on time slider and zoom level
-    const totalDataPoints = Math.floor(timeSliderValue * currentZoomLevel);
-    const maxDataPoints = Math.min(totalDataPoints, allDataPoints.length);
-    const startIndex = Math.max(0, allDataPoints.length - maxDataPoints);
-    const visibleData = allDataPoints.slice(startIndex);
+    // Calculate visible window size based on zoom level
+    const windowSize = Math.floor(100 * currentZoomLevel);
+    
+    // Calculate start position based on slider (0-100% of total data)
+    const totalDataLength = allDataPoints.length;
+    const sliderPercent = timeSliderValue / 100.0;  // Convert to 0.0 - 1.0
+    
+    // Calculate start index based on slider position
+    const maxStartIndex = Math.max(0, totalDataLength - windowSize);
+    const startIndex = Math.floor(maxStartIndex * sliderPercent);
+    
+    // Calculate end index
+    const endIndex = Math.min(startIndex + windowSize, totalDataLength);
+    
+    // Extract visible data window
+    const visibleData = allDataPoints.slice(startIndex, endIndex);
     
     // Format timestamps for better readability
     const formattedLabels = visibleData.map(d => {
@@ -922,6 +963,18 @@ function updateChart() {
         const dataPointCount = document.getElementById('chartDataPointCount');
         if (dataPointCount) {
             dataPointCount.textContent = visibleData.length + ' / ' + sessionMetadata.totalDatapoints;
+        }
+        
+        // Update slider labels with actual time range
+        if (visibleData.length > 0) {
+            const startTime = new Date(visibleData[0].timestamp);
+            const endTime = new Date(visibleData[visibleData.length - 1].timestamp);
+            
+            const sliderStart = document.getElementById('sliderStart');
+            const sliderEnd = document.getElementById('sliderEnd');
+            
+            if (sliderStart) sliderStart.textContent = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (sliderEnd) sliderEnd.textContent = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
     }
 }
