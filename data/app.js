@@ -106,7 +106,7 @@ function exportToCSV(data, filename) {
     }
     
     // Create proper CSV header with Total Uptime as primary time reference
-    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),RPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n";
+    let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED State\r\n";
     
     data.forEach(item => {
         csv += [
@@ -188,7 +188,7 @@ function initCharts() {
                 tension: 0.2,
                 yAxisID: 'percent'
             }, {
-                label: 'RPM (÷100)',
+                label: 'eRPM',
                 borderColor: 'rgb(255, 159, 64)',
                 backgroundColor: 'rgba(255, 159, 64, 0.1)',
                 borderWidth: 2,
@@ -227,6 +227,51 @@ function initCharts() {
                 data: [],
                 tension: 0.2,
                 yAxisID: 'percent'
+            }, {
+                label: 'Beeper Enabled',
+                borderColor: 'rgb(255, 255, 0)',
+                backgroundColor: 'rgba(255, 255, 0, 0.1)',
+                borderWidth: 3,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
+            }, {
+                label: 'Left Button',
+                borderColor: 'rgb(0, 255, 255)',
+                backgroundColor: 'rgba(0, 255, 255, 0.1)',
+                borderWidth: 3,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
+            }, {
+                label: 'Right Button',
+                borderColor: 'rgb(255, 0, 255)',
+                backgroundColor: 'rgba(255, 0, 255, 0.1)',
+                borderWidth: 3,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
+            }, {
+                label: 'Leak Sensor',
+                borderColor: 'rgb(255, 100, 100)',
+                backgroundColor: 'rgba(255, 100, 100, 0.2)',
+                borderWidth: 4,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
+            }, {
+                label: 'LED State',
+                borderColor: 'rgb(100, 255, 100)',
+                backgroundColor: 'rgba(100, 255, 100, 0.2)',
+                borderWidth: 3,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
             }]
         },
         options: {
@@ -345,7 +390,7 @@ function initCharts() {
                     position: 'right',
                     title: {
                         display: true,
-                        text: 'RPM (÷100)',
+                        text: 'eRPM',
                         color: 'rgb(255, 159, 64)'
                     },
                     grid: {
@@ -353,6 +398,28 @@ function initCharts() {
                     },
                     ticks: {
                         color: '#aaa'
+                    }
+                },
+                boolean: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Boolean (0/1)',
+                        color: 'rgb(255, 255, 0)'
+                    },
+                    min: -0.1,
+                    max: 1.1,
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#aaa',
+                        stepSize: 1,
+                        callback: function(value) {
+                            return value === 0 ? 'OFF' : value === 1 ? 'ON' : '';
+                        }
                     }
                 }
             }
@@ -808,11 +875,16 @@ function updateChart() {
         charts.combinedChart.data.datasets[2].data = visibleData.map(d => d.tempMotor);
         charts.combinedChart.data.datasets[3].data = visibleData.map(d => d.temperature);
         charts.combinedChart.data.datasets[4].data = visibleData.map(d => d.humidity);
-        charts.combinedChart.data.datasets[5].data = visibleData.map(d => d.erpm / 100); // Scale down RPM
+        charts.combinedChart.data.datasets[5].data = visibleData.map(d => d.erpm); // Real eRPM values
         charts.combinedChart.data.datasets[6].data = visibleData.map(d => d.dutyCycle);
         charts.combinedChart.data.datasets[7].data = visibleData.map(d => d.tempMosfet);
         charts.combinedChart.data.datasets[8].data = visibleData.map(d => d.avgMotorCurrent);
         charts.combinedChart.data.datasets[9].data = visibleData.map(d => d.batteryLevel);
+        charts.combinedChart.data.datasets[10].data = visibleData.map(d => d.beeperEnabled ? 1 : 0);
+        charts.combinedChart.data.datasets[11].data = visibleData.map(d => d.leftButton ? 1 : 0);
+        charts.combinedChart.data.datasets[12].data = visibleData.map(d => d.rightButton ? 1 : 0);
+        charts.combinedChart.data.datasets[13].data = visibleData.map(d => d.leakSensorState ? 1 : 0);
+        charts.combinedChart.data.datasets[14].data = visibleData.map(d => d.ledState ? 1 : 0);
         
         // Update chart with animation
         charts.combinedChart.update();
