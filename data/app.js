@@ -3,8 +3,6 @@ let updateInterval = 10000; // Fixed 10 seconds
 let charts = {};
 let allDataPoints = [];
 let sessionMetadata = null; // Store session metadata (real duration, total datapoints, etc.)
-let timeSliderValue = 100;
-let currentZoomLevel = 1.0;
 let systemStartTime = null;
 let availableSessions = [];
 let selectedSession = null; // No "all sessions" option
@@ -158,7 +156,7 @@ function exportToCSV(data, filename) {
 function initCharts() {
     // Combined Chart with all data
     const combinedCtx = document.getElementById('combinedChart').getContext('2d');
-    charts.combinedChart = new Chart(combinedCtx, {
+    const chartConfig = {
         type: 'line',
         data: {
             labels: [],
@@ -436,10 +434,38 @@ function initCharts() {
                     caretSize: 8,
                     cornerRadius: 4,
                     displayColors: true
+                },
+                // TODO: Add zoom plugin when available
+                /*
+                zoom: {
+                    pan: {
+                        enabled: true,
+                        mode: 'x',
+                        threshold: 10
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true,
+                        },
+                        pinch: {
+                            enabled: true
+                        },
+                        mode: 'x',
+                        onZoomComplete: function({chart}) {
+                            console.log('Chart zoomed');
+                        }
+                    },
+                    limits: {
+                        x: {min: 'original', max: 'original'},
+                    }
                 }
+                */
             }
         }
-    });
+    };
+
+    charts.combinedChart = new Chart(combinedCtx, chartConfig);
+    console.log('Chart.js visualization initialized with native zoom');
 }
 
 // Tab Navigation
@@ -624,15 +650,42 @@ function loadChartData() {
             sessionMetadata = data.meta;
             allDataPoints = data.data;
             
-            // Update time slider
-            updateTimeSlider();
-            
-            // Update chart
-            updateChart();
+            // Update chart with all data (native zoom will handle windowing)
+            updateChartData();
         })
         .catch(error => {
             console.error('Error loading chart data:', error);
         });
+}
+
+function updateChartData() {
+    if (!allDataPoints || !charts.combinedChart) return;
+    
+    console.log('Updating chart with', allDataPoints.length, 'data points');
+    
+    // Use totalUptime (in seconds) for X-axis
+    const xData = allDataPoints.map(d => (d.totalUptime || 0) / 1000);
+    
+    // Update chart data
+    charts.combinedChart.data.labels = xData;
+    charts.combinedChart.data.datasets[0].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.batteryVoltage}));
+    charts.combinedChart.data.datasets[1].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.current}));
+    charts.combinedChart.data.datasets[2].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.tempMotor}));
+    charts.combinedChart.data.datasets[3].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.temperature}));
+    charts.combinedChart.data.datasets[4].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.humidity}));
+    charts.combinedChart.data.datasets[5].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.erpm}));
+    charts.combinedChart.data.datasets[6].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.dutyCycle}));
+    charts.combinedChart.data.datasets[7].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.tempMosfet}));
+    charts.combinedChart.data.datasets[8].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.avgMotorCurrent}));
+    charts.combinedChart.data.datasets[9].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.batteryLevel}));
+    charts.combinedChart.data.datasets[10].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.beeperActive ? 1 : 0}));
+    charts.combinedChart.data.datasets[11].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leftButton ? 1 : 0}));
+    charts.combinedChart.data.datasets[12].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.rightButton ? 1 : 0}));
+    charts.combinedChart.data.datasets[13].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorState ? 1 : 0}));
+    charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledState ? 1 : 0}));
+    
+    // Update chart
+    charts.combinedChart.update('none'); // No animation for better performance
 }
 
 function loadVersionInfo() {
@@ -775,36 +828,8 @@ function updateSessionFilter() {
     selectedSession = select.value;
     loadChartData();
 }
-function updateTimeWindow() {
-    const slider = document.getElementById('timeSlider');
-    timeSliderValue = slider.value;
-    updateChart();
-}
 function refreshChart() {
     loadChartData();
-}
-
-// Zoom chart function
-function zoomChart(zoomLevel) {
-    currentZoomLevel = zoomLevel;
-    console.log('Setting zoom level to:', currentZoomLevel);
-    
-    // Update time slider to show zoomed data
-    updateChart();
-    
-    // Update UI feedback
-    const zoomButtons = document.querySelectorAll('button[onclick^="zoomChart"]');
-    zoomButtons.forEach(btn => {
-        btn.style.opacity = '0.7';
-        btn.style.fontWeight = 'normal';
-    });
-    
-    // Highlight current zoom level
-    const currentButton = document.querySelector(`button[onclick="zoomChart(${zoomLevel})"]`);
-    if (currentButton) {
-        currentButton.style.opacity = '1.0';
-        currentButton.style.fontWeight = 'bold';
-    }
 }
 function deleteAllSessions() {
     if (!confirm('Are you sure you want to delete all sessions? This cannot be undone.')) {
@@ -917,108 +942,7 @@ function exportAllSessionsAsZip() {
             });
     });
 }
-function updateTimeSlider() {
-    if (!sessionMetadata) return;
-    
-    const slider = document.getElementById('timeSlider');
-    if (!slider) return;
-    
-    // Set slider max to total datapoints
-    slider.max = sessionMetadata.totalDatapoints;
-    slider.value = timeSliderValue;
-    
-    // Update time window display
-    const timeWindow = document.getElementById('timeWindow');
-    if (timeWindow) {
-        const startTime = new Date(sessionMetadata.realStartTimestamp);
-        const endTime = new Date(sessionMetadata.realEndTimestamp);
-        timeWindow.textContent = `${startTime.toLocaleTimeString()} - ${endTime.toLocaleTimeString()}`;
-    }
-}
-function updateChart() {
-    if (!allDataPoints || !sessionMetadata) return;
-    
-    // Calculate visible window size based on zoom level (minimum 50 points)
-    const baseWindowSize = 100;
-    const windowSize = Math.max(50, Math.floor(baseWindowSize * currentZoomLevel));
-    
-    // Calculate start position based on slider (0-100% of total data)
-    const totalDataLength = allDataPoints.length;
-    const sliderPercent = timeSliderValue / 100.0;  // Convert to 0.0 - 1.0
-    
-    // Calculate start index - slider position determines where window starts
-    let startIndex;
-    if (windowSize >= totalDataLength) {
-        // If window is larger than data, show all data
-        startIndex = 0;
-    } else {
-        // Slider moves the window start position through available data
-        const maxStartIndex = totalDataLength - windowSize;
-        startIndex = Math.floor(maxStartIndex * sliderPercent);
-    }
-    
-    // Calculate end index
-    const endIndex = Math.min(startIndex + windowSize, totalDataLength);
-    
-    // Extract visible data window
-    const visibleData = allDataPoints.slice(startIndex, endIndex);
-    
-    console.log(`Chart window: showing ${visibleData.length} points from index ${startIndex} to ${endIndex-1} (total: ${totalDataLength}, zoom: ${currentZoomLevel}, slider: ${timeSliderValue}%)`);
-    
-    // Format timestamps for better readability
-    const formattedLabels = visibleData.map(d => {
-        const date = new Date(d.timestamp);
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    });
-    
-    // Update chart data
-    if (charts.combinedChart) {
-        charts.combinedChart.data.labels = formattedLabels;
-        charts.combinedChart.data.datasets[0].data = visibleData.map(d => d.batteryVoltage);
-        charts.combinedChart.data.datasets[1].data = visibleData.map(d => d.current);
-        charts.combinedChart.data.datasets[2].data = visibleData.map(d => d.tempMotor);
-        charts.combinedChart.data.datasets[3].data = visibleData.map(d => d.temperature);
-        charts.combinedChart.data.datasets[4].data = visibleData.map(d => d.humidity);
-        charts.combinedChart.data.datasets[5].data = visibleData.map(d => d.erpm); // Real eRPM values
-        charts.combinedChart.data.datasets[6].data = visibleData.map(d => d.dutyCycle);
-        charts.combinedChart.data.datasets[7].data = visibleData.map(d => d.tempMosfet);
-        charts.combinedChart.data.datasets[8].data = visibleData.map(d => d.avgMotorCurrent);
-        charts.combinedChart.data.datasets[9].data = visibleData.map(d => d.batteryLevel);
-        charts.combinedChart.data.datasets[10].data = visibleData.map(d => d.beeperActive ? 1 : 0);
-        charts.combinedChart.data.datasets[11].data = visibleData.map(d => d.leftButton ? 1 : 0);
-        charts.combinedChart.data.datasets[12].data = visibleData.map(d => d.rightButton ? 1 : 0);
-        charts.combinedChart.data.datasets[13].data = visibleData.map(d => d.leakSensorState ? 1 : 0);
-        charts.combinedChart.data.datasets[14].data = visibleData.map(d => d.ledState ? 1 : 0);
-        
-        // Update chart with animation
-        charts.combinedChart.update();
-        
-        // Update data point count display
-        const dataPointCount = document.getElementById('chartDataPointCount');
-        if (dataPointCount) {
-            dataPointCount.textContent = visibleData.length + ' / ' + sessionMetadata.totalDatapoints;
-        }
-        
-        // Update slider labels with actual time range
-        if (visibleData.length > 0) {
-            const startTime = formatTime(visibleData[0].totalUptime);
-            const endTime = formatTime(visibleData[visibleData.length - 1].totalUptime);
-            
-            const sliderStart = document.getElementById('sliderStart');
-            const sliderEnd = document.getElementById('sliderEnd');
-            
-            if (sliderStart) sliderStart.textContent = startTime;
-            if (sliderEnd) {
-                // For single point or very short sessions, show duration or "Start"
-                if (visibleData.length === 1 || startTime === endTime) {
-                    sliderEnd.textContent = "Start";
-                } else {
-                    sliderEnd.textContent = endTime;
-                }
-            }
-        }
-    }
-}
+// Time slider functionality removed - using native Chart.js zoom instead
 
 // Remote Control Functions
 function updateMotorSpeed(value) {

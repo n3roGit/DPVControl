@@ -122,26 +122,8 @@
                             <!-- Session duration will be displayed here -->
                         </div>
                         
-                        <div id="timeSliderContainer" style="flex: 1; min-width: 200px;">
-                            <label for="timeSlider" style="color: #b0b0b0; font-weight: bold; display: block; margin-bottom: 5px;">
-                                Time Window Position:
-                            </label>
-                            <input type="range" id="timeSlider" min="0" max="100" value="100" 
-                                   style="width: 100%;" onchange="updateTimeWindow()" oninput="updateTimeWindow()">
-                            <div style="display: flex; justify-content: space-between; font-size: 12px; color: #888; margin-top: 3px;">
-                                <span id="sliderStart">Oldest</span>
-                                <span id="sliderEnd">Newest</span>
-                            </div>
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <label style="color: #b0b0b0; font-weight: bold; font-size: 12px;">Zoom Level:</label>
-                            <div style="display: flex; gap: 5px;">
-                                <button class="button" onclick="zoomChart(0.25)" style="padding: 4px 8px; font-size: 12px; background-color: #4caf50;">25%</button>
-                                <button class="button" onclick="zoomChart(0.5)" style="padding: 4px 8px; font-size: 12px; background-color: #4caf50;">50%</button>
-                                <button class="button" onclick="zoomChart(1.0)" style="padding: 4px 8px; font-size: 12px; background-color: #2196f3;">100%</button>
-                                <button class="button" onclick="zoomChart(2.0)" style="padding: 4px 8px; font-size: 12px; background-color: #ff9800;">200%</button>
-                            </div>
+                        <div style="color: #4fc3f7; font-weight: bold;">
+                            📌 <strong>Native Zoom:</strong> Mouse wheel to zoom, click+drag to pan
                         </div>
                         
                         <button class="button" onclick="refreshChart()">Refresh</button>
