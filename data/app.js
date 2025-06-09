@@ -439,7 +439,7 @@ function initCharts() {
                     pan: {
                         enabled: true,
                         mode: 'x',
-                        threshold: 10
+                        threshold: 5
                     },
                     zoom: {
                         wheel: {
@@ -448,13 +448,7 @@ function initCharts() {
                         pinch: {
                             enabled: true
                         },
-                        mode: 'x',
-                        onZoomComplete: function({chart}) {
-                            console.log('Chart zoomed');
-                        }
-                    },
-                    limits: {
-                        x: {min: 'original', max: 'original'},
+                        mode: 'x'
                     }
                 }
             }
