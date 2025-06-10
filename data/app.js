@@ -666,13 +666,24 @@ function updateChartData() {
     
     console.log('Updating chart with', allDataPoints.length, 'data points');
     
+    // Debug: Log first and last totalUptime values
+    if (allDataPoints.length > 0) {
+        const firstPoint = allDataPoints[0];
+        const lastPoint = allDataPoints[allDataPoints.length - 1];
+        console.log(`Raw totalUptime range: ${firstPoint.totalUptime}ms to ${lastPoint.totalUptime}ms`);
+        console.log(`Raw totalUptime difference: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s`);
+    }
+    
     // Calculate session-relative time instead of total uptime
     // Find the first data point's timestamp to use as session start reference
     let sessionStartTime = allDataPoints.length > 0 ? allDataPoints[0].totalUptime : 0;
     
     // For better user experience, if we have session metadata, use that
     if (sessionMetadata && sessionMetadata.realStartTimestamp) {
+        console.log(`Using session metadata start time: ${sessionMetadata.realStartTimestamp}ms`);
         sessionStartTime = sessionMetadata.realStartTimestamp;
+    } else {
+        console.log(`Using first datapoint as start time: ${sessionStartTime}ms`);
     }
     
     // Create session-relative time data (seconds from session start)
@@ -682,6 +693,7 @@ function updateChartData() {
     });
     
     console.log(`Session time range: 0s to ${Math.max(...xData).toFixed(1)}s (${(Math.max(...xData)/60).toFixed(1)} minutes)`);
+    console.log(`Session metadata:`, sessionMetadata);
     
     // Update chart data
     charts.combinedChart.data.labels = xData;
@@ -849,44 +861,65 @@ function enableRemoteControlInterface() {
 function loadDataWithLiveSession() { 
     loadData(); 
     
-    // If we're viewing the current live session, also refresh chart data
+    // If we're viewing the current live session, refresh with truly live data from RAM buffer
     if (selectedSession && selectedSession.includes('current')) {
-        loadChartData();
+        console.log('Refreshing live session with current RAM data');
         
-        // Auto-zoom to show the latest data after refresh
-        setTimeout(() => {
-            if (charts.combinedChart && allDataPoints.length > 0) {
-                // Calculate session-relative time for auto-zoom
-                let sessionStartTime = allDataPoints[0].totalUptime;
-                if (sessionMetadata && sessionMetadata.realStartTimestamp) {
-                    sessionStartTime = sessionMetadata.realStartTimestamp;
-                }
+        // Use /api/data endpoint to get current RAM buffer data instead of session file
+        fetch('/api/data?count=250') // Get up to 250 recent points from RAM buffer
+            .then(response => response.json())
+            .then(data => {
+                console.log('Live RAM data loaded:', data.length, 'points');
                 
-                const lastDataPoint = allDataPoints[allDataPoints.length - 1];
-                const firstDataPoint = allDataPoints[0];
+                // Create minimal metadata for live data
+                sessionMetadata = {
+                    isLiveData: true,
+                    totalDatapoints: data.length,
+                    chartDatapoints: data.length
+                };
+                allDataPoints = data;
                 
-                if (lastDataPoint && firstDataPoint) {
-                    // Calculate session-relative times
-                    const maxSessionTime = ((lastDataPoint.totalUptime || 0) - sessionStartTime) / 1000;
-                    const totalSessionDuration = maxSessionTime;
-                    
-                    // For live sessions, show the last 3 minutes or the entire session if shorter
-                    const viewWindowSeconds = Math.min(180, totalSessionDuration);
-                    const minTime = Math.max(0, maxSessionTime - viewWindowSeconds);
-                    
-                    // Only apply auto-zoom if the session is longer than the view window
-                    if (totalSessionDuration > viewWindowSeconds) {
-                        charts.combinedChart.options.scales.x.min = minTime;
-                        charts.combinedChart.options.scales.x.max = maxSessionTime;
-                        charts.combinedChart.update('none');
+                // Update chart with live data
+                updateChartData();
+                
+                // Auto-zoom to show the latest data after refresh
+                setTimeout(() => {
+                    if (charts.combinedChart && allDataPoints.length > 0) {
+                        // For live data, use the first point as session start
+                        const firstDataPoint = allDataPoints[0];
+                        const lastDataPoint = allDataPoints[allDataPoints.length - 1];
                         
-                        console.log(`Auto-zoomed to show last ${viewWindowSeconds}s of session (${minTime.toFixed(1)}s to ${maxSessionTime.toFixed(1)}s)`);
-                    } else {
-                        console.log(`Session duration ${totalSessionDuration.toFixed(1)}s is within view window, showing all data`);
+                        if (lastDataPoint && firstDataPoint) {
+                            // Calculate session-relative times from first data point
+                            const sessionStartTime = firstDataPoint.totalUptime;
+                            const maxSessionTime = ((lastDataPoint.totalUptime || 0) - sessionStartTime) / 1000;
+                            const totalSessionDuration = maxSessionTime;
+                            
+                            console.log(`Live session duration: ${totalSessionDuration.toFixed(1)}s`);
+                            
+                            // For live sessions, show the last 3 minutes or the entire session if shorter
+                            const viewWindowSeconds = Math.min(180, totalSessionDuration);
+                            const minTime = Math.max(0, maxSessionTime - viewWindowSeconds);
+                            
+                            // Only apply auto-zoom if the session is longer than the view window
+                            if (totalSessionDuration > viewWindowSeconds) {
+                                charts.combinedChart.options.scales.x.min = minTime;
+                                charts.combinedChart.options.scales.x.max = maxSessionTime;
+                                charts.combinedChart.update('none');
+                                
+                                console.log(`Auto-zoomed live data to show last ${viewWindowSeconds}s (${minTime.toFixed(1)}s to ${maxSessionTime.toFixed(1)}s)`);
+                            } else {
+                                console.log(`Live session duration ${totalSessionDuration.toFixed(1)}s fits in view window, showing all data`);
+                            }
+                        }
                     }
-                }
-            }
-        }, 300); // Slightly longer delay to ensure data processing is complete
+                }, 200);
+            })
+            .catch(error => {
+                console.error('Error loading live RAM data, falling back to session file:', error);
+                // Fallback to session file method
+                loadChartData();
+            });
     }
 }
 
