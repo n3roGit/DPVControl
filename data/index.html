@@ -130,6 +130,17 @@
                     </div>
                 </div>
                 
+                <!-- Data Filter Controls -->
+                <div style="margin-bottom: 20px; padding: 15px; background-color: #2a2a2a; border-radius: 8px; border: 1px solid #505050;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+                        <label style="color: #b0b0b0; font-weight: bold; margin-right: 10px;">Quick Filters:</label>
+                        <button class="button" onclick="applyDataFilter('main')" style="background-color: #2196f3;">Main Data</button>
+                        <button class="button" onclick="applyDataFilter('boolean')" style="background-color: #4CAF50;">Boolean Values</button>
+                        <button class="button" onclick="applyDataFilter('all')" style="background-color: #FF9800;">Show All</button>
+                        <button class="button" onclick="applyDataFilter('none')" style="background-color: #607D8B;">Hide All</button>
+                    </div>
+                </div>
+                
                 <!-- Chart Container -->
                 <div style="height: 400px; width: 100%; position: relative;">
                     <canvas id="combinedChart"></canvas>

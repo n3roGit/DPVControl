@@ -1485,4 +1485,72 @@ function setLampLevel(level) {
     }).catch(error => {
         console.error('Error setting lamp level:', error);
     });
+}
+
+// Data filter categories for quick filtering
+const dataCategories = {
+    main: [
+        'Battery Voltage (V)',
+        'Current (A)', 
+        'Motor Temp (°C)',
+        'Ambient Temp (°C)',
+        'Humidity (%)',
+        'eRPM',
+        'Duty Cycle (%)',
+        'MOSFET Temp (°C)',
+        'Motor Current (A)',
+        'Battery Level (%)',
+        'LED Brightness (%)'
+    ],
+    boolean: [
+        'Beeper Active',
+        'Left Button',
+        'Right Button', 
+        'Leak Sensor'
+    ]
+};
+
+// Apply data filter to show/hide chart datasets
+function applyDataFilter(filterType) {
+    if (!charts.combinedChart) return;
+    
+    const chart = charts.combinedChart;
+    const datasets = chart.data.datasets;
+    
+    // Define which datasets to show based on filter type
+    let datasetsToShow = [];
+    
+    switch(filterType) {
+        case 'main':
+            datasetsToShow = dataCategories.main;
+            break;
+        case 'boolean':
+            datasetsToShow = dataCategories.boolean;
+            break;
+        case 'all':
+            datasetsToShow = [...dataCategories.main, ...dataCategories.boolean];
+            break;
+        case 'none':
+            datasetsToShow = [];
+            break;
+        default:
+            console.warn('Unknown filter type:', filterType);
+            return;
+    }
+    
+    // Update dataset visibility
+    datasets.forEach(dataset => {
+        const shouldShow = datasetsToShow.includes(dataset.label);
+        
+        // Use Chart.js built-in visibility toggle
+        const meta = chart.getDatasetMeta(datasets.indexOf(dataset));
+        if (meta) {
+            meta.hidden = !shouldShow;
+        }
+    });
+    
+    // Update the chart
+    chart.update('none'); // No animation for better performance
+    
+    console.log(`Applied filter: ${filterType}, showing ${datasetsToShow.length} datasets`);
 } 
