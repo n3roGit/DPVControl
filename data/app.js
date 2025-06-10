@@ -674,25 +674,23 @@ function updateChartData() {
         console.log(`Raw totalUptime difference: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s`);
     }
     
-    // Calculate session-relative time instead of total uptime
-    // Find the first data point's timestamp to use as session start reference
-    let sessionStartTime = allDataPoints.length > 0 ? allDataPoints[0].totalUptime : 0;
+    // Calculate session start time for time axis
+    let sessionStartTime = 0;
     
-    // For better user experience, if we have session metadata, use that
-    if (sessionMetadata && sessionMetadata.realStartTimestamp) {
-        console.log(`Using session metadata start time: ${sessionMetadata.realStartTimestamp}ms`);
-        sessionStartTime = sessionMetadata.realStartTimestamp;
-    } else {
-        console.log(`Using first datapoint as start time: ${sessionStartTime}ms`);
+    // For ALL data (live and session), use the first available data point as reference
+    // This ensures the chart always starts at 0:00 and shows the span of available data
+    if (allDataPoints.length > 0) {
+        sessionStartTime = allDataPoints[0].totalUptime;
+        console.log(`Using first available datapoint as time reference: ${sessionStartTime}ms`);
     }
     
-    // Create session-relative time data (seconds from session start)
+    // Create time data (seconds from first datapoint)
     const xData = allDataPoints.map(d => {
-        const relativeTime = ((d.totalUptime || 0) - sessionStartTime) / 1000;
-        return Math.max(0, relativeTime); // Ensure no negative times
+        const timeValue = ((d.totalUptime || 0) - sessionStartTime) / 1000;
+        return Math.max(0, timeValue); // Ensure no negative times
     });
     
-    console.log(`Session time range: 0s to ${Math.max(...xData).toFixed(1)}s (${(Math.max(...xData)/60).toFixed(1)} minutes)`);
+    console.log(`Chart time range: ${Math.min(...xData).toFixed(1)}s to ${Math.max(...xData).toFixed(1)}s (${(Math.max(...xData)/60).toFixed(1)} minutes)`);
     console.log(`Session metadata:`, sessionMetadata);
     
     // Update chart data
@@ -866,10 +864,31 @@ function loadDataWithLiveSession() {
         console.log('Refreshing live session with current RAM data');
         
         // Use /api/data endpoint to get current RAM buffer data instead of session file
-        fetch('/api/data?count=250') // Get up to 250 recent points from RAM buffer
+        // Request more data to get complete system uptime view (500 points = ~40 minutes at 5s interval)
+        fetch('/api/data?count=500') // Increased from 250 to get more historical data
             .then(response => response.json())
             .then(data => {
                 console.log('Live RAM data loaded:', data.length, 'points');
+                
+                // Debug: Log the time range of the loaded data
+                if (data.length > 0) {
+                    const firstPoint = data[0];
+                    const lastPoint = data[data.length - 1];
+                    const systemUptimeMs = performance.now(); // Approximate system uptime
+                    
+                    console.log('DEBUG - Raw totalUptime range:');
+                    console.log(`  First point totalUptime: ${firstPoint.totalUptime}ms`);
+                    console.log(`  Last point totalUptime: ${lastPoint.totalUptime}ms`);
+                    console.log(`  Time span in data: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s`);
+                    console.log(`  Expected system uptime: ~${systemUptimeMs / 1000}s`);
+                    console.log(`  Data points: ${data.length} (expected ~${Math.floor(systemUptimeMs / 5000)} for 5s interval)`);
+                    
+                    // Check if we're missing early boot data
+                    if (firstPoint.totalUptime > 30000) { // If first point is more than 30 seconds into boot
+                        console.log(`WARNING: Missing early boot data! First point starts at ${firstPoint.totalUptime/1000}s, not 0s`);
+                        console.log(`This explains why chart shows less time than system uptime`);
+                    }
+                }
                 
                 // Create minimal metadata for live data
                 sessionMetadata = {
@@ -882,38 +901,9 @@ function loadDataWithLiveSession() {
                 // Update chart with live data
                 updateChartData();
                 
-                // Auto-zoom to show the latest data after refresh
-                setTimeout(() => {
-                    if (charts.combinedChart && allDataPoints.length > 0) {
-                        // For live data, use the first point as session start
-                        const firstDataPoint = allDataPoints[0];
-                        const lastDataPoint = allDataPoints[allDataPoints.length - 1];
-                        
-                        if (lastDataPoint && firstDataPoint) {
-                            // Calculate session-relative times from first data point
-                            const sessionStartTime = firstDataPoint.totalUptime;
-                            const maxSessionTime = ((lastDataPoint.totalUptime || 0) - sessionStartTime) / 1000;
-                            const totalSessionDuration = maxSessionTime;
-                            
-                            console.log(`Live session duration: ${totalSessionDuration.toFixed(1)}s`);
-                            
-                            // For live sessions, show the last 3 minutes or the entire session if shorter
-                            const viewWindowSeconds = Math.min(180, totalSessionDuration);
-                            const minTime = Math.max(0, maxSessionTime - viewWindowSeconds);
-                            
-                            // Only apply auto-zoom if the session is longer than the view window
-                            if (totalSessionDuration > viewWindowSeconds) {
-                                charts.combinedChart.options.scales.x.min = minTime;
-                                charts.combinedChart.options.scales.x.max = maxSessionTime;
-                                charts.combinedChart.update('none');
-                                
-                                console.log(`Auto-zoomed live data to show last ${viewWindowSeconds}s (${minTime.toFixed(1)}s to ${maxSessionTime.toFixed(1)}s)`);
-                            } else {
-                                console.log(`Live session duration ${totalSessionDuration.toFixed(1)}s fits in view window, showing all data`);
-                            }
-                        }
-                    }
-                }, 200);
+                // DISABLE auto-zoom for debugging - show all data
+                console.log('DEBUG: Disabling auto-zoom to show all available data');
+                
             })
             .catch(error => {
                 console.error('Error loading live RAM data, falling back to session file:', error);

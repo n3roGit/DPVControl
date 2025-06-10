@@ -68,7 +68,7 @@ void beepLoop(){
 
 void BeepForLeak() {
   if (!getBeeperEnabled()) {
-    log("Beeper disabled, ignoring leak beep request");
+    // log("Beeper disabled, ignoring leak beep request");  // Commented out to reduce log spam
     return;
   }
   if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
