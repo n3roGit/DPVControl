@@ -58,11 +58,11 @@ void setup() {
   Serial.begin(115200);
 
   // Keep essential startup messages unconditional for debugging
-  Serial.println("Booting started...!");
+  log("Booting started...!");
 
   // Initialize LittleFS first for settings
   if (!LittleFS.begin(true)) {
-    Serial.println("LittleFS initialization failed!");
+    log("LittleFS initialization failed!");
   } else {
     log("LittleFS initialized for settings");
   }
@@ -103,7 +103,7 @@ void setup() {
   setupWebserver();
 
   // Booting finished - keep unconditional for debugging
-  Serial.println("Booting finished!");
+  log("Booting finished!");
   beep("1");
 }
 
