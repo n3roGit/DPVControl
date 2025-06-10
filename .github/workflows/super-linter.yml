@@ -9,23 +9,21 @@ name: Lint Code Base
 
 on:
   push:
-    branches: [ "production_repo" ]
+    branches: ["production_repo"]
     paths:
       - 'src/**'
+      - 'test/**'
       - 'platformio.ini'
-      - 'data/**'
-      - '.github/workflows/**'
       - '!**/*.md'
       - '!**/*.png'
       - '!**/*.jpg'
       - '!**/*.jpeg'
   pull_request:
-    branches: [ "production_repo" ]
+    branches: ["production_repo"]
     paths:
       - 'src/**'
+      - 'test/**'
       - 'platformio.ini'
-      - 'data/**'
-      - '.github/workflows/**'
       - '!**/*.md'
       - '!**/*.png'
       - '!**/*.jpg'
@@ -46,19 +44,25 @@ jobs:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-          LOG_LEVEL: DEBUG        # Enable detailed logging
-          VERBOSE: true           # Show detailed information for each linter run
+          LOG_LEVEL: INFO                 # Reduce verbosity
+          VERBOSE: false                  # Reduce log noise
           ENABLE_GITHUB_ACTIONS_GROUP_TITLE: true  # Better log grouping
-          PRINT_LINTER_VERSIONS: true              # Show linter versions
+          PRINT_LINTER_VERSIONS: false    # Reduce log noise
+          # Only validate source code directories
+          FILTER_REGEX_INCLUDE: "^(src/.*|test/.*|platformio\\.ini)$"
+          # Disable most linters except for what we actually use
           VALIDATE_CPP: false
           VALIDATE_CPP_CPPLINT: false
           VALIDATE_CPP_CPPCHECK: false
           VALIDATE_CPP_CLANG_FORMAT: false
           VALIDATE_CPP_CLANG_TIDY: false
-          VALIDATE_CLANG_FORMAT: false     # Additional clang-format disable
-          VALIDATE_JAVASCRIPT_ES: false   # Disable JS linting for embedded code
-          VALIDATE_CSS: false             # Disable CSS linting
-          VALIDATE_HTML: false            # Disable HTML linting
+          VALIDATE_CLANG_FORMAT: false
+          VALIDATE_JAVASCRIPT_ES: false
+          VALIDATE_CSS: false
+          VALIDATE_HTML: false
+          VALIDATE_YAML: false            # Skip YAML linting of workflows
+          VALIDATE_JSON: true             # Keep JSON validation for config files
+          VALIDATE_MARKDOWN: false        # Skip README etc.
           VALIDATE_CPP_CPPLINT_FILTER_REGEX: ".*\\.(cpp|h)$"
           VALIDATE_CPP_CPPLINT_OPTIONS: >-
             --filter=-legal/copyright,-build/include_order,-build/include_what_you_use,
