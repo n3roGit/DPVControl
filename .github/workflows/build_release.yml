@@ -99,6 +99,14 @@ jobs:
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
 
+      - name: Prepare release files
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        run: |
+          mkdir -p release_files
+          cp .pio/build/esp32dev/firmware.bin release_files/
+          cp .pio/build/esp32dev/bootloader.bin release_files/
+          cp .pio/build/esp32dev/partitions.bin release_files/
+
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
         uses: softprops/action-gh-release@v2
@@ -107,8 +115,8 @@ jobs:
           name: Release v${{ steps.version.outputs.version }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           files: |
-            .pio/build/esp32dev/firmware.bin
-            .pio/build/esp32dev/bootloader.bin
-            .pio/build/esp32dev/partitions.bin
+            release_files/firmware.bin
+            release_files/bootloader.bin
+            release_files/partitions.bin
           draft: false
           prerelease: false
