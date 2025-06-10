@@ -294,8 +294,8 @@ function initCharts() {
                 duration: 500
             },
             interaction: {
-                mode: 'index',
-                intersect: false
+                mode: 'nearest',
+                intersect: true
             },
             scales: {
                 x: {
