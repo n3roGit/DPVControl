@@ -666,8 +666,22 @@ function updateChartData() {
     
     console.log('Updating chart with', allDataPoints.length, 'data points');
     
-    // Use totalUptime (already in milliseconds, convert to seconds for display)
-    const xData = allDataPoints.map(d => (d.totalUptime || 0) / 1000);
+    // Calculate session-relative time instead of total uptime
+    // Find the first data point's timestamp to use as session start reference
+    let sessionStartTime = allDataPoints.length > 0 ? allDataPoints[0].totalUptime : 0;
+    
+    // For better user experience, if we have session metadata, use that
+    if (sessionMetadata && sessionMetadata.realStartTimestamp) {
+        sessionStartTime = sessionMetadata.realStartTimestamp;
+    }
+    
+    // Create session-relative time data (seconds from session start)
+    const xData = allDataPoints.map(d => {
+        const relativeTime = ((d.totalUptime || 0) - sessionStartTime) / 1000;
+        return Math.max(0, relativeTime); // Ensure no negative times
+    });
+    
+    console.log(`Session time range: 0s to ${Math.max(...xData).toFixed(1)}s (${(Math.max(...xData)/60).toFixed(1)} minutes)`);
     
     // Update chart data
     charts.combinedChart.data.labels = xData;
@@ -686,6 +700,13 @@ function updateChartData() {
     charts.combinedChart.data.datasets[12].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.rightButton ? 1 : 0}));
     charts.combinedChart.data.datasets[13].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorState ? 1 : 0}));
     charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledBrightness || 0}));
+    
+    // Reset zoom to show all data by clearing min/max constraints
+    if (charts.combinedChart.options.scales.x.min !== undefined || 
+        charts.combinedChart.options.scales.x.max !== undefined) {
+        delete charts.combinedChart.options.scales.x.min;
+        delete charts.combinedChart.options.scales.x.max;
+    }
     
     // Update chart
     charts.combinedChart.update('none'); // No animation for better performance
@@ -825,7 +846,50 @@ function enableRemoteControlInterface() {
     }
 }
 
-function loadDataWithLiveSession() { loadData(); }
+function loadDataWithLiveSession() { 
+    loadData(); 
+    
+    // If we're viewing the current live session, also refresh chart data
+    if (selectedSession && selectedSession.includes('current')) {
+        loadChartData();
+        
+        // Auto-zoom to show the latest data after refresh
+        setTimeout(() => {
+            if (charts.combinedChart && allDataPoints.length > 0) {
+                // Calculate session-relative time for auto-zoom
+                let sessionStartTime = allDataPoints[0].totalUptime;
+                if (sessionMetadata && sessionMetadata.realStartTimestamp) {
+                    sessionStartTime = sessionMetadata.realStartTimestamp;
+                }
+                
+                const lastDataPoint = allDataPoints[allDataPoints.length - 1];
+                const firstDataPoint = allDataPoints[0];
+                
+                if (lastDataPoint && firstDataPoint) {
+                    // Calculate session-relative times
+                    const maxSessionTime = ((lastDataPoint.totalUptime || 0) - sessionStartTime) / 1000;
+                    const totalSessionDuration = maxSessionTime;
+                    
+                    // For live sessions, show the last 3 minutes or the entire session if shorter
+                    const viewWindowSeconds = Math.min(180, totalSessionDuration);
+                    const minTime = Math.max(0, maxSessionTime - viewWindowSeconds);
+                    
+                    // Only apply auto-zoom if the session is longer than the view window
+                    if (totalSessionDuration > viewWindowSeconds) {
+                        charts.combinedChart.options.scales.x.min = minTime;
+                        charts.combinedChart.options.scales.x.max = maxSessionTime;
+                        charts.combinedChart.update('none');
+                        
+                        console.log(`Auto-zoomed to show last ${viewWindowSeconds}s of session (${minTime.toFixed(1)}s to ${maxSessionTime.toFixed(1)}s)`);
+                    } else {
+                        console.log(`Session duration ${totalSessionDuration.toFixed(1)}s is within view window, showing all data`);
+                    }
+                }
+            }
+        }, 300); // Slightly longer delay to ensure data processing is complete
+    }
+}
+
 function updateSessionFilter() {
     const select = document.getElementById('sessionSelect');
     selectedSession = select.value;
