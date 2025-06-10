@@ -138,16 +138,14 @@ jobs:
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           files: |
-            release_files/firmware.bin
-            release_files/bootloader.bin
-            release_files/partitions.bin
+            .pio/build/esp32dev/firmware.bin
+            .pio/build/esp32dev/bootloader.bin
+            .pio/build/esp32dev/partitions.bin
           draft: false
           prerelease: false
-          continue-on-error: true
-          retry: 3
