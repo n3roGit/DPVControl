@@ -7,7 +7,6 @@
 #include <cstdint>
 #include "mock_arduino.h"
 #include <vector>
-
 // Mock hardware variables
 extern int LED_State;
 extern int currentMotorStep;
@@ -32,6 +31,8 @@ extern bool mockDHTTimeout;
 extern bool mockLedState;
 extern int mockMotorSteps;
 extern std::vector<std::string> mockInvalidInputs;
+
+// Mock session data variables are now in test files directly
 
 // Mock hardware functions
 void mock_ledBarSetup();

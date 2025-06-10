@@ -1,11 +1,11 @@
-#pragma once
-#include <string>
+#ifndef MOCK_WEBSERVER_H
+#define MOCK_WEBSERVER_H
 
-extern std::string mockResponse;
+#include "mock_arduino.h"
+#include "mock_datalog.h"
+
+extern String mockResponse;
 extern bool mockRebootCalled;
-
-void handleClient();
-void sendHttpResponse(const char* response);
 
 extern "C" {
     void handleApiStatus();
@@ -16,6 +16,11 @@ extern "C" {
     void handleApiVersion();
 }
 
-// Mock webserver functions
-void handleClient(class MockClient& client);
-void sendHttpResponse(class MockClient& client, int statusCode, const char* contentType, const char* content); 
+// Mock session data generation functions for testing
+String generateSessionDataJson(String sessionFile);
+String generateSessionCsvData(String sessionFile);
+
+// Mock helper functions
+void sendHttpResponse(const char* response);
+
+#endif 

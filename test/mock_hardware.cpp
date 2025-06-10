@@ -31,6 +31,8 @@ bool mockLedState = false;
 int mockMotorSteps = 10;
 std::vector<std::string> mockInvalidInputs;
 
+// Mock session data variables removed - now in test files directly
+
 // Mock time variables
 unsigned long mockMillisValue = 0;
 
