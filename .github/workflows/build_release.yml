@@ -114,38 +114,17 @@ jobs:
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
 
-      - name: Prepare release files
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
-        run: |
-          mkdir -p release_files
-          cp .pio/build/esp32dev/firmware.bin release_files/
-          cp .pio/build/esp32dev/bootloader.bin release_files/
-          cp .pio/build/esp32dev/partitions.bin release_files/
-          echo "Files copied to release_files directory:"
-          ls -la release_files/
-
-      - name: Debug Build Output
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
-        run: |
-          echo "Listing build directory:"
-          ls -la .pio/build/esp32dev/
-          echo "Listing release files directory:"
-          ls -la release_files/
-
-      - name: Cleanup Temp Files
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
-        run: rm -f /home/runner/work/_temp/*
-
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
-        uses: softprops/action-gh-release@v2
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}
+          tag: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
-          files: |
+          artifacts: |
             .pio/build/esp32dev/firmware.bin
             .pio/build/esp32dev/bootloader.bin
             .pio/build/esp32dev/partitions.bin
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
