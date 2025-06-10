@@ -122,7 +122,14 @@
                             <!-- Session duration will be displayed here -->
                         </div>
                         
-
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="tooltipModeToggle" style="color: #b0b0b0; font-size: 14px;">Tooltip Mode:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="tooltipModeToggle" onchange="toggleTooltipMode()">
+                                <span class="slider"></span>
+                            </label>
+                            <span id="tooltipModeLabel" style="color: #b0b0b0; font-size: 12px;">Single Line</span>
+                        </div>
                         
                         <button class="button" onclick="refreshChart()">Refresh</button>
                         

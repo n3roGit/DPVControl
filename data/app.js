@@ -1677,4 +1677,29 @@ function applyDataFilter(filterType) {
     chart.update('none'); // No animation for better performance
     
     console.log(`Applied filter: ${filterType}, showing ${datasetsToShow.length} datasets`);
+}
+
+// Toggle between single-line and multi-line tooltip modes
+function toggleTooltipMode() {
+    if (!charts.combinedChart) return;
+    
+    const toggle = document.getElementById('tooltipModeToggle');
+    const label = document.getElementById('tooltipModeLabel');
+    
+    if (toggle.checked) {
+        // Multi-line mode (show all data points at same X position)
+        charts.combinedChart.options.interaction.mode = 'index';
+        charts.combinedChart.options.interaction.intersect = false;
+        label.textContent = 'All Data';
+        console.log('Switched to multi-line tooltip mode');
+    } else {
+        // Single-line mode (show only nearest data point)
+        charts.combinedChart.options.interaction.mode = 'nearest';
+        charts.combinedChart.options.interaction.intersect = true;
+        label.textContent = 'Single Line';
+        console.log('Switched to single-line tooltip mode');
+    }
+    
+    // Update chart configuration
+    charts.combinedChart.update('none');
 } 
