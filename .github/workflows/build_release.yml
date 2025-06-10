@@ -52,6 +52,21 @@ jobs:
       - name: Build PlatformIO Project
         run: pio run -e esp32dev
 
+      - name: Verify Build Artifacts
+        run: |
+          if [ ! -f .pio/build/esp32dev/firmware.bin ]; then
+            echo "firmware.bin not found!"
+            exit 1
+          fi
+          if [ ! -f .pio/build/esp32dev/bootloader.bin ]; then
+            echo "bootloader.bin not found!"
+            exit 1
+          fi
+          if [ ! -f .pio/build/esp32dev/partitions.bin ]; then
+            echo "partitions.bin not found!"
+            exit 1
+          fi
+
       - name: Run Unit Tests
         run: pio test -e native
 
@@ -115,8 +130,8 @@ jobs:
           name: Release v${{ steps.version.outputs.version }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           files: |
-            release_files/firmware.bin
-            release_files/bootloader.bin
-            release_files/partitions.bin
+            .pio/build/esp32dev/firmware.bin
+            .pio/build/esp32dev/bootloader.bin
+            .pio/build/esp32dev/partitions.bin
           draft: false
           prerelease: false
