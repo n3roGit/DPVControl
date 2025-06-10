@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: DPVControl API
   description: API for controlling and monitoring the Diver Propulsion Vehicle (DPV)
-  version: 1.2.4
+  version: 1.2.5
   contact:
     name: DPV Control Project
     url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/

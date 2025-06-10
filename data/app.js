@@ -301,7 +301,7 @@ function initCharts() {
                 x: {
                     title: {
                         display: true,
-                        text: 'Runtime (mm:ss)',
+                        text: 'Runtime (hh:mm:ss)',
                         color: '#aaa'
                     },
                     grid: {
@@ -310,11 +310,12 @@ function initCharts() {
                     ticks: {
                         color: '#aaa',
                         callback: function(value) {
-                            // Convert seconds to mm:ss format
+                            // Convert seconds to hh:mm:ss format (same as system uptime)
                             const totalSeconds = Math.floor(value);
-                            const minutes = Math.floor(totalSeconds / 60);
+                            const hours = Math.floor(totalSeconds / 3600);
+                            const minutes = Math.floor((totalSeconds % 3600) / 60);
                             const seconds = totalSeconds % 60;
-                            return String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                            return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
                         }
                     }
                 },
@@ -664,14 +665,15 @@ function loadChartData() {
 function updateChartData() {
     if (!allDataPoints || !charts.combinedChart) return;
     
+    console.log('=== CHART UPDATE ANALYSIS ===');
     console.log('Updating chart with', allDataPoints.length, 'data points');
     
     // Debug: Log first and last totalUptime values
     if (allDataPoints.length > 0) {
         const firstPoint = allDataPoints[0];
         const lastPoint = allDataPoints[allDataPoints.length - 1];
-        console.log(`Raw totalUptime range: ${firstPoint.totalUptime}ms to ${lastPoint.totalUptime}ms`);
-        console.log(`Raw totalUptime difference: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s`);
+        console.log(`Raw totalUptime range: ${firstPoint.totalUptime}ms (${(firstPoint.totalUptime/1000).toFixed(1)}s) to ${lastPoint.totalUptime}ms (${(lastPoint.totalUptime/1000).toFixed(1)}s)`);
+        console.log(`Raw totalUptime difference: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s = ${((lastPoint.totalUptime - firstPoint.totalUptime) / 60000).toFixed(1)}min`);
     }
     
     // Calculate session start time for time axis
@@ -681,7 +683,7 @@ function updateChartData() {
     // This ensures the chart always starts at 0:00 and shows the span of available data
     if (allDataPoints.length > 0) {
         sessionStartTime = allDataPoints[0].totalUptime;
-        console.log(`Using first available datapoint as time reference: ${sessionStartTime}ms`);
+        console.log(`Using first available datapoint as time reference: ${sessionStartTime}ms (${(sessionStartTime/1000).toFixed(1)}s)`);
     }
     
     // Create time data (seconds from first datapoint)
@@ -691,7 +693,10 @@ function updateChartData() {
     });
     
     console.log(`Chart time range: ${Math.min(...xData).toFixed(1)}s to ${Math.max(...xData).toFixed(1)}s (${(Math.max(...xData)/60).toFixed(1)} minutes)`);
+    console.log(`Time axis values (first 10):`, xData.slice(0, 10).map(t => t.toFixed(1)));
+    console.log(`Time axis values (last 10):`, xData.slice(-10).map(t => t.toFixed(1)));
     console.log(`Session metadata:`, sessionMetadata);
+    console.log('=== END CHART ANALYSIS ===');
     
     // Update chart data
     charts.combinedChart.data.labels = xData;
@@ -874,20 +879,24 @@ function loadDataWithLiveSession() {
                 if (data.length > 0) {
                     const firstPoint = data[0];
                     const lastPoint = data[data.length - 1];
-                    const systemUptimeMs = performance.now(); // Approximate system uptime
                     
-                    console.log('DEBUG - Raw totalUptime range:');
-                    console.log(`  First point totalUptime: ${firstPoint.totalUptime}ms`);
-                    console.log(`  Last point totalUptime: ${lastPoint.totalUptime}ms`);
-                    console.log(`  Time span in data: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s`);
-                    console.log(`  Expected system uptime: ~${systemUptimeMs / 1000}s`);
-                    console.log(`  Data points: ${data.length} (expected ~${Math.floor(systemUptimeMs / 5000)} for 5s interval)`);
+                    console.log('=== LIVE DATA ANALYSIS ===');
+                    console.log(`  First point totalUptime: ${firstPoint.totalUptime}ms = ${(firstPoint.totalUptime/1000).toFixed(1)}s`);
+                    console.log(`  Last point totalUptime: ${lastPoint.totalUptime}ms = ${(lastPoint.totalUptime/1000).toFixed(1)}s`);
+                    console.log(`  Time span in data: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s = ${((lastPoint.totalUptime - firstPoint.totalUptime) / 60000).toFixed(1)}min`);
+                    console.log(`  Data points: ${data.length}`);
+                    console.log(`  Expected interval: ${((lastPoint.totalUptime - firstPoint.totalUptime) / (data.length - 1) / 1000).toFixed(1)}s per point`);
+                    
+                    // Show first few and last few timestamps for pattern analysis
+                    console.log('  First 5 timestamps:', data.slice(0, 5).map(d => `${(d.totalUptime/1000).toFixed(1)}s`));
+                    console.log('  Last 5 timestamps:', data.slice(-5).map(d => `${(d.totalUptime/1000).toFixed(1)}s`));
                     
                     // Check if we're missing early boot data
                     if (firstPoint.totalUptime > 30000) { // If first point is more than 30 seconds into boot
-                        console.log(`WARNING: Missing early boot data! First point starts at ${firstPoint.totalUptime/1000}s, not 0s`);
-                        console.log(`This explains why chart shows less time than system uptime`);
+                        console.log(`  WARNING: Missing early boot data! First point starts at ${(firstPoint.totalUptime/1000).toFixed(1)}s, not 0s`);
+                        console.log(`  This explains why chart time != system uptime`);
                     }
+                    console.log('=== END ANALYSIS ===');
                 }
                 
                 // Create minimal metadata for live data
@@ -900,9 +909,6 @@ function loadDataWithLiveSession() {
                 
                 // Update chart with live data
                 updateChartData();
-                
-                // DISABLE auto-zoom for debugging - show all data
-                console.log('DEBUG: Disabling auto-zoom to show all available data');
                 
             })
             .catch(error => {
