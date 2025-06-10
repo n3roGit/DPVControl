@@ -46,28 +46,11 @@ This project uses **PlatformIO** for development, which provides better dependen
 
 ### Pre-commit Hook for Automated Testing
 
-To ensure code quality, a pre-commit hook is provided that automatically runs all tests before each commit. This prevents commits if any test fails.
+To ensure code quality, a pre-commit hook automatically runs all tests before each commit.
 
-**Installation:**
-1. Make sure the file `pre-commit.ps1` is located in the project root (it is versioned).
-2. In the `.git/hooks/` directory, create a file named `pre-commit.bat` with the following content:
-   ```bat
-   @echo off
-   REM pre-commit hook: runs all PlatformIO tests and prevents commit on failure
-   echo Running all tests before commit...
-   python -m platformio test -e native
-   if errorlevel 1 (
-       echo.
-       echo ERROR: Some tests failed. Commit aborted!
-       exit /b 1
-   )
-   echo All tests passed. Commit allowed.
-   exit /b 0
-   ```
-3. From now on, all tests will be run automatically before each commit. The commit will be aborted if any test fails.
+**Installation:** Run `make hook` once. On Windows this uses PowerShell, while on Linux it invokes a small shell script. Either way, a pre-commit hook is placed in `.git/hooks/` that calls the bundled `pre-commit.ps1`.
 
-> **Note:**
-> The pre-commit hook only works if you commit from the terminal (CMD). Many GUIs like GitHub Desktop or VSCode-Git do not execute local hooks or do not support batch/shell scripts as hooks.
+> **Note:** The hook only executes when committing from the command line.
 
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:
@@ -76,6 +59,24 @@ All required libraries are automatically managed through `platformio.ini`:
 - VescUart, ClickButton, Uptime Library
 
 No manual library installation required!
+
+### Makefile Usage
+
+For a quick command-line workflow, a `Makefile` is provided.  The most common
+tasks can be run with:
+
+```bash
+make install   # install PlatformIO and Python dependencies
+make test      # run unit tests
+make build     # build the firmware
+make upload    # upload firmware to the ESP32
+```
+
+Use `make` without arguments to list all available targets.
+
+> **Windows users:** The Makefile relies on `g++` which isn't included by
+> default. Install [Cygwin](https://cygwin.com) with the `g++` package and
+> ensure the Cygwin `bin` directory is on your `PATH` to use these commands.
 
 
 # API Documentation
