@@ -1,3 +1,4 @@
+---
 # This workflow executes several linters on changed files based on languages used in your code base whenever
 # you push a code or open a pull request.
 #
@@ -59,7 +60,12 @@ jobs:
           VALIDATE_CSS: false             # Disable CSS linting
           VALIDATE_HTML: false            # Disable HTML linting
           VALIDATE_CPP_CPPLINT_FILTER_REGEX: ".*\\.(cpp|h)$"
-          VALIDATE_CPP_CPPLINT_OPTIONS: "--filter=-legal/copyright,-build/include_order,-build/include_what_you_use,-build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length,-build/header_guard,-readability/casting,-runtime/int,-build/include_subdir,-whitespace/comments,-runtime/threadsafe_fn,-whitespace/parens,-whitespace/blank_line --linelength=120"
+          VALIDATE_CPP_CPPLINT_OPTIONS: >-
+            --filter=-legal/copyright,-build/include_order,-build/include_what_you_use,
+            -build/namespaces,-readability/todo,-runtime/references,-whitespace/line_length,
+            -build/header_guard,-readability/casting,-runtime/int,-build/include_subdir,
+            -whitespace/comments,-runtime/threadsafe_fn,-whitespace/parens,-whitespace/blank_line
+            --linelength=120
           # Additional debugging options
           ACTIONS_RUNNER_DEBUG: true
           SUPPRESS_POSSUM: true                    # Reduce log noise

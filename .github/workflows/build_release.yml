@@ -1,3 +1,4 @@
+---
 name: Build and Version
 
 on:
@@ -74,26 +75,28 @@ jobs:
         id: version
         run: |
           CURRENT_VERSION=$(cat data/version.txt || echo "2.0.0")
-          echo "Current version: $CURRENT_VERSION"
+          echo "Current version: ${CURRENT_VERSION}"
           
           # Split version into parts
-          IFS='.' read -ra PARTS <<< "$CURRENT_VERSION"
+          IFS='.' read -ra PARTS <<< "${CURRENT_VERSION}"
           MAJOR=${PARTS[0]}
           MINOR=${PARTS[1]}
           PATCH=${PARTS[2]}
           
           # Increment patch version
           NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
           
-          echo "New version: $NEW_VERSION"
-          echo "$NEW_VERSION" > data/version.txt
+          echo "New version: ${NEW_VERSION}"
+          echo "${NEW_VERSION}" > data/version.txt
           
-          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Commit version file
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        if: >-
+          github.ref == 'refs/heads/main' ||
+          github.ref == 'refs/heads/production_repo'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -102,20 +105,25 @@ jobs:
           git push
 
       - name: Generate Release Notes
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        if: >-
+          github.ref == 'refs/heads/main' ||
+          github.ref == 'refs/heads/production_repo'
         id: release_notes
         run: |
-          python buildprocess/generate_release_notes.py "${{ steps.version.outputs.version }}" > release_notes.md
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
-          cat release_notes.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          python buildprocess/generate_release_notes.py \
+            "${{ steps.version.outputs.version }}" > release_notes.md
+          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_OUTPUT"
+          cat release_notes.md >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
 
       - name: Create Release
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        if: >-
+          github.ref == 'refs/heads/main' ||
+          github.ref == 'refs/heads/production_repo'
         uses: ncipollo/release-action@v1
         with:
           tag: v${{ steps.version.outputs.version }}

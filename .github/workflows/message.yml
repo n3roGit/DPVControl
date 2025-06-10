@@ -1,3 +1,4 @@
+---
 name: telegram message
 on: [push]
 jobs:
