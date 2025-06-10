@@ -107,6 +107,8 @@ jobs:
           name: Release v${{ steps.version.outputs.version }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           files: |
-            .pio/build/esp32dev/*.bin
+            .pio/build/esp32dev/firmware.bin
+            .pio/build/esp32dev/bootloader.bin
+            .pio/build/esp32dev/partitions.bin
           draft: false
           prerelease: false
