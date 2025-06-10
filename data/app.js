@@ -299,6 +299,7 @@ function initCharts() {
             },
             scales: {
                 x: {
+                    type: 'linear', // Use linear scale for proper time axis
                     title: {
                         display: true,
                         text: 'Runtime (hh:mm:ss)',
@@ -698,8 +699,8 @@ function updateChartData() {
     console.log(`Session metadata:`, sessionMetadata);
     console.log('=== END CHART ANALYSIS ===');
     
-    // Update chart data
-    charts.combinedChart.data.labels = xData;
+    // Update chart data with proper time values as X coordinates
+    // Use scatter/line format with explicit x,y coordinates to ensure correct time axis
     charts.combinedChart.data.datasets[0].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.batteryVoltage}));
     charts.combinedChart.data.datasets[1].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.current}));
     charts.combinedChart.data.datasets[2].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.tempMotor}));
@@ -716,12 +717,16 @@ function updateChartData() {
     charts.combinedChart.data.datasets[13].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorState ? 1 : 0}));
     charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledBrightness || 0}));
     
-    // Reset zoom to show all data by clearing min/max constraints
-    if (charts.combinedChart.options.scales.x.min !== undefined || 
-        charts.combinedChart.options.scales.x.max !== undefined) {
-        delete charts.combinedChart.options.scales.x.min;
-        delete charts.combinedChart.options.scales.x.max;
-    }
+    // Clear labels array since we're using x,y coordinates instead of indexed labels
+    charts.combinedChart.data.labels = [];
+    
+    // Set explicit X-axis min/max to match the actual time range
+    const minTime = Math.min(...xData);
+    const maxTime = Math.max(...xData);
+    charts.combinedChart.options.scales.x.min = minTime;
+    charts.combinedChart.options.scales.x.max = maxTime;
+    
+    console.log(`Set X-axis range to ${minTime.toFixed(1)}s - ${maxTime.toFixed(1)}s`);
     
     // Update chart
     charts.combinedChart.update('none'); // No animation for better performance
