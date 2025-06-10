@@ -1003,72 +1003,97 @@ void setupWebserver() {
     log("Webserver task created on Core 0");
 }
 
-// Process HTTP requests
-void handleClient(WiFiClient client) {
-    // Wait for data to be available
-    unsigned long timeout = millis() + 5000; // 5 second timeout
-    while (!client.available() && millis() < timeout) {
-        delay(10);
-    }
-    
-    // If no data, close connection and return
-    if (!client.available()) {
-        client.stop();
-        return;
-    }
-    
-    // Read the complete HTTP request
-    String httpRequest = "";
-    String line = "";
-    String method = "";
-    String path = "";
-    String host = "";
-    String contentLength = "";
-    
-    // Read request line
-    line = client.readStringUntil('\n');
-    httpRequest += line;
-    
-    // Extract method and path from first line
+struct HttpRequest {
+    String method;
+    String path;
+    String host;
+    int contentLength = 0;
+};
+
+static HttpRequest parseHttpRequest(WiFiClient &client) {
+    HttpRequest req;
+    String line = client.readStringUntil('\n');
     int firstSpace = line.indexOf(' ');
     int secondSpace = line.indexOf(' ', firstSpace + 1);
-    
-    if (firstSpace != -1 && secondSpace != -1) {
-        method = line.substring(0, firstSpace);
-        path = line.substring(firstSpace + 1, secondSpace);
+    if (firstSpace == -1 || secondSpace == -1) {
+        return req;
     }
-    
-    log(("Request: " + method + " " + path).c_str());
-    
-    // Read headers
+    req.method = line.substring(0, firstSpace);
+    req.path = line.substring(firstSpace + 1, secondSpace);
+
     while (client.connected()) {
         line = client.readStringUntil('\n');
         line.trim();
-        httpRequest += line + "\n";
-        
         if (line.startsWith("Host: ")) {
-            host = line.substring(6);
-            log(("Host: " + host).c_str());
+            req.host = line.substring(6);
+        } else if (line.startsWith("Content-Length: ")) {
+            req.contentLength = line.substring(16).toInt();
         }
-        
-        if (line.startsWith("Content-Length: ")) {
-            contentLength = line.substring(16);
-        }
-        
-        // Empty line indicates end of headers
         if (line.length() == 0) {
             break;
         }
     }
-    
-    // Check if this is a captive portal detection request
-    bool isCaptivePortalRequest = host.length() > 0 && 
-                                 !host.equals(apIP.toString()) &&
-                                 !host.startsWith("4.3.2.") &&
-                                 !host.equals("localhost") &&
-                                 !host.equals("captive.apple.com");
+
+    return req;
+}
+
+static String readRequestBody(WiFiClient &client, int length) {
+    String body;
+    if (length <= 0) {
+        while (client.available()) {
+            body += static_cast<char>(client.read());
+        }
+        return body;
+    }
+
+    char *buffer = new char[length + 1];
+    int bytesRead = 0;
+    unsigned long startTime = millis();
+    while (bytesRead < length && client.connected() && (millis() - startTime < 3000)) {
+        if (client.available()) {
+            buffer[bytesRead++] = client.read();
+        } else {
+            delay(1);
+        }
+    }
+    buffer[bytesRead] = '\0';
+    body = String(buffer);
+    delete[] buffer;
+    return body;
+}
+
+static bool isCaptivePortalRequest(const HttpRequest &req) {
+    return req.host.length() > 0 &&
+           !req.host.equals(apIP.toString()) &&
+           !req.host.startsWith("4.3.2.") &&
+           !req.host.equals("localhost") &&
+           !req.host.equals("captive.apple.com");
+}
+
+// Process HTTP requests
+void handleClient(WiFiClient client) {
+    unsigned long timeout = millis() + 5000;
+    while (!client.available() && millis() < timeout) {
+        delay(10);
+    }
+
+    if (!client.available()) {
+        client.stop();
+        return;
+    }
+
+    HttpRequest req = parseHttpRequest(client);
+    if (req.method.length() == 0) {
+        client.stop();
+        return;
+    }
+
+    bool captivePortal = isCaptivePortalRequest(req);
     
     // Handle the request based on the path
+    String path = req.path;
+    String method = req.method;
+
     if (path == "/" || path == "/index.html") {
         // Root path - serve HTML from LittleFS
         if (loadFromSPIFFS(client, "/index.html")) {
@@ -1113,62 +1138,8 @@ void handleClient(WiFiClient client) {
         sendHttpResponse(client, 200, "application/json", jsonData.c_str());
         
     } else if (path == "/api/status") {
-        // API endpoint for system status
         log("API /api/status called");
-        
-        String json = "{";
-        json += "\"status\":\"ok\",";
-        json += "\"uptime\":" + String(millis()) + ",";
-        json += "\"totalUptime\":" + String(getTotalUptime()) + ",";
-        json += "\"dataPoints\":" + String(getTotalDataPoints("recent")) + ",";
-        json += "\"motor\":" + String(motorState == on ? "true" : "false") + ",";
-        json += "\"lamp\":" + String(LED_State > 0 ? "true" : "false") + ",";
-        json += "\"lampLevel\":" + String(LED_State) + ",";
-        json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
-        json += "\"beeperEnabled\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
-        json += "\"beeperActive\":" + String(isBeeperActive() ? "true" : "false") + ",";
-        json += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
-        json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
-        json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false") + ",";
-        json += "\"waterSensorFront\":" + String(digitalRead(PIN_LEAK_FRONT) == LOW ? "true" : "false") + ",";
-        json += "\"waterSensorBack\":" + String(digitalRead(PIN_LEAK_BACK) == LOW ? "true" : "false") + ",";
-        
-        // Add sensor data for status display
-        if (HAS_MOTOR) {
-            json += "\"batteryVoltage\":" + String(getVescUart().data.inpVoltage) + ",";
-            json += "\"motorTemperature\":" + String(getVescUart().data.tempMotor) + ",";
-            json += "\"mosfetTemperature\":" + String(getVescUart().data.tempMosfet) + ",";
-            json += "\"current\":" + String(getVescUart().data.avgInputCurrent) + ",";
-            json += "\"motorCurrent\":" + String(getVescUart().data.avgMotorCurrent) + ",";
-            json += "\"dutyCycle\":" + String(getVescUart().data.dutyCycleNow) + ",";
-            json += "\"rpm\":" + String(getVescUart().data.rpm);
-        } else {
-            // Fallback values if no motor
-            json += "\"batteryVoltage\":48.0,";
-            json += "\"motorTemperature\":25.0,";
-            json += "\"mosfetTemperature\":30.0,";
-            json += "\"current\":0.0,";
-            json += "\"motorCurrent\":0.0,";
-            json += "\"dutyCycle\":0.0,";
-            json += "\"rpm\":0";
-        }
-        
-        // Add environmental sensor data
-        TempAndHumidity envData = dhtSensor.getTempAndHumidity();
-        if (!isnan(envData.temperature) && !isnan(envData.humidity)) {
-            json += ",\"temperature\":" + String(envData.temperature);
-            json += ",\"humidity\":" + String(envData.humidity);
-        } else {
-            json += ",\"temperature\":22.0";
-            json += ",\"humidity\":50.0";
-        }
-        
-        // Add battery level
-        json += ",\"batteryLevel\":" + String(batteryLevel);
-        
-        json += "}";
-        
-        sendHttpResponse(client, 200, "application/json", json.c_str());
+        apiHandleStatus(client);
         
     } else if (path == "/api/sessions") {
         // API endpoint for session list
@@ -1220,42 +1191,7 @@ void handleClient(WiFiClient client) {
         // API endpoint to save settings
         log("API /api/settings POST called");
         
-        // Read POST body if Content-Length is specified
-        String body = "";
-        if (contentLength.length() > 0) {
-            int bodyLength = contentLength.toInt();
-            if (bodyLength > 0 && bodyLength < 10240) { // 10KB limit for settings
-                char* buffer = new char[bodyLength + 1];
-                int bytesRead = 0;
-                unsigned long startTime = millis();
-                
-                // Read the exact number of bytes specified in Content-Length
-                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 3000)) {
-                    if (client.available()) {
-                        buffer[bytesRead] = client.read();
-                        bytesRead++;
-                    } else {
-                        delay(1);
-                    }
-                }
-                
-                buffer[bytesRead] = '\0';
-                body = String(buffer);
-                delete[] buffer;
-                
-                String readMsg = "Settings: Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
-                log(readMsg.c_str());
-            } else {
-                log("Settings: Invalid Content-Length or too large");
-            }
-        } else {
-            // Fallback: read whatever is available (old method)
-            delay(100); // Give more time for settings data to arrive
-            while (client.available()) {
-                body += (char)client.read();
-            }
-            log("Settings: Using fallback reading method");
-        }
+        String body = readRequestBody(client, req.contentLength);
         
         String bodyMsg = "Settings POST body received, length: " + String(body.length());
         log(bodyMsg.c_str());
@@ -1322,179 +1258,14 @@ void handleClient(WiFiClient client) {
         ESP.restart();
         
     } else if (path == "/api/motor" && method == "POST") {
-        // API endpoint for motor control
         log("API /api/motor called");
-        
-        // Read POST body if Content-Length is specified
-        String body = "";
-        if (contentLength.length() > 0) {
-            int bodyLength = contentLength.toInt();
-            if (bodyLength > 0 && bodyLength < 2048) { // Reasonable limit
-                char* buffer = new char[bodyLength + 1];
-                int bytesRead = 0;
-                unsigned long startTime = millis();
-                
-                // Read the exact number of bytes specified in Content-Length
-                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 2000)) {
-                    if (client.available()) {
-                        buffer[bytesRead] = client.read();
-                        bytesRead++;
-                    } else {
-                        delay(1);
-                    }
-                }
-                
-                buffer[bytesRead] = '\0';
-                body = String(buffer);
-                delete[] buffer;
-                
-                String readMsg = "Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
-                log(readMsg.c_str());
-            }
-        } else {
-            // Fallback: read whatever is available
-            delay(50); // Give time for data to arrive
-            while (client.available()) {
-                body += (char)client.read();
-            }
-        }
-        
-        String bodyMsg = "Motor control body: " + body;
-        log(bodyMsg.c_str());
-        
-        // Simple JSON parsing for motor control
-        bool motorEnabled = body.indexOf("\"enabled\":true") != -1;
-        int speed = 0;
-        
-        // Extract speed value
-        int speedIndex = body.indexOf("\"speed\":");
-        if (speedIndex != -1) {
-            String speedStr = body.substring(speedIndex + 8);
-            int endIndex = speedStr.indexOf(',');
-            if (endIndex == -1) endIndex = speedStr.indexOf('}');
-            if (endIndex != -1) {
-                speedStr = speedStr.substring(0, endIndex);
-                speed = speedStr.toInt();
-            }
-        }
-        
-        // Integrate with actual motor control functions
-        String controlMsg = "Remote motor control - Enabled: " + String(motorEnabled ? "true" : "false") + ", Speed: " + String(speed) + "%";
-        log(controlMsg.c_str());
-        
-        if (motorEnabled && speed > 0) {
-            // Enable remote control mode
-            remoteControlActive = true;
-            
-            // Wake up motor if in standby
-            if (motorState == standby) {
-                wakeUp();
-            }
-            
-            // Convert speed percentage (0-100) to motor steps (1-maxSteps)
-            int maxSteps = getSpeedSteps();
-            int targetStep = max(1, min(maxSteps, (speed * maxSteps) / 100));
-            currentMotorStep = targetStep;
-            motorState = on;
-            
-            // Update lastActionTime to keep motor running (simulates button press)
-            lastActionTime = micros();
-            
-            // Update LED bar to show new speed
-            setBarSpeed(currentMotorStep);
-            
-            String speedMsg = "Remote control set motor to step " + String(currentMotorStep) + " (speed " + String(speed) + "%)";
-            log(speedMsg.c_str());
-            
-        } else {
-            // Disable remote control mode and stop motor
-            remoteControlActive = false;
-            motorState = off;
-            lastActionTime = micros(); // Prevent immediate standby
-            setBarSpeed(currentMotorStep); // Update display but keep step setting
-            
-            log("Remote control stopped motor");
-        }
-        
-        String response = "{\"success\":true,\"enabled\":" + String(motorEnabled ? "true" : "false") + ",\"speed\":" + String(speed) + ",\"motorStep\":" + String(currentMotorStep) + "}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
+        String body = readRequestBody(client, req.contentLength);
+        apiHandleMotor(client, body);
         
     } else if (path == "/api/lamp" && method == "POST") {
-        // API endpoint for lamp control
         log("API /api/lamp called");
-        
-        // Read POST body if Content-Length is specified
-        String body = "";
-        if (contentLength.length() > 0) {
-            int bodyLength = contentLength.toInt();
-            if (bodyLength > 0 && bodyLength < 2048) { // Reasonable limit
-                char* buffer = new char[bodyLength + 1];
-                int bytesRead = 0;
-                unsigned long startTime = millis();
-                
-                // Read the exact number of bytes specified in Content-Length
-                while (bytesRead < bodyLength && client.connected() && (millis() - startTime < 2000)) {
-                    if (client.available()) {
-                        buffer[bytesRead] = client.read();
-                        bytesRead++;
-                    } else {
-                        delay(1);
-                    }
-                }
-                
-                buffer[bytesRead] = '\0';
-                body = String(buffer);
-                delete[] buffer;
-                
-                String readMsg = "Read " + String(bytesRead) + " bytes of " + String(bodyLength) + " expected";
-                log(readMsg.c_str());
-            }
-        } else {
-            // Fallback: read whatever is available
-            delay(50); // Give time for data to arrive
-            while (client.available()) {
-                body += (char)client.read();
-            }
-        }
-        
-        String bodyMsg = "Lamp control body: " + body;
-        log(bodyMsg.c_str());
-        
-        // Extract level value (now direct level 0-maxLevels)
-        int requestedLevel = 0;
-        int levelIndex = body.indexOf("\"level\":");
-        if (levelIndex != -1) {
-            String levelStr = body.substring(levelIndex + 8);
-            int endIndex = levelStr.indexOf(',');
-            if (endIndex == -1) endIndex = levelStr.indexOf('}');
-            if (endIndex != -1) {
-                levelStr = levelStr.substring(0, endIndex);
-                requestedLevel = levelStr.toInt();
-            }
-        }
-        
-        // Validate level against current settings
-        int maxLevels = getLampMaxLevels();
-        int actualLevel = requestedLevel;
-        
-        // Validate level range
-        if (actualLevel < 0) actualLevel = 0;
-        if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
-        
-        // Integrate with actual LED lamp functions
-        String controlMsg = "Remote lamp control - Requested Level: " + String(requestedLevel) + ", Actual Level: " + String(actualLevel);
-        log(controlMsg.c_str());
-        
-        // Set level
-        LED_State = actualLevel;
-        setLEDState(LED_State);
-        setBarLED(LED_State);
-        
-        String levelMsg = "Remote control set lamp to level " + String(actualLevel) + " (max: " + String(maxLevels - 1) + ")";
-        log(levelMsg.c_str());
-        
-        String response = "{\"success\":true,\"level\":" + String(actualLevel) + ",\"maxLevels\":" + String(maxLevels) + "}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
+        String body = readRequestBody(client, req.contentLength);
+        apiHandleLamp(client, body);
         
     } else if (path == "/api/version") {
         // API endpoint for version information
@@ -1703,29 +1474,9 @@ void handleClient(WiFiClient client) {
         }
         
     } else if (path == "/api/beeper" && method == "POST") {
-        // API endpoint for beeper settings (legacy compatibility)
         log("API /api/beeper called");
-        
-        // Read POST body
-        String body = "";
-        while (client.available()) {
-            body += (char)client.read();
-        }
-        
-        // Simple JSON parsing for {"enabled": true/false}
-        bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
-        
-        // Update beeper setting in both old and new systems
-        currentSettings.beeperEnabled = newBeeperState;
-        saveSettings(); // Save to unified settings system
-        
-        String response = "{\"success\":true,\"enabled\":" + 
-                         String(getBeeperEnabled() ? "true" : "false") + "}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
-        
-        String beeperMsg = "Beeper setting updated: " + 
-                          String(getBeeperEnabled() ? "enabled" : "disabled");
-        log(beeperMsg.c_str());
+        String body = readRequestBody(client, req.contentLength);
+        apiHandleBeeper(client, body);
         
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
                path == "/connecttest.txt" || path == "/redirect" || 
@@ -1742,7 +1493,7 @@ void handleClient(WiFiClient client) {
     } else if (spiffsInitialized && LittleFS.exists(path)) {
         // Serve files from SPIFFS
         loadFromSPIFFS(client, path);
-    } else if (isCaptivePortalRequest) {
+    } else if (captivePortal) {
         // Captive portal detection - redirect to our server
         log("Captive portal request detected");
         sendHttpResponse(client, 302, "text/html", 
@@ -1756,6 +1507,153 @@ void handleClient(WiFiClient client) {
     // Close the connection
     client.stop();
 }
+
+// --- API Handlers ---------------------------------------------------------
+
+static void apiHandleStatus(WiFiClient &client) {
+    String json = "{";
+    json += "\"status\":\"ok\",";
+    json += "\"uptime\":" + String(millis()) + ",";
+    json += "\"totalUptime\":" + String(getTotalUptime()) + ",";
+    json += "\"dataPoints\":" + String(getTotalDataPoints("recent")) + ",";
+    json += "\"motor\":" + String(motorState == on ? "true" : "false") + ",";
+    json += "\"lamp\":" + String(LED_State > 0 ? "true" : "false") + ",";
+    json += "\"lampLevel\":" + String(LED_State) + ",";
+    json += "\"beeper\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
+    json += "\"beeperEnabled\":" + String(getBeeperEnabled() ? "true" : "false") + ",";
+    json += "\"beeperActive\":" + String(isBeeperActive() ? "true" : "false") + ",";
+    json += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
+    json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
+    json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false") + ",";
+    json += "\"waterSensorFront\":" + String(digitalRead(PIN_LEAK_FRONT) == LOW ? "true" : "false") + ",";
+    json += "\"waterSensorBack\":" + String(digitalRead(PIN_LEAK_BACK) == LOW ? "true" : "false") + ",";
+
+    if (HAS_MOTOR) {
+        json += "\"batteryVoltage\":" + String(getVescUart().data.inpVoltage) + ",";
+        json += "\"motorTemperature\":" + String(getVescUart().data.tempMotor) + ",";
+        json += "\"mosfetTemperature\":" + String(getVescUart().data.tempMosfet) + ",";
+        json += "\"current\":" + String(getVescUart().data.avgInputCurrent) + ",";
+        json += "\"motorCurrent\":" + String(getVescUart().data.avgMotorCurrent) + ",";
+        json += "\"dutyCycle\":" + String(getVescUart().data.dutyCycleNow) + ",";
+        json += "\"rpm\":" + String(getVescUart().data.rpm);
+    } else {
+        json += "\"batteryVoltage\":48.0,";
+        json += "\"motorTemperature\":25.0,";
+        json += "\"mosfetTemperature\":30.0,";
+        json += "\"current\":0.0,";
+        json += "\"motorCurrent\":0.0,";
+        json += "\"dutyCycle\":0.0,";
+        json += "\"rpm\":0";
+    }
+
+    TempAndHumidity envData = dhtSensor.getTempAndHumidity();
+    if (!isnan(envData.temperature) && !isnan(envData.humidity)) {
+        json += ",\"temperature\":" + String(envData.temperature);
+        json += ",\"humidity\":" + String(envData.humidity);
+    } else {
+        json += ",\"temperature\":22.0";
+        json += ",\"humidity\":50.0";
+    }
+
+    json += ",\"batteryLevel\":" + String(batteryLevel);
+    json += "}";
+
+    sendHttpResponse(client, 200, "application/json", json.c_str());
+}
+
+extern "C" void handleApiStatus(void *clientPtr) {
+    if (!clientPtr) return;
+    apiHandleStatus(*static_cast<WiFiClient*>(clientPtr));
+}
+
+static void apiHandleMotor(WiFiClient &client, const String &body) {
+    bool motorEnabled = body.indexOf("\"enabled\":true") != -1;
+    int speed = 0;
+    int speedIndex = body.indexOf("\"speed\":");
+    if (speedIndex != -1) {
+        String speedStr = body.substring(speedIndex + 8);
+        int endIndex = speedStr.indexOf(',');
+        if (endIndex == -1) endIndex = speedStr.indexOf('}');
+        if (endIndex != -1) {
+            speedStr = speedStr.substring(0, endIndex);
+            speed = speedStr.toInt();
+        }
+    }
+
+    if (motorEnabled && speed > 0) {
+        remoteControlActive = true;
+        if (motorState == standby) {
+            wakeUp();
+        }
+        int maxSteps = getSpeedSteps();
+        int targetStep = max(1, min(maxSteps, (speed * maxSteps) / 100));
+        currentMotorStep = targetStep;
+        motorState = on;
+        lastActionTime = micros();
+        setBarSpeed(currentMotorStep);
+    } else {
+        remoteControlActive = false;
+        motorState = off;
+        lastActionTime = micros();
+        setBarSpeed(currentMotorStep);
+    }
+
+    String response = "{\"success\":true,\"enabled\":" + String(motorEnabled ? "true" : "false") +
+                      ",\"speed\":" + String(speed) + ",\"motorStep\":" + String(currentMotorStep) + "}";
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+}
+
+extern "C" void handleApiMotor(void *clientPtr) {
+    if (!clientPtr) return;
+    apiHandleMotor(*static_cast<WiFiClient*>(clientPtr), "");
+}
+
+static void apiHandleLamp(WiFiClient &client, const String &body) {
+    int requestedLevel = 0;
+    int levelIndex = body.indexOf("\"level\":");
+    if (levelIndex != -1) {
+        String levelStr = body.substring(levelIndex + 8);
+        int endIndex = levelStr.indexOf(',');
+        if (endIndex == -1) endIndex = levelStr.indexOf('}');
+        if (endIndex != -1) {
+            levelStr = levelStr.substring(0, endIndex);
+            requestedLevel = levelStr.toInt();
+        }
+    }
+
+    int maxLevels = getLampMaxLevels();
+    int actualLevel = requestedLevel;
+    if (actualLevel < 0) actualLevel = 0;
+    if (actualLevel >= maxLevels) actualLevel = maxLevels - 1;
+
+    LED_State = actualLevel;
+    setLEDState(LED_State);
+    setBarLED(LED_State);
+
+    String response = "{\"success\":true,\"level\":" + String(actualLevel) + ",\"maxLevels\":" + String(maxLevels) + "}";
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+}
+
+extern "C" void handleApiLamp(void *clientPtr) {
+    if (!clientPtr) return;
+    apiHandleLamp(*static_cast<WiFiClient*>(clientPtr), "");
+}
+
+static void apiHandleBeeper(WiFiClient &client, const String &body) {
+    bool newState = body.indexOf("\"enabled\":true") != -1;
+    currentSettings.beeperEnabled = newState;
+    saveSettings();
+    String response = "{\"success\":true,\"enabled\":" + String(getBeeperEnabled() ? "true" : "false") + "}";
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+}
+
+extern "C" void handleApiBeeper(void *clientPtr) {
+    if (!clientPtr) return;
+    apiHandleBeeper(*static_cast<WiFiClient*>(clientPtr), "");
+}
+
+extern "C" void handleApiSettings(void *clientPtr) {}
+extern "C" void handleApiVersion(void *clientPtr) {}
 
 // Webserver task that runs on Core 0
 void webserverTask(void *pvParameters) {
