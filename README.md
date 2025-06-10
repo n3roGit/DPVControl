@@ -77,6 +77,20 @@ All required libraries are automatically managed through `platformio.ini`:
 
 No manual library installation required!
 
+### Makefile Usage
+
+For a quick command-line workflow, a `Makefile` is provided.  The most common
+tasks can be run with:
+
+```bash
+make install   # install PlatformIO and Python dependencies
+make test      # run unit tests
+make build     # build the firmware
+make upload    # upload firmware to the ESP32
+```
+
+Use `make` without arguments to list all available targets.
+
 
 # API Documentation
 
