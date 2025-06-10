@@ -121,10 +121,24 @@ jobs:
           cp .pio/build/esp32dev/firmware.bin release_files/
           cp .pio/build/esp32dev/bootloader.bin release_files/
           cp .pio/build/esp32dev/partitions.bin release_files/
+          echo "Files copied to release_files directory:"
+          ls -la release_files/
+
+      - name: Debug Build Output
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        run: |
+          echo "Listing build directory:"
+          ls -la .pio/build/esp32dev/
+          echo "Listing release files directory:"
+          ls -la release_files/
+
+      - name: Cleanup Temp Files
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
+        run: rm -f /home/runner/work/_temp/*
 
       - name: Create Release
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/production_repo'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Release v${{ steps.version.outputs.version }}
@@ -135,3 +149,5 @@ jobs:
             release_files/partitions.bin
           draft: false
           prerelease: false
+          continue-on-error: true
+          retry: 3
