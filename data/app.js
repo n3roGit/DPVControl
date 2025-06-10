@@ -311,12 +311,23 @@ function initCharts() {
                     ticks: {
                         color: '#aaa',
                         callback: function(value) {
-                            // Convert seconds to hh:mm:ss format (same as system uptime)
-                            const totalSeconds = Math.floor(value);
-                            const hours = Math.floor(totalSeconds / 3600);
-                            const minutes = Math.floor((totalSeconds % 3600) / 60);
-                            const seconds = totalSeconds % 60;
-                            return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                            // For very short sessions (< 1 second), show with 3 decimal places
+                            // For short sessions (< 10 seconds), show 2 decimal places
+                            // For longer sessions, use hh:mm:ss format
+                            if (value < 1) {
+                                return value.toFixed(3) + 's';
+                            } else if (value < 10) {
+                                return value.toFixed(2) + 's';
+                            } else if (value < 60) {
+                                return Math.floor(value) + 's';
+                            } else {
+                                // Convert seconds to hh:mm:ss format (same as system uptime)
+                                const totalSeconds = Math.floor(value);
+                                const hours = Math.floor(totalSeconds / 3600);
+                                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                                const seconds = totalSeconds % 60;
+                                return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+                            }
                         }
                     }
                 },
@@ -655,6 +666,17 @@ function loadChartData() {
             sessionMetadata = data.meta;
             allDataPoints = data.data;
             
+            // Debug: Show raw totalUptime values from API
+            console.log('=== RAW API DATA ANALYSIS ===');
+            console.log('Session metadata:', sessionMetadata);
+            if (allDataPoints && allDataPoints.length > 0) {
+                console.log('First 5 data points:', allDataPoints.slice(0, 5));
+                console.log('Last 5 data points:', allDataPoints.slice(-5));
+                console.log('TotalUptime values (first 10):', allDataPoints.slice(0, 10).map(d => d.totalUptime));
+                console.log('TotalUptime values (last 10):', allDataPoints.slice(-10).map(d => d.totalUptime));
+            }
+            console.log('=== END RAW API DATA ===');
+            
             // Update chart with all data (native zoom will handle windowing)
             updateChartData();
         })
@@ -673,8 +695,8 @@ function updateChartData() {
     if (allDataPoints.length > 0) {
         const firstPoint = allDataPoints[0];
         const lastPoint = allDataPoints[allDataPoints.length - 1];
-        console.log(`Raw totalUptime range: ${firstPoint.totalUptime}ms (${(firstPoint.totalUptime/1000).toFixed(1)}s) to ${lastPoint.totalUptime}ms (${(lastPoint.totalUptime/1000).toFixed(1)}s)`);
-        console.log(`Raw totalUptime difference: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s = ${((lastPoint.totalUptime - firstPoint.totalUptime) / 60000).toFixed(1)}min`);
+        console.log(`Raw totalUptime range: ${firstPoint.totalUptime}s to ${lastPoint.totalUptime}s`);
+        console.log(`Raw totalUptime difference: ${(lastPoint.totalUptime - firstPoint.totalUptime)}s = ${((lastPoint.totalUptime - firstPoint.totalUptime) / 60).toFixed(1)}min`);
     }
     
     // Calculate session start time for time axis
@@ -684,12 +706,13 @@ function updateChartData() {
     // This ensures the chart always starts at 0:00 and shows the span of available data
     if (allDataPoints.length > 0) {
         sessionStartTime = allDataPoints[0].totalUptime;
-        console.log(`Using first available datapoint as time reference: ${sessionStartTime}ms (${(sessionStartTime/1000).toFixed(1)}s)`);
+        console.log(`Using first available datapoint as time reference: ${sessionStartTime}s`);
     }
     
     // Create time data (seconds from first datapoint)
+    // Note: totalUptime might be in seconds already, not milliseconds
     const xData = allDataPoints.map(d => {
-        const timeValue = ((d.totalUptime || 0) - sessionStartTime) / 1000;
+        const timeValue = (d.totalUptime || 0) - sessionStartTime;
         return Math.max(0, timeValue); // Ensure no negative times
     });
     
@@ -723,13 +746,16 @@ function updateChartData() {
     // Set explicit X-axis min/max to match the actual time range
     const minTime = Math.min(...xData);
     const maxTime = Math.max(...xData);
+    
+    console.log(`Set X-axis range to ${minTime.toFixed(1)}s - ${maxTime.toFixed(1)}s`);
+    console.log(`X-axis data: min=${minTime}, max=${maxTime}, first 5 values:`, xData.slice(0, 5));
+    
+    // Update X-axis configuration
     charts.combinedChart.options.scales.x.min = minTime;
     charts.combinedChart.options.scales.x.max = maxTime;
     
-    console.log(`Set X-axis range to ${minTime.toFixed(1)}s - ${maxTime.toFixed(1)}s`);
-    
-    // Update chart
-    charts.combinedChart.update('none'); // No animation for better performance
+    // Force chart to recalculate scales by calling update with scale recalculation
+    charts.combinedChart.update('resize');
 }
 
 function loadVersionInfo() {
