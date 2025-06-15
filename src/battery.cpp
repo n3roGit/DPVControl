@@ -1,4 +1,4 @@
-// Copyright 2025 BubTec
+// Copyright 2025 BubTec 
 #include "battery.h"
 #include "log.h"
 #include "beep.h"
