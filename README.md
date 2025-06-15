@@ -1,11 +1,11 @@
 ![logic](./images/logo.jpg)
 
-![Version](https://img.shields.io/github/v/tag/n3roGit/DPVControl?label=Version&cache_seconds=0)
-![Branch](https://img.shields.io/badge/dynamic/json?color=blue&label=Branch&query=$.default_branch&url=https://api.github.com/repos/n3roGit/DPVControl)
-![License](https://img.shields.io/github/license/n3roGit/DPVControl)
-![Last Commit](https://img.shields.io/github/last-commit/n3roGit/DPVControl)
-![Issues](https://img.shields.io/github/issues/n3roGit/DPVControl)
-![Pull Requests](https://img.shields.io/github/issues-pr/n3roGit/DPVControl)
+![Version](https://img.shields.io/github/v/tag/BubTec/DPVControl?label=Version&cache_seconds=0)
+![Branch](https://img.shields.io/badge/dynamic/json?color=blue&label=Branch&query=$.default_branch&url=https://api.github.com/repos/BubTec/DPVControl)
+![License](https://img.shields.io/github/license/BubTec/DPVControl)
+![Last Commit](https://img.shields.io/github/last-commit/BubTec/DPVControl)
+![Issues](https://img.shields.io/github/issues/BubTec/DPVControl)
+![Pull Requests](https://img.shields.io/github/issues-pr/BubTec/DPVControl)
 [![C++ Code Quality](https://github.com/BubTec/DPVControl/actions/workflows/cpp-lint.yml/badge.svg)](https://github.com/BubTec/DPVControl/actions/workflows/cpp-lint.yml)
 
 # THE PROJECT
