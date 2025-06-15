@@ -164,7 +164,8 @@ The DPV Control system provides a comprehensive REST API for system monitoring, 
 |21|No longer overloaded|
 |111222111|SOS - Long time without any action. The lamp is also activated with the same code|
 
-
+# Pinout
+![ESP32](./ESP32.png)
 
 # Logic
 ![logic](./Logic.drawio.png)
@@ -175,9 +176,6 @@ The DPV Control system provides a comprehensive REST API for system monitoring, 
 ![logic](./images/GUI3.png)
 ![logic](./images/GUI4.png)
 ![logic](./images/GUI5.png)
-
-# Pinout
-![ESP32](./ESP32.png)
 
 # Hardware Updates
 | Change                                        |
