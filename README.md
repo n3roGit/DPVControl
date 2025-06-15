@@ -1,6 +1,5 @@
 ![logic](./images/logo.jpg)
 
-![Version](https://img.shields.io/github/v/release/BubTec/DPVControl?label=Version&cache_seconds=0)
 ![Branch](https://img.shields.io/badge/dynamic/json?color=blue&label=Branch&query=$.default_branch&url=https://api.github.com/repos/BubTec/DPVControl)
 ![License](https://img.shields.io/github/license/BubTec/DPVControl)
 ![Last Commit](https://img.shields.io/github/last-commit/BubTec/DPVControl)
