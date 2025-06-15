@@ -830,18 +830,18 @@ String generateSessionCsvData(String sessionFile) {
             (dataPoint.beeperEnabled == 0 || dataPoint.beeperEnabled == 1) &&
             (dataPoint.beeperActive == 0 || dataPoint.beeperActive == 1)) {
             
-            // Convert timestamp to total uptime in seconds
-            float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
-            
-            // Build CSV row with Total Uptime first
-            csv += String(totalUptimeSeconds, 1) + ",";
+                    // totalUptime is already in seconds
+        float totalUptimeSeconds = dataPoint.totalUptime;
+        
+        // Build CSV row with Total Uptime first
+        csv += String(totalUptimeSeconds, 1) + ",";
             csv += String(dataPoint.tempMotor, 1) + ",";
             csv += String(dataPoint.tempMosfet, 1) + ",";
             csv += String(dataPoint.batteryVoltage, 5) + ",";
             csv += String(dataPoint.current, 2) + ",";
             csv += String(dataPoint.avgMotorCurrent, 2) + ",";
             csv += String(dataPoint.erpm) + ",";
-            csv += String(dataPoint.dutyCycle, 3) + ",";
+            csv += String(dataPoint.dutyCycle * 100, 1) + ",";
             csv += String(dataPoint.temperature, 1) + ",";
             csv += String(dataPoint.humidity, 1) + ",";
                     csv += String(dataPoint.batteryLevel) + ",";
@@ -946,18 +946,18 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
             (dataPoint.beeperEnabled == 0 || dataPoint.beeperEnabled == 1) &&
             (dataPoint.beeperActive == 0 || dataPoint.beeperActive == 1)) {
             
-            // Convert timestamp to total uptime in seconds
-            float totalUptimeSeconds = dataPoint.totalUptime / 1000.0;
-            
-            // Build and send CSV row directly (small string, immediately sent)
-            String csvRow = String(totalUptimeSeconds, 1) + ",";
+                    // totalUptime is already in seconds
+        float totalUptimeSeconds = dataPoint.totalUptime;
+        
+        // Build and send CSV row directly (small string, immediately sent)
+        String csvRow = String(totalUptimeSeconds, 1) + ",";
             csvRow += String(dataPoint.tempMotor, 1) + ",";
             csvRow += String(dataPoint.tempMosfet, 1) + ",";
             csvRow += String(dataPoint.batteryVoltage, 5) + ",";
             csvRow += String(dataPoint.current, 2) + ",";
             csvRow += String(dataPoint.avgMotorCurrent, 2) + ",";
             csvRow += String(dataPoint.erpm) + ",";
-            csvRow += String(dataPoint.dutyCycle, 3) + ",";
+            csvRow += String(dataPoint.dutyCycle * 100, 1) + ",";
             csvRow += String(dataPoint.temperature, 1) + ",";
             csvRow += String(dataPoint.humidity, 1) + ",";
             csvRow += String(dataPoint.batteryLevel) + ",";

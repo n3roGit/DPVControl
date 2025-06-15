@@ -108,8 +108,8 @@ function exportToCSV(data, filename) {
     let csv = "Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Beeper Active\r\n";
     
     data.forEach(item => {
-        // Convert totalUptime from milliseconds to seconds
-        const totalUptimeSeconds = (item.totalUptime || 0) / 1000.0;
+        // totalUptime is already in seconds from the API
+        const totalUptimeSeconds = (item.totalUptime || 0);
         
         // Ensure boolean values are properly converted to 0 or 1
         const beeperActive = item.beeperActive ? 1 : 0;
@@ -126,7 +126,7 @@ function exportToCSV(data, filename) {
             (item.current || 0).toFixed(2),
             (item.avgMotorCurrent || 0).toFixed(2),
             item.erpm || 0,
-            (item.dutyCycle || 0).toFixed(3),
+            ((item.dutyCycle || 0) * 100).toFixed(1),
             (item.temperature || 0).toFixed(1),
             (item.humidity || 0).toFixed(1),
             item.batteryLevel || 0,
@@ -912,19 +912,19 @@ function loadDataWithLiveSession() {
                     const lastPoint = data[data.length - 1];
                     
                     console.log('=== LIVE DATA ANALYSIS ===');
-                    console.log(`  First point totalUptime: ${firstPoint.totalUptime}ms = ${(firstPoint.totalUptime/1000).toFixed(1)}s`);
-                    console.log(`  Last point totalUptime: ${lastPoint.totalUptime}ms = ${(lastPoint.totalUptime/1000).toFixed(1)}s`);
-                    console.log(`  Time span in data: ${(lastPoint.totalUptime - firstPoint.totalUptime) / 1000}s = ${((lastPoint.totalUptime - firstPoint.totalUptime) / 60000).toFixed(1)}min`);
+                            console.log(`  First point totalUptime: ${firstPoint.totalUptime}s`);
+        console.log(`  Last point totalUptime: ${lastPoint.totalUptime}s`);
+        console.log(`  Time span in data: ${(lastPoint.totalUptime - firstPoint.totalUptime)}s = ${((lastPoint.totalUptime - firstPoint.totalUptime) / 60).toFixed(1)}min`);
                     console.log(`  Data points: ${data.length}`);
-                    console.log(`  Expected interval: ${((lastPoint.totalUptime - firstPoint.totalUptime) / (data.length - 1) / 1000).toFixed(1)}s per point`);
+                    console.log(`  Expected interval: ${((lastPoint.totalUptime - firstPoint.totalUptime) / (data.length - 1)).toFixed(1)}s per point`);
                     
                     // Show first few and last few timestamps for pattern analysis
-                    console.log('  First 5 timestamps:', data.slice(0, 5).map(d => `${(d.totalUptime/1000).toFixed(1)}s`));
-                    console.log('  Last 5 timestamps:', data.slice(-5).map(d => `${(d.totalUptime/1000).toFixed(1)}s`));
+                            console.log('  First 5 timestamps:', data.slice(0, 5).map(d => `${d.totalUptime}s`));
+        console.log('  Last 5 timestamps:', data.slice(-5).map(d => `${d.totalUptime}s`));
                     
                     // Check if we're missing early boot data
-                    if (firstPoint.totalUptime > 30000) { // If first point is more than 30 seconds into boot
-                        console.log(`  WARNING: Missing early boot data! First point starts at ${(firstPoint.totalUptime/1000).toFixed(1)}s, not 0s`);
+                            if (firstPoint.totalUptime > 30) { // If first point is more than 30 seconds into boot
+            console.log(`  WARNING: Missing early boot data! First point starts at ${firstPoint.totalUptime}s, not 0s`);
                         console.log(`  This explains why chart time != system uptime`);
                     }
                     console.log('=== END ANALYSIS ===');
