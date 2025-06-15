@@ -51,6 +51,12 @@ jobs:
       - name: Install PlatformIO Core
         run: pip install --upgrade platformio
 
+      - name: Prepare Web Files
+        run: |
+          echo "🌐 Running embed_webfiles.py to prepare web content..."
+          python embed_webfiles.py
+          echo "✅ Web files embedded successfully"
+
       - name: Build PlatformIO Project
         run: |
           echo "🔧 Starting PlatformIO build..."
@@ -178,6 +184,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git add upload/version.txt
           git commit -m "Auto-increment version to ${{ steps.version.outputs.version }}" || exit 0
+          git pull --rebase origin ${{ github.ref_name }} || echo "No remote changes to pull"
           git push
 
       - name: Generate Release Notes
