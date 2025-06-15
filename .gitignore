@@ -30,3 +30,6 @@ DPVController/localConfig.h
 
 # Generated release notes (dynamically created by CI/CD)
 RELEASE_NOTES.md
+
+# Generated embedded web files (created by embed_webfiles.py)
+src/generated/

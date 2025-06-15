@@ -17,6 +17,7 @@
 #include <WebServer.h>
 #include "main.h" // For dhtSensor global variable
 #include "battery.h" // For batteryLevel global variable
+#include "embedded_webserver.h" // For embedded file serving
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -285,7 +286,19 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
     client.println(content);
 }
 
-// Helper function to load file from SPIFFS and send to client
+// Helper function to load file from embedded storage or SPIFFS fallback
+bool loadFromEmbeddedOrSPIFFS(WiFiClient client, String path) {
+    // First try to load from embedded files
+    if (serveEmbeddedFile(client, path.c_str())) {
+        return true;
+    }
+    
+    // Fallback to SPIFFS for backward compatibility
+    log("Embedded file not found, trying SPIFFS fallback");
+    return loadFromSPIFFS(client, path);
+}
+
+// Helper function to load file from SPIFFS and send to client (legacy function)
 bool loadFromSPIFFS(WiFiClient client, String path) {
     String dataType = "text/plain";
     
@@ -1070,11 +1083,11 @@ void handleClient(WiFiClient client) {
     
     // Handle the request based on the path
     if (path == "/" || path == "/index.html") {
-        // Root path - serve HTML from LittleFS
-        if (loadFromSPIFFS(client, "/index.html")) {
-            log("Served index.html from LittleFS");
+        // Root path - serve HTML from embedded files or LittleFS fallback
+        if (loadFromEmbeddedOrSPIFFS(client, "/index.html")) {
+            log("Served index.html from embedded files or LittleFS");
         } else {
-            sendHttpResponse(client, 404, "text/plain", "index.html not found in LittleFS");
+            sendHttpResponse(client, 404, "text/plain", "index.html not found");
         }
     } else if (path == "/api/data" || path.startsWith("/api/data?")) {
         // API endpoint for datalogger data
@@ -1502,13 +1515,25 @@ void handleClient(WiFiClient client) {
         
         String version = "2.0.0"; // Default version
         
-        // Try to read version from file
-        if (LittleFS.exists("/version.txt")) {
-            File versionFile = LittleFS.open("/version.txt", "r");
-            if (versionFile) {
-                version = versionFile.readString();
+        // Try to read version from embedded file first, then LittleFS fallback
+        const EmbeddedFile* versionFile = nullptr;
+        #ifdef HAS_EMBEDDED_FILES
+        versionFile = findEmbeddedFile("version.txt");
+        #endif
+        
+        if (versionFile != nullptr) {
+            // Read from embedded file
+            version = String((const char*)versionFile->data);
+            version.trim(); // Remove whitespace
+            log("Version read from embedded file");
+        } else if (LittleFS.exists("/version.txt")) {
+            // Fallback to LittleFS
+            File versionFileFS = LittleFS.open("/version.txt", "r");
+            if (versionFileFS) {
+                version = versionFileFS.readString();
                 version.trim(); // Remove whitespace
-                versionFile.close();
+                versionFileFS.close();
+                log("Version read from LittleFS");
             }
         }
         
@@ -1579,24 +1604,24 @@ void handleClient(WiFiClient client) {
         
     } else if (path == "/info.html") {
         // Serve info page
-        if (loadFromSPIFFS(client, "/info.html")) {
-            log("Served info.html from LittleFS");
+        if (loadFromEmbeddedOrSPIFFS(client, "/info.html")) {
+            log("Served info.html from embedded files or LittleFS");
         } else {
             sendHttpResponse(client, 404, "text/plain", "Info page not found");
         }
         
     } else if (path == "/remote.html") {
         // Serve remote control page
-        if (loadFromSPIFFS(client, "/remote.html")) {
-            log("Served remote.html from LittleFS");
+        if (loadFromEmbeddedOrSPIFFS(client, "/remote.html")) {
+            log("Served remote.html from embedded files or LittleFS");
         } else {
             sendHttpResponse(client, 404, "text/plain", "Remote control page not found");
         }
         
     } else if (path == "/settings.html") {
         // Serve settings page
-        if (loadFromSPIFFS(client, "/settings.html")) {
-            log("Served settings.html from LittleFS");
+        if (loadFromEmbeddedOrSPIFFS(client, "/settings.html")) {
+            log("Served settings.html from embedded files or LittleFS");
         } else {
             sendHttpResponse(client, 404, "text/plain", "Settings page not found");
         }
@@ -1739,6 +1764,9 @@ void handleClient(WiFiClient client) {
             "<html><head><meta http-equiv='refresh' content='0; "
             "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
     
+    } else if (serveEmbeddedFile(client, path.c_str())) {
+        // Served from embedded files
+        log("Served file from embedded storage");
     } else if (spiffsInitialized && LittleFS.exists(path)) {
         // Serve files from SPIFFS
         loadFromSPIFFS(client, path);
