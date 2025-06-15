@@ -36,9 +36,9 @@ def get_content_type(filename):
 
 def sanitize_variable_name(filename):
     """Convert filename to a valid C++ variable name."""
-    # Remove extension and path
-    name = Path(filename).stem
-    # Replace invalid characters with underscores
+    # Remove extension and get full filename with extension for uniqueness
+    name = Path(filename).name
+    # Replace dots and invalid characters with underscores
     sanitized = ''.join(c if c.isalnum() else '_' for c in name)
     # Ensure it doesn't start with a number
     if sanitized and sanitized[0].isdigit():
