@@ -1524,17 +1524,16 @@ void handleClient(WiFiClient client) {
         String version = "2.0.0"; // Default version
         
         // Try to read version from embedded file first, then LittleFS fallback
-        const EmbeddedFile* versionFile = nullptr;
         #ifdef HAS_EMBEDDED_FILES
-        versionFile = findEmbeddedFile("version.txt");
-        #endif
-        
+        const EmbeddedFile* versionFile = findEmbeddedFile("version.txt");
         if (versionFile != nullptr) {
             // Read from embedded file
             version = String((const char*)versionFile->data);
             version.trim(); // Remove whitespace
             log("Version read from embedded file");
-        } else if (LittleFS.exists("/version.txt")) {
+        } else 
+        #endif
+        if (LittleFS.exists("/version.txt")) {
             // Fallback to LittleFS
             File versionFileFS = LittleFS.open("/version.txt", "r");
             if (versionFileFS) {
