@@ -112,9 +112,11 @@ void test_status_api_all_required_fields() {
   TEST_ASSERT_FALSE(error);
 
   // Required fields that frontend expects
-  const char* requiredFields[] = {"status",      "uptime",      "totalUptime",
-                                  "motor",       "lamp",        "beeper",
-                                  "erpm",        "leftButton",  "rightButton"};
+  const char* requiredFields[] = {
+      "status",       "uptime",       "totalUptime",
+      "motor",        "lamp",         "beeper",
+      "erpm",         "leftButton",   "rightButton"
+  };
 
   for (int i = 0; i < 9; i++) {
     TEST_ASSERT_TRUE_MESSAGE(
@@ -154,7 +156,7 @@ void test_api_responses_are_valid_json() {
   TEST_ASSERT_FALSE(deserializeJson(versionDoc, mockResponse));
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
   UNITY_BEGIN();
   RUN_TEST(test_api_status);
   RUN_TEST(test_api_motor);
