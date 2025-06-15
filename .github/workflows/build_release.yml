@@ -9,12 +9,14 @@ on:
     paths:
       - 'src/**'
       - 'platformio.ini'
-      - 'data/chart.min.js'
-      - 'data/jszip.min.js'
+      - 'upload/**'
+      - 'embed_webfiles.py'
+      - 'extra_script.py'
       - '!data/version.txt'
+      - '!upload/version.txt'
       - '!src/**/*.md'
       - '!**/*.png'
-      - '!**/*.jpg'
+      - '!**/*.jpg'  
       - '!**/*.jpeg'
 
 jobs:
@@ -89,18 +91,19 @@ jobs:
           
           echo "New version: ${NEW_VERSION}"
           echo "${NEW_VERSION}" > data/version.txt
+          echo "${NEW_VERSION}" > upload/version.txt
           
           echo "VERSION=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
           echo "version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Commit version file
+      - name: Commit version files
         if: >-
           github.ref == 'refs/heads/main' ||
           github.ref == 'refs/heads/production_repo'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/version.txt
+          git add data/version.txt upload/version.txt
           git commit -m "Auto-increment version to ${{ steps.version.outputs.version }}" || exit 0
           git push
 

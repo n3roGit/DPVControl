@@ -19,6 +19,14 @@
 #include "battery.h" // For batteryLevel global variable
 #include "embedded_webserver.h" // For embedded file serving
 
+// Include embedded files registry if available
+#ifdef __has_include
+  #if __has_include("generated/embedded_files_registry.h")
+    #include "generated/embedded_files_registry.h"
+    #define HAS_EMBEDDED_FILES
+  #endif
+#endif
+
 // External variables
 extern int LED_State; // From ledLamp.cpp
 extern int currentMotorStep; // From motor.cpp
