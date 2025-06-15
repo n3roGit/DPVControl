@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Embed Web Files Script for DPV Control Project
 
@@ -14,6 +15,23 @@ import sys
 import base64
 import hashlib
 from pathlib import Path
+
+# Force UTF-8 mode for better compatibility
+if sys.version_info >= (3, 7):
+    import locale
+    try:
+        locale.setlocale(locale.LC_ALL, 'C.UTF-8')
+    except locale.Error:
+        try:
+            locale.setlocale(locale.LC_ALL, 'en_US.UTF-8')
+        except locale.Error:
+            # Fallback to default locale
+            pass
+
+# Set environment variables for subprocess calls
+os.environ.setdefault('PYTHONIOENCODING', 'utf-8:replace')
+os.environ.setdefault('LC_ALL', 'C.UTF-8')
+os.environ.setdefault('LANG', 'C.UTF-8')
 
 def get_content_type(filename):
     """Return the appropriate content type for a file extension."""
@@ -44,6 +62,35 @@ def sanitize_variable_name(filename):
     if sanitized and sanitized[0].isdigit():
         sanitized = 'file_' + sanitized
     return sanitized or 'unnamed_file'
+
+def safe_file_read(file_path):
+    """Safely read a file with robust encoding handling."""
+    try:
+        # First try to read as binary
+        with open(file_path, 'rb') as f:
+            content_bytes = f.read()
+        
+        # Try to decode as UTF-8
+        try:
+            content_text = content_bytes.decode('utf-8')
+            return content_text, content_bytes, False  # text, bytes, is_binary
+        except UnicodeDecodeError:
+            # Try other common encodings
+            for encoding in ['latin1', 'cp1252', 'iso-8859-1']:
+                try:
+                    content_text = content_bytes.decode(encoding)
+                    print(f"   ⚠️  File decoded using {encoding} instead of UTF-8")
+                    return content_text, content_bytes, False
+                except (UnicodeDecodeError, LookupError):
+                    continue
+            
+            # If all text decodings fail, treat as binary
+            print(f"   ⚠️  File contains non-text content, treating as binary")
+            return None, content_bytes, True
+    
+    except Exception as e:
+        print(f"   ❌ Error reading file {file_path}: {e}")
+        raise
 
 def generate_header_file(file_path, content, is_binary=False):
     """Generate a C++ header file for embedded content."""
@@ -268,21 +315,18 @@ def main():
                 is_binary = True
             
             try:
-                # Always read files as binary first to avoid encoding issues
-                with open(file_path, 'rb') as f:
-                    content_bytes = f.read()
+                # Use robust file reading with encoding fallbacks
+                content_text, content_bytes, detected_binary = safe_file_read(file_path)
                 
-                # For text files, try to decode to UTF-8, but keep binary as fallback
-                if not is_binary:
-                    try:
-                        content = content_bytes.decode('utf-8')
-                    except UnicodeDecodeError:
-                        # If decoding fails, treat as binary
-                        content = content_bytes
-                        is_binary = True
-                        print(f"   ⚠️  File {filename} contains non-UTF-8 content, treating as binary")
-                else:
+                # Determine final content and binary status
+                if detected_binary or is_binary:
                     content = content_bytes
+                    is_binary = True
+                else:
+                    content = content_text if content_text is not None else content_bytes
+                    # Override binary status if we have valid text
+                    if content_text is not None:
+                        is_binary = False
                 
                 # Determine if we'll use binary embedding (large files or JS/CSS)
                 content_size = len(content) if isinstance(content, (str, bytes)) else 0
