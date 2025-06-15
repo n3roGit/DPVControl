@@ -94,14 +94,41 @@ const char embedded_{var_name}_checksum[] = "{content_hash}";
 
 '''
     else:
-        # For text files, embed as string
-        if isinstance(content, bytes):
-            content = content.decode('utf-8', errors='replace')
+        # For text files, use binary embedding for large files or files with problematic content
+        if isinstance(content, str):
+            content_bytes = content.encode('utf-8')
+        else:
+            content_bytes = content
         
-        # Escape content for C++ string literal
-        escaped_content = content.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r')
-        
-        header_content += f'''// Text content stored in PROGMEM
+        # For large files or JavaScript/CSS, always use binary embedding to avoid rawliteral issues
+        if len(content_bytes) > 10000 or filename.endswith(('.js', '.css')):
+            header_content += f'''// Large text content stored in PROGMEM as binary
+const uint8_t embedded_{var_name}_data[] PROGMEM = {{
+'''
+            
+            # Write bytes in rows of 16
+            for i in range(0, len(content_bytes), 16):
+                row = content_bytes[i:i+16]
+                hex_values = ', '.join(f'0x{b:02X}' for b in row)
+                header_content += f'    {hex_values}'
+                if i + 16 < len(content_bytes):
+                    header_content += ','
+                header_content += '\n'
+            
+            header_content += f'''}};
+
+const size_t embedded_{var_name}_size = {len(content_bytes)};
+const char embedded_{var_name}_content_type[] = "{content_type}";
+const char embedded_{var_name}_filename[] = "{filename}";
+const char embedded_{var_name}_checksum[] = "{content_hash}";
+
+'''
+        else:
+            # For small text files, use rawliteral
+            if isinstance(content, bytes):
+                content = content.decode('utf-8', errors='replace')
+            
+            header_content += f'''// Text content stored in PROGMEM
 const char embedded_{var_name}_data[] PROGMEM = R"rawliteral({content})rawliteral";
 
 const size_t embedded_{var_name}_size = {len(content)};
@@ -129,7 +156,7 @@ def generate_registry_file(embedded_files):
 '''
     
     # Include all generated headers
-    for var_name in embedded_files:
+    for var_name, is_binary in embedded_files:
         registry_content += f'#include "embedded_{var_name}.h"\n'
     
     registry_content += '''
@@ -147,14 +174,14 @@ struct EmbeddedFile {
 const EmbeddedFile embedded_files[] = {
 '''
     
-    for var_name in embedded_files:
+    for var_name, is_binary_embedded in embedded_files:
         registry_content += f'''    {{
         embedded_{var_name}_filename,
         embedded_{var_name}_content_type,
         (const uint8_t*)embedded_{var_name}_data,
         embedded_{var_name}_size,
         embedded_{var_name}_checksum,
-        false  // Assume text for now, could be enhanced
+        {str(is_binary_embedded).lower()}
     }},
 '''
     
@@ -203,9 +230,9 @@ def main():
     upload_dir = os.path.join(workspace_root, 'upload')
     generated_dir = os.path.join(workspace_root, 'src', 'generated')
     
-    print("🔧 Embedding Web Files for DPV Control")
-    print(f"📁 Source directory: {upload_dir}")
-    print(f"📁 Output directory: {generated_dir}")
+    print("Embedding Web Files for DPV Control")
+    print(f"Source directory: {upload_dir}")
+    print(f"Output directory: {generated_dir}")
     
     # Check if upload directory exists
     if not os.path.exists(upload_dir):
@@ -248,6 +275,10 @@ def main():
                 with open(file_path, mode, encoding=encoding) as f:
                     content = f.read()
                 
+                # Determine if we'll use binary embedding (large files or JS/CSS)
+                content_size = len(content) if isinstance(content, (str, bytes)) else 0
+                will_use_binary = is_binary or content_size > 10000 or filename.endswith(('.js', '.css'))
+                
                 # Generate header file
                 header_content, var_name = generate_header_file(relative_path, content, is_binary)
                 
@@ -258,7 +289,7 @@ def main():
                 with open(header_path, 'w', encoding='utf-8') as f:
                     f.write(header_content)
                 
-                embedded_files.append(var_name)
+                embedded_files.append((var_name, will_use_binary))
                 file_size = len(content) if isinstance(content, (bytes, str)) else 0
                 total_size += file_size
                 
@@ -285,8 +316,9 @@ def main():
         print(f"📝 Generated files in: {generated_dir}")
         print("   - embedded_files_registry.h")
         print("   - embedded_files_registry.cpp")
-        for var_name in embedded_files:
-            print(f"   - embedded_{var_name}.h")
+        for var_name, is_binary in embedded_files:
+            embed_type = "binary" if is_binary else "text"
+            print(f"   - embedded_{var_name}.h ({embed_type})")
     else:
         print("⚠️  No files found to embed")
     
