@@ -55,19 +55,48 @@ jobs:
       - name: Build PlatformIO Project
         run: pio run -e esp32dev
 
+      - name: Debug Build Directory
+        run: |
+          echo "Listing contents of .pio/build/esp32dev/:"
+          ls -la .pio/build/esp32dev/ || echo "Build directory not found"
+          echo "Checking for specific files:"
+          [ -f .pio/build/esp32dev/firmware.bin ] && echo "✓ firmware.bin found" || echo "✗ firmware.bin missing"
+          [ -f .pio/build/esp32dev/bootloader.bin ] && echo "✓ bootloader.bin found" || echo "✗ bootloader.bin missing"
+          [ -f .pio/build/esp32dev/partitions.bin ] && echo "✓ partitions.bin found" || echo "✗ partitions.bin missing"
+
       - name: Verify Build Artifacts
         run: |
+          echo "Verifying build artifacts..."
+          MISSING_FILES=""
+          
           if [ ! -f .pio/build/esp32dev/firmware.bin ]; then
-            echo "firmware.bin not found!"
-            exit 1
+            echo "ERROR: firmware.bin not found!"
+            MISSING_FILES="${MISSING_FILES} firmware.bin"
+          else
+            echo "✓ firmware.bin found ($(stat -c%s .pio/build/esp32dev/firmware.bin) bytes)"
           fi
+          
           if [ ! -f .pio/build/esp32dev/bootloader.bin ]; then
-            echo "bootloader.bin not found!"
-            exit 1
+            echo "ERROR: bootloader.bin not found!"
+            MISSING_FILES="${MISSING_FILES} bootloader.bin"
+          else
+            echo "✓ bootloader.bin found ($(stat -c%s .pio/build/esp32dev/bootloader.bin) bytes)"
           fi
+          
           if [ ! -f .pio/build/esp32dev/partitions.bin ]; then
-            echo "partitions.bin not found!"
+            echo "ERROR: partitions.bin not found!"
+            MISSING_FILES="${MISSING_FILES} partitions.bin"
+          else
+            echo "✓ partitions.bin found ($(stat -c%s .pio/build/esp32dev/partitions.bin) bytes)"
+          fi
+          
+          if [ ! -z "${MISSING_FILES}" ]; then
+            echo "SUMMARY: Missing files:${MISSING_FILES}"
+            echo "This indicates that the PlatformIO build process failed."
+            echo "Check the 'Build PlatformIO Project' step output above for errors."
             exit 1
+          else
+            echo "✓ All build artifacts found successfully!"
           fi
 
       - name: Run Unit Tests

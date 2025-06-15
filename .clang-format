@@ -55,7 +55,7 @@ Standard: c++20
 # Spacing
 SpaceAfterCStyleCast: false
 SpaceBeforeAssignmentOperators: true
-SpaceInContainerLiterals: true
+SpacesInContainerLiterals: true
 
 # Alignment
 AlignAfterOpenBracket: Align
