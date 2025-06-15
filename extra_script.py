@@ -20,10 +20,16 @@ def pre_build_embed_webfiles(source, target, env):
                 print(f"❌ Embed script not found: {embed_script}")
                 return
             
-            # Run the embed script with explicit UTF-8 encoding
+            # Set up environment for UTF-8
+            embed_env = os.environ.copy()
+            embed_env["PYTHONIOENCODING"] = "utf-8"
+            embed_env["LC_ALL"] = "en_US.UTF-8"
+            embed_env["LANG"] = "en_US.UTF-8"
+            
+            # Run the embed script with explicit UTF-8 encoding and environment
             result = subprocess.run([sys.executable, embed_script], 
                                   capture_output=True, text=True, cwd=project_dir,
-                                  encoding='utf-8', errors='replace')
+                                  encoding='utf-8', errors='replace', env=embed_env)
             
             if result.returncode == 0:
                 # Print the successful output
