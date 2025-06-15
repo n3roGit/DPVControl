@@ -268,12 +268,21 @@ def main():
                 is_binary = True
             
             try:
-                # Read file content
-                mode = 'rb' if is_binary else 'r'
-                encoding = None if is_binary else 'utf-8'
+                # Always read files as binary first to avoid encoding issues
+                with open(file_path, 'rb') as f:
+                    content_bytes = f.read()
                 
-                with open(file_path, mode, encoding=encoding) as f:
-                    content = f.read()
+                # For text files, try to decode to UTF-8, but keep binary as fallback
+                if not is_binary:
+                    try:
+                        content = content_bytes.decode('utf-8')
+                    except UnicodeDecodeError:
+                        # If decoding fails, treat as binary
+                        content = content_bytes
+                        is_binary = True
+                        print(f"   ⚠️  File {filename} contains non-UTF-8 content, treating as binary")
+                else:
+                    content = content_bytes
                 
                 # Determine if we'll use binary embedding (large files or JS/CSS)
                 content_size = len(content) if isinstance(content, (str, bytes)) else 0

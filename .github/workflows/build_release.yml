@@ -53,7 +53,17 @@ jobs:
         run: pip install --upgrade platformio
 
       - name: Build PlatformIO Project
-        run: pio run -e esp32dev
+        run: |
+          echo "🔧 Starting PlatformIO build..."
+          pio run -e esp32dev --verbose
+          BUILD_EXIT_CODE=$?
+          echo "Build exit code: $BUILD_EXIT_CODE"
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "❌ Build failed with exit code $BUILD_EXIT_CODE"
+            exit $BUILD_EXIT_CODE
+          else
+            echo "✅ Build completed successfully"
+          fi
 
       - name: Debug Build Directory
         run: |
@@ -66,37 +76,53 @@ jobs:
 
       - name: Verify Build Artifacts
         run: |
-          echo "Verifying build artifacts..."
+          echo "🔍 Verifying build artifacts..."
+          echo "Working directory: $(pwd)"
+          echo "Build directory contents:"
+          find .pio/build/esp32dev/ -type f -name "*.bin" -ls 2>/dev/null || echo "No .bin files found in build directory"
+          echo ""
+          
           MISSING_FILES=""
           
           if [ ! -f .pio/build/esp32dev/firmware.bin ]; then
-            echo "ERROR: firmware.bin not found!"
+            echo "❌ ERROR: firmware.bin not found!"
             MISSING_FILES="${MISSING_FILES} firmware.bin"
           else
-            echo "✓ firmware.bin found ($(stat -c%s .pio/build/esp32dev/firmware.bin) bytes)"
+            echo "✅ firmware.bin found ($(stat -c%s .pio/build/esp32dev/firmware.bin) bytes)"
           fi
           
           if [ ! -f .pio/build/esp32dev/bootloader.bin ]; then
-            echo "ERROR: bootloader.bin not found!"
+            echo "❌ ERROR: bootloader.bin not found!"
             MISSING_FILES="${MISSING_FILES} bootloader.bin"
           else
-            echo "✓ bootloader.bin found ($(stat -c%s .pio/build/esp32dev/bootloader.bin) bytes)"
+            echo "✅ bootloader.bin found ($(stat -c%s .pio/build/esp32dev/bootloader.bin) bytes)"
           fi
           
           if [ ! -f .pio/build/esp32dev/partitions.bin ]; then
-            echo "ERROR: partitions.bin not found!"
+            echo "❌ ERROR: partitions.bin not found!"
             MISSING_FILES="${MISSING_FILES} partitions.bin"
           else
-            echo "✓ partitions.bin found ($(stat -c%s .pio/build/esp32dev/partitions.bin) bytes)"
+            echo "✅ partitions.bin found ($(stat -c%s .pio/build/esp32dev/partitions.bin) bytes)"
           fi
           
           if [ ! -z "${MISSING_FILES}" ]; then
-            echo "SUMMARY: Missing files:${MISSING_FILES}"
-            echo "This indicates that the PlatformIO build process failed."
-            echo "Check the 'Build PlatformIO Project' step output above for errors."
+            echo ""
+            echo "💥 CRITICAL: Missing build artifacts:${MISSING_FILES}"
+            echo "This indicates that the PlatformIO build process failed to produce binaries."
+            echo "The build may have stopped early due to compilation errors."
+            echo "Check the 'Build PlatformIO Project' step output above for detailed errors."
+            echo ""
+            echo "🔧 Possible causes:"
+            echo "  - Compilation errors in C++ code"
+            echo "  - Missing dependencies or includes"
+            echo "  - embed_webfiles.py script failures"
+            echo "  - PlatformIO configuration issues"
+            echo ""
             exit 1
           else
-            echo "✓ All build artifacts found successfully!"
+            echo ""
+            echo "🎉 All build artifacts found successfully!"
+            echo "Ready to proceed with release creation."
           fi
 
       - name: Run Unit Tests
