@@ -6,7 +6,7 @@
 ![Last Commit](https://img.shields.io/github/last-commit/n3roGit/DPVControl)
 ![Issues](https://img.shields.io/github/issues/n3roGit/DPVControl)
 ![Pull Requests](https://img.shields.io/github/issues-pr/n3roGit/DPVControl)
-[![Lint Code Base](https://github.com/BubTec/DPVControl/actions/workflows/super-linter.yml/badge.svg)](https://github.com/BubTec/DPVControl/actions/workflows/super-linter.yml)
+[![C++ Code Quality](https://github.com/BubTec/DPVControl/actions/workflows/cpp-lint.yml/badge.svg)](https://github.com/BubTec/DPVControl/actions/workflows/cpp-lint.yml)
 
 # THE PROJECT
 In this GitHub project, the aim is to build and operate a DPV (Dive Propulsion Vehicle) using standard components. In my case, I will breathe new life into an old Aquazepp. The motor I'm using is a common 2000-watt scooter motor, controlled by a VESC (Vedder Electronic Speed Controller). The entire system is controlled through Reed switches activated by magnets with a Bowden cable.

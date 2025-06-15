@@ -1,0 +1,50 @@
+---
+name: C++ Code Quality
+
+on:
+  push:
+    branches: ["production_repo"]
+    paths:
+      - 'src/**'
+      - 'test/**'
+  pull_request:
+    branches: ["production_repo"]
+    paths:
+      - 'src/**'
+      - 'test/**'
+
+jobs:
+  cpp-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install clang tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format clang-tidy cppcheck
+
+      - name: Check clang-format
+        run: |
+          find src test -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
+          xargs clang-format --dry-run --Werror --style=file
+
+      - name: Run clang-tidy
+        run: |
+          find src -name "*.cpp" | \
+          xargs clang-tidy --config-file=.clang-tidy || true
+
+      - name: Run cppcheck
+        run: |
+          cppcheck --project=check.cppcheck --error-exitcode=1 \
+          --enable=warning,style,performance,portability \
+          --suppress=missingIncludeSystem \
+          --suppress=unmatchedSuppression \
+          --inline-suppr src/
+
+      - name: Run cpplint
+        run: |
+          pip install cpplint
+          find src -name "*.cpp" -o -name "*.h" | \
+          xargs cpplint --config=.cpplint 
