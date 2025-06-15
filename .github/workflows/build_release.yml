@@ -12,7 +12,6 @@ on:
       - 'upload/**'
       - 'embed_webfiles.py'
       - 'extra_script.py'
-      - '!data/version.txt'
       - '!upload/version.txt'
       - '!src/**/*.md'
       - '!**/*.png'
@@ -163,9 +162,8 @@ jobs:
           NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
           
           echo "New version: ${NEW_VERSION}"
-          # Ensure directories exist and update version files
-          mkdir -p data upload
-          echo "${NEW_VERSION}" > data/version.txt
+          # Ensure upload directory exists and update version file
+          mkdir -p upload
           echo "${NEW_VERSION}" > upload/version.txt
           
           echo "VERSION=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
@@ -178,7 +176,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/version.txt upload/version.txt
+          git add upload/version.txt
           git commit -m "Auto-increment version to ${{ steps.version.outputs.version }}" || exit 0
           git push
 
