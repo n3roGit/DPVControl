@@ -730,7 +730,7 @@ function updateChartData() {
     charts.combinedChart.data.datasets[3].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.temperature}));
     charts.combinedChart.data.datasets[4].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.humidity}));
     charts.combinedChart.data.datasets[5].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.erpm}));
-    charts.combinedChart.data.datasets[6].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.dutyCycle}));
+    charts.combinedChart.data.datasets[6].data = allDataPoints.map((d, i) => ({x: xData[i], y: (d.dutyCycle || 0) * 100}));
     charts.combinedChart.data.datasets[7].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.tempMosfet}));
     charts.combinedChart.data.datasets[8].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.avgMotorCurrent}));
     charts.combinedChart.data.datasets[9].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.batteryLevel}));

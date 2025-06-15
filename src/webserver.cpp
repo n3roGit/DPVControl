@@ -226,7 +226,7 @@ String generateSessionDataJson(String sessionFile) {
                 point["batteryVoltage"] = row.batteryVoltage;
                 point["current"] = row.current;
                 point["avgMotorCurrent"] = row.avgMotorCurrent;
-                point["rpm"] = row.erpm;
+                point["erpm"] = row.erpm;
                 point["dutyCycle"] = row.dutyCycle;
                 point["temperature"] = row.temperature;
                 point["humidity"] = row.humidity;
@@ -376,7 +376,7 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "\"batteryVoltage\":" + String(dataPoints[i].batteryVoltage) + ",";
         json += "\"current\":" + String(dataPoints[i].current) + ",";
         json += "\"avgMotorCurrent\":" + String(dataPoints[i].avgMotorCurrent) + ",";
-        json += "\"rpm\":" + String(dataPoints[i].erpm) + ",";
+        json += "\"erpm\":" + String(dataPoints[i].erpm) + ",";
         json += "\"dutyCycle\":" + String(dataPoints[i].dutyCycle) + ",";
         json += "\"temperature\":" + String(dataPoints[i].temperature) + ",";
         json += "\"humidity\":" + String(dataPoints[i].humidity) + ",";
@@ -1162,7 +1162,7 @@ void handleClient(WiFiClient client) {
             json += "\"current\":" + String(getVescUart().data.avgInputCurrent) + ",";
             json += "\"motorCurrent\":" + String(getVescUart().data.avgMotorCurrent) + ",";
             json += "\"dutyCycle\":" + String(getVescUart().data.dutyCycleNow) + ",";
-            json += "\"rpm\":" + String(getVescUart().data.rpm);
+            json += "\"erpm\":" + String(getVescUart().data.rpm);
         } else {
             // Fallback values if no motor
             json += "\"batteryVoltage\":48.0,";
@@ -1171,7 +1171,7 @@ void handleClient(WiFiClient client) {
             json += "\"current\":0.0,";
             json += "\"motorCurrent\":0.0,";
             json += "\"dutyCycle\":0.0,";
-            json += "\"rpm\":0";
+            json += "\"erpm\":0";
         }
         
         // Add environmental sensor data
