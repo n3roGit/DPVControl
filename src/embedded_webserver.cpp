@@ -22,10 +22,10 @@ bool serveEmbeddedFile(WiFiClient client, const char* path) {
     }
     
     // Log the file being served
-    String logMsg = "Serving embedded file: " + String(file->filename) + " (" + String(file->size) + " bytes)";
+    String logMsg = "Serving embedded file: " + String(file->filename) + " (" + String(file->size) + " bytes, binary=" + String(file->is_binary) + ", checksum=" + String(file->checksum) + ")";
     log(logMsg.c_str());
     
-    // Send the response
+    // Send the response - always use PROGMEM for embedded files
     sendEmbeddedResponse(client, 200, file->content_type, file->data, file->size, true);
     
     return true;
@@ -57,8 +57,16 @@ void sendEmbeddedResponse(WiFiClient client, int statusCode, const char* content
     client.println(dataSize);
     client.println("Connection: close");
     
-    // Add cache headers for static files
-    if (strstr(contentType, "text/html") == nullptr) {
+    // Add cache headers - force no cache for JavaScript files to ensure fresh content
+    if (strstr(contentType, "javascript") != nullptr || strstr(contentType, "text/css") != nullptr) {
+        client.println("Cache-Control: no-cache, no-store, must-revalidate");
+        client.println("Pragma: no-cache");
+        client.println("Expires: 0");
+        // Add ETag based on data size for debugging
+        client.print("ETag: \"");
+        client.print(dataSize);
+        client.println("\"");
+    } else if (strstr(contentType, "text/html") == nullptr) {
         client.println("Cache-Control: public, max-age=3600"); // 1 hour cache for non-HTML files
     } else {
         client.println("Cache-Control: no-cache"); // No cache for HTML files
@@ -72,6 +80,7 @@ void sendEmbeddedResponse(WiFiClient client, int statusCode, const char* content
         const size_t chunkSize = 512;
         size_t remaining = dataSize;
         size_t offset = 0;
+        size_t totalSent = 0;
         
         while (remaining > 0 && client.connected()) {
             size_t toRead = (remaining > chunkSize) ? chunkSize : remaining;
@@ -81,16 +90,23 @@ void sendEmbeddedResponse(WiFiClient client, int statusCode, const char* content
             memcpy_P(buffer, data + offset, toRead);
             
             // Send chunk to client
-            client.write(buffer, toRead);
+            size_t written = client.write(buffer, toRead);
+            totalSent += written;
             
             offset += toRead;
             remaining -= toRead;
             
-            // Small delay to prevent watchdog issues
+            // Small delay to prevent watchdog issues and ensure data is sent
             if (remaining > 0) {
                 yield();
+                delay(1); // Small delay for reliable transmission
             }
         }
+        
+        // Log total bytes sent for debugging
+        String logMsg = "Sent " + String(totalSent) + "/" + String(dataSize) + " bytes";
+        log(logMsg.c_str());
+        
     } else {
         // Send directly from RAM
         client.write(data, dataSize);
