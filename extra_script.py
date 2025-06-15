@@ -20,9 +20,10 @@ def pre_build_embed_webfiles(source, target, env):
                 print(f"❌ Embed script not found: {embed_script}")
                 return
             
-            # Run the embed script
+            # Run the embed script with explicit UTF-8 encoding
             result = subprocess.run([sys.executable, embed_script], 
-                                  capture_output=True, text=True, cwd=project_dir)
+                                  capture_output=True, text=True, cwd=project_dir,
+                                  encoding='utf-8', errors='replace')
             
             if result.returncode == 0:
                 # Print the successful output
