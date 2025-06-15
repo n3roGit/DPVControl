@@ -82,8 +82,19 @@ jobs:
             CURRENT_VERSION=$(cat upload/version.txt)
             echo "Current version from build: ${CURRENT_VERSION}"
           else
-            CURRENT_VERSION="2.0.0"
-            echo "No version file found, using default: ${CURRENT_VERSION}"
+            echo "ERROR: No version file found - build process may have failed"
+            echo "Expected file: upload/version.txt"
+            CURRENT_VERSION="no version found"
+            echo "VERSION=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "version=${CURRENT_VERSION}" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          
+          # Validate version format (should be x.y.z)
+          if [[ ! "${CURRENT_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Invalid version format: ${CURRENT_VERSION}"
+            echo "Expected format: x.y.z (e.g., 2.0.1)"
+            exit 1
           fi
           
           # Split version into parts
