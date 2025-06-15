@@ -112,16 +112,13 @@ void test_status_api_all_required_fields() {
   TEST_ASSERT_FALSE(error);
 
   // Required fields that frontend expects
-  const char* requiredFields[] = {
-      "status",       "uptime",       "totalUptime",
-      "motor",        "lamp",         "beeper",
-      "erpm",         "leftButton",   "rightButton"
-  };
+  const char* requiredFields[] = {"status",      "uptime",      "totalUptime",
+                                  "motor",       "lamp",        "beeper",
+                                  "erpm",        "leftButton",  "rightButton"};
 
   for (int i = 0; i < 9; i++) {
-    TEST_ASSERT_TRUE_MESSAGE(
-        doc.containsKey(requiredFields[i]),
-        ("Missing required field: " + String(requiredFields[i])).c_str());
+    TEST_ASSERT_TRUE_MESSAGE(doc.containsKey(requiredFields[i]),
+                             ("Missing required field: " + String(requiredFields[i])).c_str());
   }
 }
 
