@@ -76,8 +76,15 @@ jobs:
       - name: Determine and increment version
         id: version
         run: |
-          CURRENT_VERSION=$(cat data/version.txt || echo "2.0.0")
-          echo "Current version: ${CURRENT_VERSION}"
+          # Version is now created in upload/ during the build process
+          # Read current version from upload/version.txt (created by embed_webfiles.py)
+          if [ -f upload/version.txt ]; then
+            CURRENT_VERSION=$(cat upload/version.txt)
+            echo "Current version from build: ${CURRENT_VERSION}"
+          else
+            CURRENT_VERSION="2.0.0"
+            echo "No version file found, using default: ${CURRENT_VERSION}"
+          fi
           
           # Split version into parts
           IFS='.' read -ra PARTS <<< "${CURRENT_VERSION}"
@@ -90,6 +97,8 @@ jobs:
           NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
           
           echo "New version: ${NEW_VERSION}"
+          # Ensure directories exist and update version files
+          mkdir -p data upload
           echo "${NEW_VERSION}" > data/version.txt
           echo "${NEW_VERSION}" > upload/version.txt
           
