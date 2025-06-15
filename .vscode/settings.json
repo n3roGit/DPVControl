@@ -18,24 +18,24 @@
     // Editor Settings
     "editor.formatOnSave": true,
     "editor.formatOnType": false,
-    "editor.rulers": [120],
-    "editor.tabSize": 4,
+    "editor.rulers": [100],
+    "editor.tabSize": 2,
     "editor.insertSpaces": true,
     "editor.detectIndentation": false,
     "editor.wordWrap": "wordWrapColumn",
-    "editor.wordWrapColumn": 120,
+    "editor.wordWrapColumn": 100,
     
     // C++ specific editor settings
     "[cpp]": {
         "editor.defaultFormatter": "xaver.clang-format",
         "editor.formatOnSave": true,
-        "editor.tabSize": 4,
+        "editor.tabSize": 2,
         "editor.insertSpaces": true
     },
     "[c]": {
         "editor.defaultFormatter": "xaver.clang-format",
         "editor.formatOnSave": true,
-        "editor.tabSize": 4,
+        "editor.tabSize": 2,
         "editor.insertSpaces": true
     },
     

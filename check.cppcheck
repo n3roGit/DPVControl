@@ -10,7 +10,7 @@
         <dir name="libraries/"/>
     </includedir>
     <paths>
-        <dir name="DPVController"/>
+        <dir name="src"/>
     </paths>
     <project-name>check</project-name>
 </project>
