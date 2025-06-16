@@ -74,7 +74,7 @@ To ensure code quality, a pre-commit hook is provided that automatically runs al
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:
 - ArduinoJson, ESP32Servo, OneWire, DallasTemperature
-- DHT sensor library, FastLED, Adafruit NeoPixel
+- DHT sensor library, Adafruit NeoPixel
 - VescUart, ClickButton, Uptime Library
 
 No manual library installation required!
