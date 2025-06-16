@@ -1598,6 +1598,13 @@ void handleClient(WiFiClient client) {
                     file = root.openNextFile();
                 }
                 root.close();
+                
+                // Force creation of new session starting from 0001 after deletion
+                if (success && deleteCount > 0) {
+                    log("Forcing new session creation after delete-all to reset numbering");
+                    extern void createNewSession(bool forceNewSession); // From datalog.cpp
+                    createNewSession(true); // This will start from session_0001.bin
+                }
             } else {
                 errorMsg = "Could not open /datalog directory";
                 success = false;
