@@ -76,8 +76,8 @@ String generateSessionListJson() {
         currentSession = currentSession.substring(9); // Remove "/datalog/"
     }
     
-    // Sort sessions by filename (newest first for 4-digit numbering)
-    // Bubble sort for simplicity
+    // Sort sessions with current session first, then newest first
+    // First, sort by filename (newest first for 4-digit numbering)
     for (int i = 0; i < count - 1; i++) {
         for (int j = 0; j < count - i - 1; j++) {
             if (sessions[j] < sessions[j + 1]) { // Reverse order for newest first
@@ -85,6 +85,19 @@ String generateSessionListJson() {
                 sessions[j] = sessions[j + 1];
                 sessions[j + 1] = temp;
             }
+        }
+    }
+    
+    // Then, move current session to the top
+    for (int i = 0; i < count; i++) {
+        if (sessions[i] == currentSession) {
+            // Move current session to position 0
+            String temp = sessions[i];
+            for (int j = i; j > 0; j--) {
+                sessions[j] = sessions[j - 1];
+            }
+            sessions[0] = temp;
+            break;
         }
     }
     

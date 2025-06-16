@@ -127,7 +127,7 @@ String getCurrentSessionFile() {
  */
 String* listSessionFiles(int* count) {
     *count = 0;
-    static String files[50]; // Maximum 50 sessions stored
+    static String files[100]; // Increased from 50 to 100 sessions to fix dropdown limit bug
 
     // Add delay to prevent file descriptor exhaustion
     vTaskDelay(5 / portTICK_PERIOD_MS);
@@ -138,7 +138,7 @@ String* listSessionFiles(int* count) {
     }
 
     File file = root.openNextFile();
-    while (file && *count < 50) {
+    while (file && *count < 100) {
         if (!file.isDirectory() && String(file.name()).endsWith(".bin")) {
             files[*count] = String(file.name());
             (*count)++;
