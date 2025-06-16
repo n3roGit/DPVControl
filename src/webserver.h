@@ -5,7 +5,7 @@
 #include <DNSServer.h>
 #include <WiFiServer.h>
 #include <WiFiClient.h>
-#include <SPIFFS.h>
+// Note: Using LittleFS instead of SPIFFS
 #include "main.h"
 
 // Task handle for the webserver task

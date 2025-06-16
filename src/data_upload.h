@@ -1,7 +1,7 @@
 #ifndef DATA_UPLOAD_H
 #define DATA_UPLOAD_H
 
-#include <SPIFFS.h>
+// Note: Using LittleFS instead of SPIFFS
 
 // Function to initialize SPIFFS and store HTML files
 bool initializeFileSystem();

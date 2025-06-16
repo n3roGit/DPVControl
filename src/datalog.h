@@ -2,7 +2,7 @@
 #define datalog_h
 
 #include <FS.h>
-#include <SPIFFS.h>
+// Note: Using LittleFS instead of SPIFFS
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "motor.h"
