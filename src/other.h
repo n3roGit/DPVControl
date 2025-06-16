@@ -15,6 +15,12 @@
 
 void GetVESCValues();
 void checkForLeak();
-void FromTimeToTimeExecution(); 
+void FromTimeToTimeExecution();
+
+// Persistent leak alarm functions
+void savePersistentLeakAlarm();
+void loadPersistentLeakAlarm();
+void clearPersistentLeakAlarm();
+void debugLeakAlarmStates(); 
 
 #endif

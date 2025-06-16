@@ -31,12 +31,14 @@ struct LogdataRow {
   float temperature;
   float humidity;
   int batteryLevel;
-  int leakSensorState;
-  int ledBrightness;   // LED brightness as percentage (0-100%)
-  int leftButton;      // Left button state (0=released, 1=pressed)
-  int rightButton;     // Right button state (0=released, 1=pressed)
-  int beeperEnabled;   // Beeper status (0=disabled, 1=enabled)
-  int beeperActive;    // Beeper currently beeping (0=silent, 1=active)
+  int leakSensorFront;     // Front leak sensor state (0=OK, 1=LEAK)
+  int leakSensorBack;      // Back leak sensor state (0=OK, 1=LEAK) 
+  int leakAlarmPersistent; // Persistent leak alarm flag (survives reboots)
+  int ledBrightness;       // LED brightness as percentage (0-100%)
+  int leftButton;          // Left button state (0=released, 1=pressed)
+  int rightButton;         // Right button state (0=released, 1=pressed)
+  int beeperEnabled;       // Beeper status (0=disabled, 1=enabled)
+  int beeperActive;        // Beeper currently beeping (0=silent, 1=active)
   unsigned long totalUptime;
 };
 
@@ -46,10 +48,10 @@ struct LogdataRow {
 #define CURRENT_THRESHOLD 0.2f     // Current change threshold in A
 #define RPM_THRESHOLD 50.0f        // eRPM change threshold
 #define DUTY_THRESHOLD 1.0f        // Duty cycle threshold in %
-#define HUMIDITY_THRESHOLD 2.0f    // Humidity threshold in %
+#define HUMIDITY_THRESHOLD 1.0f    // Humidity threshold in %
 
 // Optimized logging system with longer sessions
-#define MAX_RECENT_POINTS 250     // RAM buffer for live display - ~20 minutes @ 5s intervals
+#define MAX_RECENT_POINTS 200     // RAM buffer for live display
 // All data is immediately written to LittleFS for persistence
 
 extern LogdataRow recentData[MAX_RECENT_POINTS];        // RAM buffer for live display

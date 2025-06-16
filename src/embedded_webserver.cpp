@@ -5,7 +5,7 @@
 // Include the embedded files registry (will be generated)
 #ifdef __has_include
   #if __has_include("generated/embedded_files_registry.h")
-    #include "generated/embedded_files_registry.h"
+#include "generated/embedded_files_registry.h"
     #define HAS_EMBEDDED_FILES
   #endif
 #endif

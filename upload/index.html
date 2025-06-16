@@ -78,11 +78,17 @@
                     </tr>
                     <tr>
                         <td>Water Sensor Front:</td>
-                        <td class="status-value" id="waterSensorFront">Loading...</td>
+                        <td>
+                            <span class="status-value" id="waterSensorFront">Loading...</span>
+                            <button id="resetFrontAlarmBtn" class="reset-button-inline" onclick="resetFrontLeakAlarm()" style="display: none;">Reset</button>
+                        </td>
                     </tr>
                     <tr>
                         <td>Water Sensor Back:</td>
-                        <td class="status-value" id="waterSensorBack">Loading...</td>
+                        <td>
+                            <span class="status-value" id="waterSensorBack">Loading...</span>
+                            <button id="resetBackAlarmBtn" class="reset-button-inline" onclick="resetBackLeakAlarm()" style="display: none;">Reset</button>
+                        </td>
                     </tr>
                     <tr>
                         <td>Left Button:</td>

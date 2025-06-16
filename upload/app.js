@@ -115,7 +115,9 @@ function exportToCSV(data, filename) {
         const beeperActive = item.beeperActive ? 1 : 0;
         const leftButton = item.leftButton ? 1 : 0;
         const rightButton = item.rightButton ? 1 : 0;
-        const leakSensorState = item.leakSensorState ? 1 : 0;
+        const leakSensorFront = item.leakSensorFront ? 1 : 0;
+        const leakSensorBack = item.leakSensorBack ? 1 : 0;
+        const leakAlarmPersistent = item.leakAlarmPersistent ? 1 : 0;
         const ledBrightness = item.ledBrightness || 0;
         
         csv += [
@@ -130,7 +132,9 @@ function exportToCSV(data, filename) {
             (item.temperature || 0).toFixed(1),
             (item.humidity || 0).toFixed(1),
             item.batteryLevel || 0,
-            leakSensorState,
+            leakSensorFront,
+            leakSensorBack,
+            leakAlarmPersistent,
             ledBrightness,
             leftButton,
             rightButton,
@@ -268,10 +272,28 @@ function initCharts() {
                 stepped: true,
                 yAxisID: 'boolean'
             }, {
-                label: 'Leak Sensor',
-                borderColor: 'rgb(255, 69, 0)', // Red orange for danger/leak
+                label: 'Leak Sensor Front',
+                borderColor: 'rgb(255, 69, 0)', // Red orange for front sensor
                 backgroundColor: 'rgba(255, 69, 0, 0.2)',
                 borderWidth: 4,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
+            }, {
+                label: 'Leak Sensor Back',
+                borderColor: 'rgb(255, 140, 0)', // Dark orange for back sensor
+                backgroundColor: 'rgba(255, 140, 0, 0.2)',
+                borderWidth: 4,
+                data: [],
+                tension: 0,
+                stepped: true,
+                yAxisID: 'boolean'
+            }, {
+                label: 'Leak Alarm Persistent',
+                borderColor: 'rgb(178, 34, 34)', // Fire brick red for persistent alarm
+                backgroundColor: 'rgba(178, 34, 34, 0.3)',
+                borderWidth: 5,
                 data: [],
                 tension: 0,
                 stepped: true,
@@ -527,12 +549,48 @@ function loadData() {
             const dataPointCount = document.getElementById('dataPointCount');
             if (dataPointCount) dataPointCount.textContent = data.dataPoints || 0;
             
-            // Update additional sensor data with null checks
+            // Update leak sensor status with individual persistent alarm logic
             const waterSensorFront = document.getElementById('waterSensorFront');
-            if (waterSensorFront) waterSensorFront.textContent = data.waterSensorFront === true ? 'LEAK DETECTED!' : 'OK';
+            const resetFrontBtn = document.getElementById('resetFrontAlarmBtn');
+            if (waterSensorFront) {
+                let frontStatus = 'OK';
+                let showResetBtn = false;
+                
+                if (data.waterSensorFront === true) {
+                    frontStatus = 'WET';  // Currently detecting water
+                } else if (data.leakAlarmFrontPersistent === true) {
+                    frontStatus = 'LEAK'; // Front sensor has persistent alarm
+                    showResetBtn = true;
+                }
+                
+                waterSensorFront.textContent = frontStatus;
+                waterSensorFront.className = 'status-value ' + (frontStatus === 'OK' ? 'status-ok' : 'status-alarm');
+                
+                if (resetFrontBtn) {
+                    resetFrontBtn.style.display = showResetBtn ? 'inline-block' : 'none';
+                }
+            }
             
             const waterSensorBack = document.getElementById('waterSensorBack');
-            if (waterSensorBack) waterSensorBack.textContent = data.waterSensorBack === true ? 'LEAK DETECTED!' : 'OK';
+            const resetBackBtn = document.getElementById('resetBackAlarmBtn');
+            if (waterSensorBack) {
+                let backStatus = 'OK';
+                let showResetBtn = false;
+                
+                if (data.waterSensorBack === true) {
+                    backStatus = 'WET';   // Currently detecting water
+                } else if (data.leakAlarmBackPersistent === true) {
+                    backStatus = 'LEAK';  // Back sensor has persistent alarm
+                    showResetBtn = true;
+                }
+                
+                waterSensorBack.textContent = backStatus;
+                waterSensorBack.className = 'status-value ' + (backStatus === 'OK' ? 'status-ok' : 'status-alarm');
+                
+                if (resetBackBtn) {
+                    resetBackBtn.style.display = showResetBtn ? 'inline-block' : 'none';
+                }
+            }
             
             const leftButton = document.getElementById('leftButton');
             if (leftButton) leftButton.textContent = data.leftButton === true ? 'PRESSED' : 'RELEASED';
@@ -598,8 +656,8 @@ function loadData() {
                 const batteryLevel = document.getElementById('batteryLevel');
                 if (batteryLevel) batteryLevel.textContent = (latest.batteryLevel || 0) + ' %';
                 
-                const waterSensorFront = document.getElementById('waterSensorFront');
-                if (waterSensorFront) waterSensorFront.textContent = latest.leakSensorState === 1 ? 'LEAK DETECTED!' : 'OK';
+                // Note: Water sensor status is now handled by the main status API above
+                // This redundant update is removed to avoid conflicts
             }
         })
         .catch(error => {
@@ -737,8 +795,10 @@ function updateChartData() {
     charts.combinedChart.data.datasets[10].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.beeperActive ? 1 : 0}));
     charts.combinedChart.data.datasets[11].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leftButton ? 1 : 0}));
     charts.combinedChart.data.datasets[12].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.rightButton ? 1 : 0}));
-    charts.combinedChart.data.datasets[13].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorState ? 1 : 0}));
-    charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledBrightness || 0}));
+    charts.combinedChart.data.datasets[13].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorFront ? 1 : 0}));
+    charts.combinedChart.data.datasets[14].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakSensorBack ? 1 : 0}));
+    charts.combinedChart.data.datasets[15].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.leakAlarmPersistent ? 1 : 0}));
+    charts.combinedChart.data.datasets[16].data = allDataPoints.map((d, i) => ({x: xData[i], y: d.ledBrightness || 0}));
     
     // Clear labels array since we're using x,y coordinates instead of indexed labels
     charts.combinedChart.data.labels = [];
@@ -1630,7 +1690,9 @@ const dataCategories = {
         'Beeper Active',
         'Left Button',
         'Right Button', 
-        'Leak Sensor'
+        'Leak Sensor Front',
+        'Leak Sensor Back',
+        'Leak Alarm Persistent'
     ]
 };
 
@@ -1702,4 +1764,85 @@ function toggleTooltipMode() {
     
     // Update chart configuration
     charts.combinedChart.update('none');
-} 
+}
+
+// Reset front sensor persistent leak alarm
+function resetFrontLeakAlarm() {
+    console.log('Resetting front leak alarm...');
+    
+    fetch('/api/leak-alarm/reset-front', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Front leak alarm reset response:', data);
+        if (data.success) {
+            console.log('Front leak alarm reset successfully');
+            loadData(); // Refresh status
+        } else {
+            console.error('Failed to reset front leak alarm:', data.error);
+            alert('Failed to reset front leak alarm: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting front leak alarm:', error);
+        alert('Error resetting front leak alarm: ' + error.message);
+    });
+}
+
+// Reset back sensor persistent leak alarm
+function resetBackLeakAlarm() {
+    console.log('Resetting back leak alarm...');
+    
+    fetch('/api/leak-alarm/reset-back', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Back leak alarm reset response:', data);
+        if (data.success) {
+            console.log('Back leak alarm reset successfully');
+            loadData(); // Refresh status
+        } else {
+            console.error('Failed to reset back leak alarm:', data.error);
+            alert('Failed to reset back leak alarm: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting back leak alarm:', error);
+        alert('Error resetting back leak alarm: ' + error.message);
+    });
+}
+
+// Reset all leak alarms (legacy function)
+function resetLeakAlarm() {
+    console.log('Resetting all leak alarms...');
+    
+    fetch('/api/leak-alarm/reset', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('All leak alarms reset response:', data);
+        if (data.success) {
+            console.log('All leak alarms reset successfully');
+            loadData(); // Refresh status
+        } else {
+            console.error('Failed to reset leak alarms:', data.error);
+            alert('Failed to reset leak alarms: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting leak alarms:', error);
+        alert('Error resetting leak alarms: ' + error.message);
+    });
+}

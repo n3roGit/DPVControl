@@ -18,11 +18,12 @@
 #include "main.h" // For dhtSensor global variable
 #include "battery.h" // For batteryLevel global variable
 #include "embedded_webserver.h" // For embedded file serving
+#include "other.h" // For leak alarm functions
 
 // Include embedded files registry if available
 #ifdef __has_include
   #if __has_include("generated/embedded_files_registry.h")
-    #include "generated/embedded_files_registry.h"
+#include "generated/embedded_files_registry.h"
     #define HAS_EMBEDDED_FILES
   #endif
 #endif
@@ -244,7 +245,9 @@ String generateSessionDataJson(String sessionFile) {
                 point["temperature"] = row.temperature;
                 point["humidity"] = row.humidity;
                 point["batteryLevel"] = row.batteryLevel;
-                point["leakSensorState"] = row.leakSensorState;
+                point["leakSensorFront"] = row.leakSensorFront;      // Front sensor
+                point["leakSensorBack"] = row.leakSensorBack;        // Back sensor
+                point["leakAlarmPersistent"] = row.leakAlarmPersistent; // Persistent alarm
                 point["ledBrightness"] = row.ledBrightness;
                 point["leftButton"] = row.leftButton;
                 point["rightButton"] = row.rightButton;
@@ -394,7 +397,9 @@ String generateDataLoggerJson(int count, String timeRange = "recent") {
         json += "\"temperature\":" + String(dataPoints[i].temperature) + ",";
         json += "\"humidity\":" + String(dataPoints[i].humidity) + ",";
         json += "\"batteryLevel\":" + String(dataPoints[i].batteryLevel) + ",";
-        json += "\"leakSensorState\":" + String(dataPoints[i].leakSensorState) + ",";
+        json += "\"leakSensorFront\":" + String(dataPoints[i].leakSensorFront) + ",";
+        json += "\"leakSensorBack\":" + String(dataPoints[i].leakSensorBack) + ",";
+        json += "\"leakAlarmPersistent\":" + String(dataPoints[i].leakAlarmPersistent) + ",";
         json += "\"ledBrightness\":" + String(dataPoints[i].ledBrightness) + ",";
         json += "\"leftButton\":" + String(dataPoints[i].leftButton) + ",";
         json += "\"rightButton\":" + String(dataPoints[i].rightButton) + ",";
@@ -481,7 +486,9 @@ String generateFullTripLogJson() {
         csv += String(dataPoint.temperature) + ",";
         csv += String(dataPoint.humidity) + ",";
         csv += String(dataPoint.batteryLevel) + ",";
-        csv += String(dataPoint.leakSensorState) + ",";
+        csv += String(dataPoint.leakSensorFront) + ",";
+        csv += String(dataPoint.leakSensorBack) + ",";
+        csv += String(dataPoint.leakAlarmPersistent) + ",";
         csv += String(dataPoint.ledBrightness) + ",";
         csv += String(dataPoint.leftButton) + ",";
         csv += String(dataPoint.rightButton) + ",";
@@ -858,7 +865,9 @@ String generateSessionCsvData(String sessionFile) {
             csv += String(dataPoint.temperature, 1) + ",";
             csv += String(dataPoint.humidity, 1) + ",";
                     csv += String(dataPoint.batteryLevel) + ",";
-        csv += String(dataPoint.leakSensorState) + ",";
+        csv += String(dataPoint.leakSensorFront) + ",";
+        csv += String(dataPoint.leakSensorBack) + ",";
+        csv += String(dataPoint.leakAlarmPersistent) + ",";
         csv += String(dataPoint.ledBrightness) + ",";
         csv += String(dataPoint.leftButton) + ",";
             csv += String(dataPoint.rightButton) + ",";
@@ -936,7 +945,7 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
     client.print("\r\n");
     
     // Send CSV header
-    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor State,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Beeper Active\r\n");
+    client.print("Total Uptime (s),Motor Temperature (degC),MOSFET Temperature (degC),Battery Voltage (V),Input Current (A),Motor Current (A),eRPM,Duty Cycle (%),Ambient Temperature (degC),Humidity (%),Battery Level (%),Leak Sensor Front,Leak Sensor Back,Leak Alarm Persistent,LED Brightness (%),Left Button,Right Button,Beeper Enabled,Beeper Active\r\n");
     
     LogdataRow dataPoint;
     int exportedPoints = 0;
@@ -974,7 +983,9 @@ void streamSessionCsvData(WiFiClient client, String sessionFile) {
             csvRow += String(dataPoint.temperature, 1) + ",";
             csvRow += String(dataPoint.humidity, 1) + ",";
             csvRow += String(dataPoint.batteryLevel) + ",";
-            csvRow += String(dataPoint.leakSensorState) + ",";
+            csvRow += String(dataPoint.leakSensorFront) + ",";
+            csvRow += String(dataPoint.leakSensorBack) + ",";
+            csvRow += String(dataPoint.leakAlarmPersistent) + ",";
             csvRow += String(dataPoint.ledBrightness) + ",";
             csvRow += String(dataPoint.leftButton) + ",";
             csvRow += String(dataPoint.rightButton) + ",";
@@ -1164,8 +1175,11 @@ void handleClient(WiFiClient client) {
         json += "\"erpm\":" + String(getVescUart().data.rpm) + ",";
         json += "\"leftButton\":" + String(leftButtonState == PRESSED ? "true" : "false") + ",";
         json += "\"rightButton\":" + String(rightButtonState == PRESSED ? "true" : "false") + ",";
-        json += "\"waterSensorFront\":" + String(digitalRead(PIN_LEAK_FRONT) == LOW ? "true" : "false") + ",";
-        json += "\"waterSensorBack\":" + String(digitalRead(PIN_LEAK_BACK) == LOW ? "true" : "false") + ",";
+        json += "\"waterSensorFront\":" + String(leakSensorFront == 1 ? "true" : "false") + ",";
+        json += "\"waterSensorBack\":" + String(leakSensorBack == 1 ? "true" : "false") + ",";
+        json += "\"leakAlarmPersistent\":" + String(leakAlarmPersistent == 1 ? "true" : "false") + ",";
+        json += "\"leakAlarmFrontPersistent\":" + String(leakAlarmFrontPersistent == 1 ? "true" : "false") + ",";
+        json += "\"leakAlarmBackPersistent\":" + String(leakAlarmBackPersistent == 1 ? "true" : "false") + ",";
         
         // Add sensor data for status display
         if (HAS_MOTOR) {
@@ -1354,6 +1368,39 @@ void handleClient(WiFiClient client) {
         // Reboot the ESP32
         log("System reboot requested via API - restarting now");
         ESP.restart();
+        
+    } else if (path == "/api/leak-alarm/reset" && method == "POST") {
+        // API endpoint to reset ALL persistent leak alarms
+        log("API /api/leak-alarm/reset called");
+        
+        clearPersistentLeakAlarm();
+        
+        String response = "{\"success\":true,\"message\":\"All persistent leak alarms cleared\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+    } else if (path == "/api/leak-alarm/reset-front" && method == "POST") {
+        // API endpoint to reset front sensor persistent leak alarm
+        log("API /api/leak-alarm/reset-front called");
+        
+        leakAlarmFrontPersistent = 0;
+        // Update global alarm state
+        leakAlarmPersistent = (leakAlarmFrontPersistent || leakAlarmBackPersistent) ? 1 : 0;
+        savePersistentLeakAlarm();
+        
+        String response = "{\"success\":true,\"message\":\"Front sensor leak alarm cleared\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+        
+    } else if (path == "/api/leak-alarm/reset-back" && method == "POST") {
+        // API endpoint to reset back sensor persistent leak alarm
+        log("API /api/leak-alarm/reset-back called");
+        
+        leakAlarmBackPersistent = 0;
+        // Update global alarm state
+        leakAlarmPersistent = (leakAlarmFrontPersistent || leakAlarmBackPersistent) ? 1 : 0;
+        savePersistentLeakAlarm();
+        
+        String response = "{\"success\":true,\"message\":\"Back sensor leak alarm cleared\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/api/motor" && method == "POST") {
         // API endpoint for motor control

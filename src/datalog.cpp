@@ -541,7 +541,9 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   dp.rightButton = (rightButtonState == PRESSED) ? 1 : 0;
   
   // Check safety-critical and user-interaction states at fast interval (5s)
-  dp.leakSensorState = leakSensorState;  // Safety-critical: leak detection
+  dp.leakSensorFront = leakSensorFront;      // Safety-critical: front leak detection
+  dp.leakSensorBack = leakSensorBack;        // Safety-critical: back leak detection  
+  dp.leakAlarmPersistent = leakAlarmPersistent; // Persistent alarm state
   dp.ledBrightness = getLedBrightnessPercent(); // User interaction: lamp brightness in percent
       dp.beeperEnabled = getBeeperEnabled() ? 1 : 0;  // User setting changes
     dp.beeperActive = isBeeperActive() ? 1 : 0;      // Current beeping state
@@ -552,7 +554,8 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   stateDebugCounter++;
   if (stateDebugCounter % 20 == 0) {
     String stateDebug = "Fast States - Buttons L/R: " + String(dp.leftButton) + "/" + String(dp.rightButton) + 
-                       ", Leak: " + String(dp.leakSensorState) + ", LED: " + String(dp.ledBrightness) + "%" + 
+                       ", Leak Front/Back: " + String(dp.leakSensorFront) + "/" + String(dp.leakSensorBack) + 
+                       ", Leak Alarm: " + String(dp.leakAlarmPersistent) + ", LED: " + String(dp.ledBrightness) + "%" + 
                        ", Beeper: " + String(dp.beeperEnabled) + ", Battery: " + String(dp.batteryLevel) + "%";
     log(stateDebug.c_str());
   }
@@ -628,7 +631,11 @@ void saveDatapoint(LogdataRow datapoint, File &file) {
   file.print(",");
   file.print(datapoint.batteryLevel);
   file.print(",");
-  file.print(datapoint.leakSensorState);
+  file.print(datapoint.leakSensorFront);
+  file.print(",");
+  file.print(datapoint.leakSensorBack);
+  file.print(",");
+  file.print(datapoint.leakAlarmPersistent);
   file.print(",");
   file.print(datapoint.ledBrightness);
   file.print(",");
@@ -1190,8 +1197,10 @@ void dataloggerTask(void *pvParameters) {
   testData.temperature = 22.0;
   testData.humidity = 45.0;
   testData.batteryLevel = 75;
-  testData.leakSensorState = 0;
-     testData.ledBrightness = 0;
+  testData.leakSensorFront = 0;
+  testData.leakSensorBack = 0;
+  testData.leakAlarmPersistent = 0;
+  testData.ledBrightness = 0;
   testData.totalUptime = 123; // Simple fixed value
   
   log("Test datapoint struct filled");
@@ -1358,7 +1367,9 @@ bool shouldSaveDatapoint(LogdataRow& newData, LogdataRow& lastData) {
   
   // Check discrete values
   if (newData.batteryLevel != lastData.batteryLevel) return true;
-  if (newData.leakSensorState != lastData.leakSensorState) return true;
+  if (newData.leakSensorFront != lastData.leakSensorFront) return true;
+  if (newData.leakSensorBack != lastData.leakSensorBack) return true;
+  if (newData.leakAlarmPersistent != lastData.leakAlarmPersistent) return true;
   if (newData.ledBrightness != lastData.ledBrightness) return true;
   if (newData.leftButton != lastData.leftButton) return true;
   if (newData.rightButton != lastData.rightButton) return true;
@@ -1417,7 +1428,9 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].temperature = before.temperature;
         interpolatedData[i].humidity = before.humidity;
         interpolatedData[i].batteryLevel = before.batteryLevel;
-        interpolatedData[i].leakSensorState = before.leakSensorState;
+        interpolatedData[i].leakSensorFront = before.leakSensorFront;
+        interpolatedData[i].leakSensorBack = before.leakSensorBack;
+        interpolatedData[i].leakAlarmPersistent = before.leakAlarmPersistent;
         interpolatedData[i].ledBrightness = before.ledBrightness;
         interpolatedData[i].leftButton = before.leftButton;
         interpolatedData[i].rightButton = before.rightButton;
@@ -1432,7 +1445,9 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
         interpolatedData[i].temperature = after.temperature;
         interpolatedData[i].humidity = after.humidity;
         interpolatedData[i].batteryLevel = after.batteryLevel;
-        interpolatedData[i].leakSensorState = after.leakSensorState;
+        interpolatedData[i].leakSensorFront = after.leakSensorFront;
+        interpolatedData[i].leakSensorBack = after.leakSensorBack;
+        interpolatedData[i].leakAlarmPersistent = after.leakAlarmPersistent;
         interpolatedData[i].ledBrightness = after.ledBrightness;
         interpolatedData[i].leftButton = after.leftButton;
         interpolatedData[i].rightButton = after.rightButton;

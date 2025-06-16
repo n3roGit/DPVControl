@@ -35,8 +35,12 @@
 #include <LittleFS.h> // For settings storage
 
 // Global variables
-int leakSensorState = 0;  // Current state of leak sensors
-int loopCount = 0;        // Counter for main loop iterations
+int leakSensorFront = 0;        // Current front leak sensor state (0=OK, 1=LEAK)
+int leakSensorBack = 0;         // Current back leak sensor state (0=OK, 1=LEAK)
+int leakAlarmPersistent = 0;    // Persistent leak alarm flag (survives reboots, 0=OK, 1=ALARM)
+int leakAlarmFrontPersistent = 0; // Persistent front sensor alarm (0=OK, 1=FRONT_ALARM)
+int leakAlarmBackPersistent = 0;  // Persistent back sensor alarm (0=OK, 1=BACK_ALARM)
+int loopCount = 0;              // Counter for main loop iterations
 int NormalLogOutputIntervall = 1000*10;  // Normal logging interval (10 seconds)
 
 DHTesp dhtSensor;  // Temperature and humidity sensor
@@ -98,6 +102,12 @@ void setup() {
   
   // Initialize datalogger (will re-initialize LittleFS if needed)
   datalogSetup();
+
+  // Load persistent leak alarm state
+  loadPersistentLeakAlarm();
+  
+  // Debug current alarm states at startup
+  debugLeakAlarmStates();
 
   // Initialize webserver on Core 0
   setupWebserver();

@@ -71,9 +71,18 @@ void BeepForLeak() {
     // log("Beeper disabled, ignoring leak beep request");  // Commented out to reduce log spam
     return;
   }
-  if (leakSensorState == 1 && micros() - lastBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
-    beep("12121212");                                                              // Here is the desired sequence for the sound
-    log("WARNING LEAK", 12121212, true);
+  
+  // Enhanced leak beeping: Check both current sensors AND persistent alarm
+  bool hasActiveLeak = (leakSensorFront == 1 || leakSensorBack == 1 || leakAlarmPersistent == 1);
+  
+  if (hasActiveLeak && micros() - lastLeakBeepTime >= (10 * 1000 * 1000)) {  // Every 10 seconds
+    beep("12121212");  // Always use the same pattern
+    
+    String leakMsg = "WARNING LEAK - Front: " + String(leakSensorFront) + 
+                    ", Back: " + String(leakSensorBack) + 
+                    ", Persistent: " + String(leakAlarmPersistent);
+    log(leakMsg.c_str());
+    
     lastLeakBeepTime = micros();  // update the time of the last call
   }
 }

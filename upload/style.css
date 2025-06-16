@@ -87,6 +87,50 @@ th, td {
     color: #4fc3f7;
 }
 
+/* Enhanced status styling for leak sensors */
+.status-value.status-ok {
+    color: #4caf50; /* Green for OK */
+}
+
+.status-value.status-alarm {
+    color: #f44336; /* Red for WET/LEAK */
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.reset-button {
+    background-color: #ff9800;
+    font-size: 12px;
+    padding: 5px 10px;
+}
+
+.reset-button:hover {
+    background-color: #f57c00;
+}
+
+/* Inline reset button for individual sensors */
+.reset-button-inline {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-left: 8px;
+    transition: background-color 0.3s;
+    vertical-align: middle;
+}
+
+.reset-button-inline:hover {
+    background-color: #ff5252;
+}
+
 .settings-group {
     margin-bottom: 25px;
     padding: 15px;
