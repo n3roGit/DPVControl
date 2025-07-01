@@ -40,11 +40,11 @@ void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType
 HttpRequest parseHttpRequest(WiFiClient& client);
 
 // API handler functions
-void handleApiStatus(void* client);
-void handleApiMotor(void* client);
-void handleApiLamp(void* client);
-void handleApiBeeper(void* client);
-void handleApiSettings(void* client);
-void handleApiVersion(void* client);
+void handleApiStatus(WiFiClient& client);
+void handleApiMotor(WiFiClient& client, const String& contentLength);
+void handleApiLamp(WiFiClient& client, const String& contentLength);
+void handleApiData(WiFiClient& client, const String& path);
+void handleApiSettingsGet(WiFiClient& client);
+void handleApiSettingsPost(WiFiClient& client, const String& contentLength);
 
 #endif // WEBSERVER_H 
