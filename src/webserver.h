@@ -8,6 +8,18 @@
 // Note: Using LittleFS instead of SPIFFS
 #include "main.h"
 
+// HTTP Request structure for cleaner request handling
+struct HttpRequest {
+    String method;
+    String path;
+    String host;
+    String contentLength;
+    bool isCaptivePortalRequest;
+    
+    // Constructor
+    HttpRequest() : isCaptivePortalRequest(false) {}
+};
+
 // Task handle for the webserver task
 extern TaskHandle_t webserverTaskHandle;
 
@@ -25,6 +37,7 @@ void webserverTask(void *pvParameters);
 void handleClient(WiFiClient client);
 bool loadFromSPIFFS(WiFiClient client, String path);
 void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType, const char* content);
+HttpRequest parseHttpRequest(WiFiClient& client);
 
 // API handler functions
 void handleApiStatus(void* client);
