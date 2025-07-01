@@ -1048,6 +1048,203 @@ void setupWebserver() {
     log("Webserver task created on Core 0");
 }
 
+// ============================================================================
+// REFACTORED HELPER FUNCTIONS
+// ============================================================================
+
+/**
+ * Parse HTTP request from client into structured format
+ */
+HttpRequest parseHttpRequest(WiFiClient& client) {
+    HttpRequest request;
+    
+    // Wait for data to be available
+    unsigned long timeout = millis() + 5000; // 5 second timeout
+    while (!client.available() && millis() < timeout) {
+        delay(10);
+    }
+    
+    // If no data, return empty request
+    if (!client.available()) {
+        return request;
+    }
+    
+    // Read request line
+    String line = client.readStringUntil('\n');
+    
+    // Extract method and path from first line
+    int firstSpace = line.indexOf(' ');
+    int secondSpace = line.indexOf(' ', firstSpace + 1);
+    
+    if (firstSpace != -1 && secondSpace != -1) {
+        request.method = line.substring(0, firstSpace);
+        request.path = line.substring(firstSpace + 1, secondSpace);
+        
+        // Extract query string if present
+        int queryIndex = request.path.indexOf('?');
+        if (queryIndex != -1) {
+            request.queryString = request.path.substring(queryIndex + 1);
+            request.path = request.path.substring(0, queryIndex);
+        }
+    }
+    
+    log(("Request: " + request.method + " " + request.path).c_str());
+    
+    // Read headers
+    while (client.connected()) {
+        line = client.readStringUntil('\n');
+        line.trim();
+        
+        if (line.startsWith("Host: ")) {
+            request.host = line.substring(6);
+            log(("Host: " + request.host).c_str());
+        }
+        
+        if (line.startsWith("Content-Length: ")) {
+            request.contentLength = line.substring(16);
+        }
+        
+        // Empty line indicates end of headers
+        if (line.length() == 0) {
+            break;
+        }
+    }
+    
+    // Read body if Content-Length is specified
+    if (request.contentLength.length() > 0) {
+        int bodyLength = request.contentLength.toInt();
+        if (bodyLength > 0 && bodyLength < 2048) { // Reasonable limit
+            request.body = client.readString();
+            if (request.body.length() > bodyLength) {
+                request.body = request.body.substring(0, bodyLength);
+            }
+        }
+    }
+    
+    // Check if this is a captive portal detection request
+    request.isCaptivePortalRequest = request.host.length() > 0 && 
+                                   !request.host.equals(apIP.toString()) &&
+                                   !request.host.startsWith("4.3.2.") &&
+                                   !request.host.equals("localhost") &&
+                                   !request.host.equals("captive.apple.com");
+    
+    return request;
+}
+
+/**
+ * Send JSON response with proper headers
+ */
+void sendJsonResponse(WiFiClient& client, const String& json) {
+    client.println("HTTP/1.1 200 OK");
+    client.println("Content-Type: application/json");
+    client.println("Access-Control-Allow-Origin: *");
+    client.println("Connection: close");
+    client.print("Content-Length: ");
+    client.println(json.length());
+    client.println();
+    client.println(json);
+}
+
+/**
+ * Send error response with proper status code
+ */
+void sendErrorResponse(WiFiClient& client, int statusCode, const String& message) {
+    String statusText;
+    switch(statusCode) {
+        case 400: statusText = "Bad Request"; break;
+        case 404: statusText = "Not Found"; break;
+        case 500: statusText = "Internal Server Error"; break;
+        default: statusText = "Error";
+    }
+    
+    client.print("HTTP/1.1 ");
+    client.print(statusCode);
+    client.print(" ");
+    client.println(statusText);
+    client.println("Content-Type: text/plain");
+    client.println("Connection: close");
+    client.print("Content-Length: ");
+    client.println(message.length());
+    client.println();
+    client.println(message);
+}
+
+/**
+ * Parse a specific query parameter from query string
+ */
+String parseQueryParameter(const String& queryString, const String& paramName) {
+    String searchStr = paramName + "=";
+    int paramIndex = queryString.indexOf(searchStr);
+    if (paramIndex == -1) {
+        return "";
+    }
+    
+    String value = queryString.substring(paramIndex + searchStr.length());
+    int ampIndex = value.indexOf("&");
+    if (ampIndex != -1) {
+        value = value.substring(0, ampIndex);
+    }
+    
+    return value;
+}
+
+// ============================================================================
+// REFACTORED HANDLECLIENT METHOD EXAMPLE
+// ============================================================================
+
+/*
+// This is how the refactored handleClient method would look:
+void handleClientRefactored(WiFiClient client) {
+    // 1. Parse the HTTP request using new structured approach
+    HttpRequest request = parseHttpRequest(client);
+    
+    // 2. Early return if no valid request
+    if (request.method.length() == 0) {
+        client.stop();
+        return;
+    }
+    
+    // 3. Handle captive portal detection
+    if (request.isCaptivePortalRequest) {
+        sendHttpResponse(client, 302, "text/plain", "Redirecting...");
+        client.stop();
+        return;
+    }
+    
+    // 4. Route to appropriate handlers
+    if (request.path == "/" || request.path == "/index.html") {
+        handleStaticFile(client, request, "/index.html");
+    } else if (request.path == "/api/status") {
+        handleApiStatus(client, request);
+    } else if (request.path == "/api/data") {
+        handleApiData(client, request);
+    } else if (request.path.startsWith("/api/sessions")) {
+        handleApiSessions(client, request);
+    } else if (request.path == "/api/settings") {
+        handleApiSettings(client, request);
+    } else if (request.path == "/api/motor") {
+        handleApiMotor(client, request);
+    } else if (request.path == "/api/lamp") {
+        handleApiLamp(client, request);
+    } else if (request.path == "/api/beeper") {
+        handleApiBeeper(client, request);
+    } else if (request.path == "/api/version") {
+        handleApiVersion(client, request);
+    } else {
+        // Try static file serving
+        if (!handleStaticFile(client, request, request.path)) {
+            sendErrorResponse(client, 404, "Not Found");
+        }
+    }
+    
+    client.stop();
+}
+*/
+
+// ============================================================================
+// ORIGINAL HANDLECLIENT METHOD (TO BE REFACTORED)
+// ============================================================================
+
 // Process HTTP requests
 void handleClient(WiFiClient client) {
     // Wait for data to be available
