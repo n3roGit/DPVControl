@@ -46,6 +46,15 @@ void handleApiLamp(WiFiClient& client, const String& contentLength);
 void handleApiData(WiFiClient& client, const String& path);
 void handleApiSettingsGet(WiFiClient& client);
 void handleApiSettingsPost(WiFiClient& client, const String& contentLength);
+void handleApiSessions(WiFiClient& client);
+void handleApiSessionData(WiFiClient& client, const String& path);
+void handleApiSessionCsv(WiFiClient& client, const String& path);
+void handleApiSettingsRestore(WiFiClient& client);
+void handleApiReboot(WiFiClient& client);
+void handleApiVersion(WiFiClient& client);
+void handleApiLeakAlarmReset(WiFiClient& client, const String& path);
+void handleApiDeleteAllSessions(WiFiClient& client);
+void handleApiBeeper(WiFiClient& client);
 
 // Static file handler functions
 void handleStaticHtmlFile(WiFiClient& client, const String& path, const String& filename);

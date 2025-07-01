@@ -1481,6 +1481,246 @@ void handleApiSettingsPost(WiFiClient& client, const String& contentLength) {
 }
 
 /**
+ * Handle /api/sessions endpoint
+ */
+void handleApiSessions(WiFiClient& client) {
+    log("API /api/sessions called");
+    
+    String sessionsJson = generateSessionListJson();
+    String sessionsMsg = "Sessions JSON generated - Length: " + String(sessionsJson.length());
+    log(sessionsMsg.c_str());
+    
+    if (sessionsJson.length() > 100) {
+        String preview = "Sessions preview: " + sessionsJson.substring(0, 100) + "...";
+        log(preview.c_str());
+    } else {
+        String full = "Sessions full: " + sessionsJson;
+        log(full.c_str());
+    }
+    
+    sendHttpResponse(client, 200, "application/json", sessionsJson.c_str());
+}
+
+/**
+ * Handle /api/sessions/{session}/data endpoint
+ */
+void handleApiSessionData(WiFiClient& client, const String& path) {
+    String sessionFile = path.substring(14); // Remove "/api/sessions/"
+    sessionFile = sessionFile.substring(0, sessionFile.length() - 5); // Remove "/data"
+    
+    log(("API session data request for: " + sessionFile).c_str());
+    
+    String sessionData = generateSessionDataJson(sessionFile);
+    sendHttpResponse(client, 200, "application/json", sessionData.c_str());
+}
+
+/**
+ * Handle /api/sessions/{session}/csv endpoint
+ */
+void handleApiSessionCsv(WiFiClient& client, const String& path) {
+    String sessionFile = path.substring(14); // Remove "/api/sessions/"
+    sessionFile = sessionFile.substring(0, sessionFile.length() - 4); // Remove "/csv"
+    
+    log(("API session CSV request for: " + sessionFile).c_str());
+    
+    // Stream CSV data directly to avoid memory issues
+    streamSessionCsvData(client, sessionFile);
+}
+
+/**
+ * Handle /api/settings/restore endpoint
+ */
+void handleApiSettingsRestore(WiFiClient& client) {
+    log("API /api/settings/restore called");
+    
+    restoreDefaultSettings();
+    
+    // Apply settings changes at runtime (no reboot required)
+    log("Applying default settings at runtime...");
+    applyLampSettings(); // Update lamp PWM frequency and other lamp settings
+    applyLedBarSettings(); // Update LED bar settings
+    
+    String response = "{\"success\":true}";
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+}
+
+/**
+ * Handle /api/reboot endpoint
+ */
+void handleApiReboot(WiFiClient& client) {
+    log("API /api/reboot called");
+    
+    String response = "{\"success\":true,\"message\":\"Reboot initiated\"}";
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+    
+    // Close client connection properly before rebooting
+    client.stop();
+    
+    // Wait a moment to ensure response is sent
+    delay(500);
+    
+    // Reboot the ESP32
+    log("System reboot requested via API - restarting now");
+    ESP.restart();
+}
+
+/**
+ * Handle /api/version endpoint
+ */
+void handleApiVersion(WiFiClient& client) {
+    log("API /api/version called");
+    
+    String version = "2.0.0"; // Default version
+    
+    // Try to read version from embedded file first, then LittleFS fallback
+    #ifdef HAS_EMBEDDED_FILES
+    const EmbeddedFile* versionFile = findEmbeddedFile("version.txt");
+    if (versionFile != nullptr) {
+        // Read from embedded file
+        version = String((const char*)versionFile->data);
+        version.trim(); // Remove whitespace
+        log("Version read from embedded file");
+    } else 
+    #endif
+    if (LittleFS.exists("/version.txt")) {
+        // Fallback to LittleFS
+        File versionFileFS = LittleFS.open("/version.txt", "r");
+        if (versionFileFS) {
+            version = versionFileFS.readString();
+            version.trim(); // Remove whitespace
+            versionFileFS.close();
+            log("Version read from LittleFS");
+        }
+    }
+    
+    String jsonVersion = "{\"version\":\"" + version + "\"}";
+    sendHttpResponse(client, 200, "application/json", jsonVersion.c_str());
+}
+
+/**
+ * Handle leak alarm reset endpoints
+ */
+void handleApiLeakAlarmReset(WiFiClient& client, const String& path) {
+    if (path == "/api/leak-alarm/reset") {
+        log("API /api/leak-alarm/reset called");
+        clearPersistentLeakAlarm();
+        String response = "{\"success\":true,\"message\":\"All persistent leak alarms cleared\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+    } else if (path == "/api/leak-alarm/reset-front") {
+        log("API /api/leak-alarm/reset-front called");
+        leakAlarmFrontPersistent = 0;
+        // Update global alarm state
+        leakAlarmPersistent = (leakAlarmFrontPersistent || leakAlarmBackPersistent) ? 1 : 0;
+        savePersistentLeakAlarm();
+        String response = "{\"success\":true,\"message\":\"Front sensor leak alarm cleared\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+    } else if (path == "/api/leak-alarm/reset-back") {
+        log("API /api/leak-alarm/reset-back called");
+        leakAlarmBackPersistent = 0;
+        // Update global alarm state
+        leakAlarmPersistent = (leakAlarmFrontPersistent || leakAlarmBackPersistent) ? 1 : 0;
+        savePersistentLeakAlarm();
+        String response = "{\"success\":true,\"message\":\"Back sensor leak alarm cleared\"}";
+        sendHttpResponse(client, 200, "application/json", response.c_str());
+    }
+}
+
+/**
+ * Handle /api/delete-all-sessions endpoint
+ */
+void handleApiDeleteAllSessions(WiFiClient& client) {
+    log("API /api/delete-all-sessions called");
+    
+    int deleteCount = 0;
+    String errorMsg = "";
+    bool success = true;
+    
+    try {
+        // Directly iterate through datalog directory to find all .bin files
+        // This avoids the 50-session limit from listSessionFiles()
+        File root = LittleFS.open("/datalog");
+        if (root && root.isDirectory()) {
+            File file = root.openNextFile();
+            while (file) {
+                String fileName = String(file.name());
+                if (!file.isDirectory() && fileName.endsWith(".bin")) {
+                    String fullPath = "/datalog/" + fileName;
+                    file.close(); // Close file handle before deletion
+                    
+                    if (LittleFS.remove(fullPath)) {
+                        deleteCount++;
+                        String deleteMsg = "Deleted session file: " + fileName;
+                        log(deleteMsg.c_str());
+                    } else {
+                        String failMsg = "Failed to delete: " + fileName;
+                        log(failMsg.c_str());
+                        if (errorMsg.length() == 0) {
+                            errorMsg = "Failed to delete some files";
+                        }
+                    }
+                    
+                    // Reopen directory iterator after deletion
+                    file = root.openNextFile();
+                } else {
+                    file = root.openNextFile();
+                }
+            }
+            root.close();
+        } else {
+            errorMsg = "Could not access datalog directory";
+            success = false;
+        }
+    } catch (...) {
+        errorMsg = "Exception occurred during deletion";
+        success = false;
+    }
+    
+    String response;
+    if (success && deleteCount > 0) {
+        response = "{\"success\":true,\"deleted\":" + String(deleteCount) + ",\"message\":\"Deleted " + String(deleteCount) + " session files\"}";
+        String successMsg = "Successfully deleted " + String(deleteCount) + " session files";
+        log(successMsg.c_str());
+    } else if (success && deleteCount == 0) {
+        response = "{\"success\":true,\"deleted\":0,\"message\":\"No session files found to delete\"}";
+        log("No session files found to delete");
+    } else {
+        response = "{\"success\":false,\"deleted\":" + String(deleteCount) + ",\"error\":\"" + errorMsg + "\"}";
+        String errorLogMsg = "Delete operation failed: " + errorMsg;
+        log(errorLogMsg.c_str());
+    }
+    
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+}
+
+/**
+ * Handle /api/beeper endpoint
+ */
+void handleApiBeeper(WiFiClient& client) {
+    log("API /api/beeper called");
+    
+    // Read POST body
+    String body = "";
+    while (client.available()) {
+        body += (char)client.read();
+    }
+    
+    // Simple JSON parsing for {"enabled": true/false}
+    bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
+    
+    // Update beeper setting in both old and new systems
+    currentSettings.beeperEnabled = newBeeperState;
+    saveSettings(); // Save to unified settings system
+    
+    String response = "{\"success\":true,\"enabled\":" + 
+                     String(getBeeperEnabled() ? "true" : "false") + "}";
+    sendHttpResponse(client, 200, "application/json", response.c_str());
+    
+    String beeperMsg = "Beeper setting updated: " + 
+                      String(getBeeperEnabled() ? "enabled" : "disabled");
+    log(beeperMsg.c_str());
+}
+
+/**
  * Handle static HTML files (index.html, info.html, remote.html, settings.html)
  */
 void handleStaticHtmlFile(WiFiClient& client, const String& path, const String& filename) {
@@ -1614,42 +1854,13 @@ void handleClient(WiFiClient client) {
         handleApiStatus(client);
         
     } else if (path == "/api/sessions") {
-        // API endpoint for session list
-        log("API /api/sessions called");
-        
-        String sessionsJson = generateSessionListJson();
-        String sessionsMsg = "Sessions JSON generated - Length: " + String(sessionsJson.length());
-        log(sessionsMsg.c_str());
-        
-        if (sessionsJson.length() > 100) {
-            String preview = "Sessions preview: " + sessionsJson.substring(0, 100) + "...";
-            log(preview.c_str());
-        } else {
-            String full = "Sessions full: " + sessionsJson;
-            log(full.c_str());
-        }
-        
-        sendHttpResponse(client, 200, "application/json", sessionsJson.c_str());
+        handleApiSessions(client);
         
     } else if (path.startsWith("/api/sessions/") && path.endsWith("/data") && method == "GET") {
-        // API endpoint for session data
-        String sessionFile = path.substring(14); // Remove "/api/sessions/"
-        sessionFile = sessionFile.substring(0, sessionFile.length() - 5); // Remove "/data"
-        
-        log(("API session data request for: " + sessionFile).c_str());
-        
-        String sessionData = generateSessionDataJson(sessionFile);
-        sendHttpResponse(client, 200, "application/json", sessionData.c_str());
+        handleApiSessionData(client, path);
         
     } else if (path.startsWith("/api/sessions/") && path.endsWith("/csv") && method == "GET") {
-        // API endpoint for session CSV download
-        String sessionFile = path.substring(14); // Remove "/api/sessions/"
-        sessionFile = sessionFile.substring(0, sessionFile.length() - 4); // Remove "/csv"
-        
-        log(("API session CSV request for: " + sessionFile).c_str());
-        
-        // Stream CSV data directly to avoid memory issues
-        streamSessionCsvData(client, sessionFile);
+        handleApiSessionCsv(client, path);
         return; // streamSessionCsvData handles client connection
         
     } else if (path == "/api/settings" && method == "GET") {
@@ -1659,68 +1870,13 @@ void handleClient(WiFiClient client) {
         handleApiSettingsPost(client, contentLength);
         
     } else if (path == "/api/settings/restore" && method == "POST") {
-        // API endpoint to restore default settings
-        log("API /api/settings/restore called");
-        
-        restoreDefaultSettings();
-        
-        // Apply settings changes at runtime (no reboot required)
-        log("Applying default settings at runtime...");
-        applyLampSettings(); // Update lamp PWM frequency and other lamp settings
-        applyLedBarSettings(); // Update LED bar settings
-        
-        String response = "{\"success\":true}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
+        handleApiSettingsRestore(client);
         
     } else if (path == "/api/reboot" && method == "POST") {
-        // API endpoint to reboot the system
-        log("API /api/reboot called");
+        handleApiReboot(client);
         
-        String response = "{\"success\":true,\"message\":\"Reboot initiated\"}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
-        
-        // Close client connection properly before rebooting
-        client.stop();
-        
-        // Wait a moment to ensure response is sent
-        delay(500);
-        
-        // Reboot the ESP32
-        log("System reboot requested via API - restarting now");
-        ESP.restart();
-        
-    } else if (path == "/api/leak-alarm/reset" && method == "POST") {
-        // API endpoint to reset ALL persistent leak alarms
-        log("API /api/leak-alarm/reset called");
-        
-        clearPersistentLeakAlarm();
-        
-        String response = "{\"success\":true,\"message\":\"All persistent leak alarms cleared\"}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
-        
-    } else if (path == "/api/leak-alarm/reset-front" && method == "POST") {
-        // API endpoint to reset front sensor persistent leak alarm
-        log("API /api/leak-alarm/reset-front called");
-        
-        leakAlarmFrontPersistent = 0;
-        // Update global alarm state
-        leakAlarmPersistent = (leakAlarmFrontPersistent || leakAlarmBackPersistent) ? 1 : 0;
-        savePersistentLeakAlarm();
-        
-        String response = "{\"success\":true,\"message\":\"Front sensor leak alarm cleared\"}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
-        
-    } else if (path == "/api/leak-alarm/reset-back" && method == "POST") {
-        // API endpoint to reset back sensor persistent leak alarm
-        log("API /api/leak-alarm/reset-back called");
-        
-        leakAlarmBackPersistent = 0;
-        // Update global alarm state
-        leakAlarmPersistent = (leakAlarmFrontPersistent || leakAlarmBackPersistent) ? 1 : 0;
-        savePersistentLeakAlarm();
-        
-        String response = "{\"success\":true,\"message\":\"Back sensor leak alarm cleared\"}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
+    } else if ((path == "/api/leak-alarm/reset" || path == "/api/leak-alarm/reset-front" || path == "/api/leak-alarm/reset-back") && method == "POST") {
+        handleApiLeakAlarmReset(client, path);
         
     } else if (path == "/api/motor" && method == "POST") {
         handleApiMotor(client, contentLength);
@@ -1729,103 +1885,10 @@ void handleClient(WiFiClient client) {
         handleApiLamp(client, contentLength);
         
     } else if (path == "/api/version") {
-        // API endpoint for version information
-        log("API /api/version called");
-        
-        String version = "2.0.0"; // Default version
-        
-        // Try to read version from embedded file first, then LittleFS fallback
-        #ifdef HAS_EMBEDDED_FILES
-        const EmbeddedFile* versionFile = findEmbeddedFile("version.txt");
-        if (versionFile != nullptr) {
-            // Read from embedded file
-            version = String((const char*)versionFile->data);
-            version.trim(); // Remove whitespace
-            log("Version read from embedded file");
-        } else 
-        #endif
-        if (LittleFS.exists("/version.txt")) {
-            // Fallback to LittleFS
-            File versionFileFS = LittleFS.open("/version.txt", "r");
-            if (versionFileFS) {
-                version = versionFileFS.readString();
-                version.trim(); // Remove whitespace
-                versionFileFS.close();
-                log("Version read from LittleFS");
-            }
-        }
-        
-        String jsonVersion = "{\"version\":\"" + version + "\"}";
-        sendHttpResponse(client, 200, "application/json", jsonVersion.c_str());
+        handleApiVersion(client);
         
     } else if (path == "/api/delete-all-sessions" && method == "POST") {
-        // API endpoint to delete all session files
-        log("API /api/delete-all-sessions called");
-        
-        int deleteCount = 0;
-        String errorMsg = "";
-        bool success = true;
-        
-        try {
-            // Directly iterate through datalog directory to find all .bin files
-            // This avoids the 50-session limit from listSessionFiles()
-            File root = LittleFS.open("/datalog");
-            if (root && root.isDirectory()) {
-                File file = root.openNextFile();
-                while (file) {
-                    String fileName = String(file.name());
-                    if (!file.isDirectory() && fileName.endsWith(".bin")) {
-                        String fullPath = "/datalog/" + fileName;
-                        file.close(); // Close file handle before deletion
-                        
-                        if (LittleFS.exists(fullPath)) {
-                            if (LittleFS.remove(fullPath)) {
-                                deleteCount++;
-                                String delMsg = "Deleted session file: " + fullPath;
-                                log(delMsg.c_str());
-                            } else {
-                                errorMsg += "Failed to delete " + fileName + "; ";
-                                success = false;
-                            }
-                        } else {
-                            errorMsg += "File not found " + fileName + "; ";
-                        }
-                    } else {
-                        file.close(); // Close non-.bin files
-                    }
-                    file = root.openNextFile();
-                }
-                root.close();
-                
-                // Force creation of new session starting from 0001 after deletion
-                if (success && deleteCount > 0) {
-                    log("Forcing new session creation after delete-all to reset numbering");
-                    extern void createNewSession(bool forceNewSession); // From datalog.cpp
-                    createNewSession(true); // This will start from session_0001.bin
-                }
-            } else {
-                errorMsg = "Could not open /datalog directory";
-                success = false;
-            }
-            
-            String resultMsg = "Deleted " + String(deleteCount) + " session files";
-            log(resultMsg.c_str());
-            
-        } catch (...) {
-            errorMsg = "Exception occurred during deletion";
-            success = false;
-        }
-        
-        String response;
-        if (success && deleteCount > 0) {
-            response = "{\"success\":true,\"deleted\":" + String(deleteCount) + ",\"message\":\"Successfully deleted " + String(deleteCount) + " session files\"}";
-        } else if (deleteCount == 0) {
-            response = "{\"success\":true,\"deleted\":0,\"message\":\"No session files found to delete\"}";
-        } else {
-            response = "{\"success\":false,\"deleted\":" + String(deleteCount) + ",\"error\":\"" + errorMsg + "\"}";
-        }
-        
-        sendHttpResponse(client, 200, "application/json", response.c_str());
+        handleApiDeleteAllSessions(client);
         
     } else if (path == "/info.html") {
         handleStaticHtmlFile(client, path, "/info.html");
@@ -1845,29 +1908,7 @@ void handleClient(WiFiClient client) {
         handleLargeJsFile(client, "/jszip.min.js");
         
     } else if (path == "/api/beeper" && method == "POST") {
-        // API endpoint for beeper settings (legacy compatibility)
-        log("API /api/beeper called");
-        
-        // Read POST body
-        String body = "";
-        while (client.available()) {
-            body += (char)client.read();
-        }
-        
-        // Simple JSON parsing for {"enabled": true/false}
-        bool newBeeperState = body.indexOf("\"enabled\":true") != -1;
-        
-        // Update beeper setting in both old and new systems
-        currentSettings.beeperEnabled = newBeeperState;
-        saveSettings(); // Save to unified settings system
-        
-        String response = "{\"success\":true,\"enabled\":" + 
-                         String(getBeeperEnabled() ? "true" : "false") + "}";
-        sendHttpResponse(client, 200, "application/json", response.c_str());
-        
-        String beeperMsg = "Beeper setting updated: " + 
-                          String(getBeeperEnabled() ? "enabled" : "disabled");
-        log(beeperMsg.c_str());
+        handleApiBeeper(client);
         
     } else if (path == "/generate_204" || path == "/ncsi.txt" || 
                path == "/connecttest.txt" || path == "/redirect" || 
