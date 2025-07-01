@@ -1480,6 +1480,112 @@ void handleApiSettingsPost(WiFiClient& client, const String& contentLength) {
     sendHttpResponse(client, 200, "application/json", response.c_str());
 }
 
+/**
+ * Handle static HTML files (index.html, info.html, remote.html, settings.html)
+ */
+void handleStaticHtmlFile(WiFiClient& client, const String& path, const String& filename) {
+    if (loadFromEmbeddedOrSPIFFS(client, filename)) {
+        String logMsg = "Served " + filename + " from embedded files or LittleFS";
+        log(logMsg.c_str());
+    } else {
+        String errorMsg = filename.substring(1) + " not found"; // Remove leading slash
+        sendHttpResponse(client, 404, "text/plain", errorMsg.c_str());
+    }
+}
+
+/**
+ * Handle large JavaScript files with chunked streaming (chart.min.js, jszip.min.js)
+ */
+void handleLargeJsFile(WiFiClient& client, const String& filename) {
+    if (LittleFS.exists(filename)) {
+        File jsFile = LittleFS.open(filename, "r");
+        if (jsFile) {
+            String logMsg = "Serving " + filename + " from LittleFS";
+            log(logMsg.c_str());
+            
+            size_t fileSize = jsFile.size();
+            
+            // Send HTTP headers first
+            client.print("HTTP/1.1 200 OK\r\n");
+            client.print("Content-Type: application/javascript\r\n");
+            client.print("Content-Length: ");
+            client.print(fileSize);
+            client.print("\r\n");
+            client.print("Cache-Control: public, max-age=86400\r\n");
+            client.print("\r\n");
+            
+            // Stream file in chunks to avoid watchdog timeout
+            const size_t CHUNK_SIZE = 1024;
+            uint8_t buffer[CHUNK_SIZE];
+            size_t totalSent = 0;
+            
+            while (jsFile.available() && totalSent < fileSize) {
+                size_t bytesToRead = min(CHUNK_SIZE, fileSize - totalSent);
+                size_t bytesRead = jsFile.read(buffer, bytesToRead);
+                
+                if (bytesRead > 0) {
+                    client.write(buffer, bytesRead);
+                    totalSent += bytesRead;
+                    
+                    // Feed watchdog every chunk
+                    yield();
+                    
+                    // Small delay to prevent overwhelming the client
+                    if (totalSent % (CHUNK_SIZE * 4) == 0) {
+                        delay(1);
+                    }
+                } else {
+                    break;
+                }
+            }
+            
+            jsFile.close();
+            String successMsg = filename + " served successfully, " + String(totalSent) + " bytes";
+            log(successMsg.c_str());
+        } else {
+            String errorMsg = "Error: Could not open " + filename + " file";
+            log(errorMsg.c_str());
+            sendHttpResponse(client, 404, "text/plain", (filename + " not found").c_str());
+        }
+    } else {
+        String errorMsg = filename + " file not found in LittleFS";
+        log(errorMsg.c_str());
+        sendHttpResponse(client, 404, "text/plain", (filename + " not found").c_str());
+    }
+}
+
+/**
+ * Handle captive portal detection requests
+ */
+void handleCaptivePortalDetection(WiFiClient& client) {
+    log("Captive portal check detected");
+    sendHttpResponse(client, 302, "text/html", 
+        "<html><head><meta http-equiv='refresh' content='0; "
+        "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
+}
+
+/**
+ * Handle generic static file serving (embedded files, SPIFFS fallback, captive portal)
+ */
+void handleGenericStaticFile(WiFiClient& client, const String& path, bool isCaptivePortalRequest) {
+    if (serveEmbeddedFile(client, path.c_str())) {
+        // Served from embedded files
+        log("Served file from embedded storage");
+    } else if (spiffsInitialized && LittleFS.exists(path)) {
+        // Serve files from SPIFFS
+        loadFromSPIFFS(client, path);
+    } else if (isCaptivePortalRequest) {
+        // Captive portal detection - redirect to our server
+        log("Captive portal request detected");
+        sendHttpResponse(client, 302, "text/html", 
+            "<html><head><meta http-equiv='refresh' content='0; "
+            "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
+    } else {
+        // Default: redirect to root
+        sendHttpResponse(client, 302, "text/plain", "Redirecting...");
+    }
+}
+
 // Process HTTP requests
 void handleClient(WiFiClient client) {
     // Parse the HTTP request using structured approach
@@ -1500,12 +1606,7 @@ void handleClient(WiFiClient client) {
     
     // Handle the request based on the path
     if (path == "/" || path == "/index.html") {
-        // Root path - serve HTML from embedded files or LittleFS fallback
-        if (loadFromEmbeddedOrSPIFFS(client, "/index.html")) {
-            log("Served index.html from embedded files or LittleFS");
-        } else {
-            sendHttpResponse(client, 404, "text/plain", "index.html not found");
-        }
+        handleStaticHtmlFile(client, path, "/index.html");
     } else if (path == "/api/data" || path.startsWith("/api/data?")) {
         handleApiData(client, path);
         
@@ -1727,129 +1828,21 @@ void handleClient(WiFiClient client) {
         sendHttpResponse(client, 200, "application/json", response.c_str());
         
     } else if (path == "/info.html") {
-        // Serve info page
-        if (loadFromEmbeddedOrSPIFFS(client, "/info.html")) {
-            log("Served info.html from embedded files or LittleFS");
-        } else {
-            sendHttpResponse(client, 404, "text/plain", "Info page not found");
-        }
+        handleStaticHtmlFile(client, path, "/info.html");
         
     } else if (path == "/remote.html") {
-        // Serve remote control page
-        if (loadFromEmbeddedOrSPIFFS(client, "/remote.html")) {
-            log("Served remote.html from embedded files or LittleFS");
-        } else {
-            sendHttpResponse(client, 404, "text/plain", "Remote control page not found");
-        }
+        handleStaticHtmlFile(client, path, "/remote.html");
         
     } else if (path == "/settings.html") {
-        // Serve settings page
-        if (loadFromEmbeddedOrSPIFFS(client, "/settings.html")) {
-            log("Served settings.html from embedded files or LittleFS");
-        } else {
-            sendHttpResponse(client, 404, "text/plain", "Settings page not found");
-        }
+        handleStaticHtmlFile(client, path, "/settings.html");
         
 
         
     } else if (path == "/chart.min.js") {
-        // Try to serve Chart.js from LittleFS first
-        if (LittleFS.exists("/chart.min.js")) {
-            File chartFile = LittleFS.open("/chart.min.js", "r");
-            if (chartFile) {
-                log("Serving Chart.js 4.4.9 from LittleFS");
-                size_t fileSize = chartFile.size();
-                
-                // Send HTTP headers first
-                client.print("HTTP/1.1 200 OK\r\n");
-                client.print("Content-Type: application/javascript\r\n");
-                client.print("Content-Length: ");
-                client.print(fileSize);
-                client.print("\r\n");
-                client.print("Cache-Control: public, max-age=86400\r\n");
-                client.print("\r\n");
-                
-                // Stream file in chunks to avoid watchdog timeout
-                const size_t CHUNK_SIZE = 1024;
-                uint8_t buffer[CHUNK_SIZE];
-                size_t totalSent = 0;
-                
-                while (chartFile.available() && totalSent < fileSize) {
-                    size_t bytesToRead = min(CHUNK_SIZE, fileSize - totalSent);
-                    size_t bytesRead = chartFile.read(buffer, bytesToRead);
-                    
-                    if (bytesRead > 0) {
-                        client.write(buffer, bytesRead);
-                        totalSent += bytesRead;
-                        
-                        // Feed watchdog every chunk
-                        yield();
-                        
-                        // Small delay to prevent overwhelming the client
-                        if (totalSent % (CHUNK_SIZE * 4) == 0) {
-                            delay(1);
-                        }
-                    } else {
-                        break;
-                    }
-                }
-                
-                chartFile.close();
-                log(("Chart.js served successfully, " + String(totalSent) + " bytes").c_str());
-            } else {
-                log("Error: Could not open Chart.js file");
-                sendHttpResponse(client, 404, "text/plain", "Chart.js not found");
-            }
-        } else {
-            log("Chart.js file not found in LittleFS");
-            sendHttpResponse(client, 404, "text/plain", "Chart.js not found");
-        }
+        handleLargeJsFile(client, "/chart.min.js");
         
     } else if (path == "/jszip.min.js") {
-        // Try to serve JSZip from LittleFS first
-        if (LittleFS.exists("/jszip.min.js")) {
-            File jszipFile = LittleFS.open("/jszip.min.js", "r");
-            if (jszipFile) {
-                log("Serving JSZip from LittleFS");
-                size_t fileSize = jszipFile.size();
-                
-                // Send HTTP headers first
-                client.print("HTTP/1.1 200 OK\r\n");
-                client.print("Content-Type: application/javascript\r\n");
-                client.print("Content-Length: ");
-                client.print(fileSize);
-                client.print("\r\n");
-                client.print("Cache-Control: public, max-age=86400\r\n");
-                client.print("\r\n");
-                
-                // Stream file in chunks
-                const size_t CHUNK_SIZE = 1024;
-                uint8_t buffer[CHUNK_SIZE];
-                size_t totalSent = 0;
-                
-                while (jszipFile.available() && totalSent < fileSize) {
-                    size_t bytesToRead = min(CHUNK_SIZE, fileSize - totalSent);
-                    size_t bytesRead = jszipFile.read(buffer, bytesToRead);
-                    
-                    if (bytesRead > 0) {
-                        client.write(buffer, bytesRead);
-                        totalSent += bytesRead;
-                        yield(); // Feed watchdog
-                    } else {
-                        break;
-                    }
-                }
-                
-                jszipFile.close();
-                log(("JSZip served successfully, " + String(totalSent) + " bytes").c_str());
-            } else {
-                log("Error: Could not open JSZip file");
-                sendHttpResponse(client, 404, "text/plain", "JSZip not found");
-            }
-        } else {
-            log("JSZip file not found in LittleFS");
-            sendHttpResponse(client, 404, "text/plain", "JSZip not found");
-        }
+        handleLargeJsFile(client, "/jszip.min.js");
         
     } else if (path == "/api/beeper" && method == "POST") {
         // API endpoint for beeper settings (legacy compatibility)
@@ -1881,28 +1874,10 @@ void handleClient(WiFiClient client) {
                path == "/hotspot-detect.html" || 
                path.indexOf("success.txt") != -1 || 
                path.indexOf("success.html") != -1) {
-        
-        // Android/Windows/iOS captive portal detection
-        log("Captive portal check detected");
-        sendHttpResponse(client, 302, "text/html", 
-            "<html><head><meta http-equiv='refresh' content='0; "
-            "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
+        handleCaptivePortalDetection(client);
     
-    } else if (serveEmbeddedFile(client, path.c_str())) {
-        // Served from embedded files
-        log("Served file from embedded storage");
-    } else if (spiffsInitialized && LittleFS.exists(path)) {
-        // Serve files from SPIFFS
-        loadFromSPIFFS(client, path);
-    } else if (isCaptivePortalRequest) {
-        // Captive portal detection - redirect to our server
-        log("Captive portal request detected");
-        sendHttpResponse(client, 302, "text/html", 
-            "<html><head><meta http-equiv='refresh' content='0; "
-            "URL=http://4.3.2.1/'></head><body>Redirecting...</body></html>");
     } else {
-        // Default: redirect to root
-        sendHttpResponse(client, 302, "text/plain", "Redirecting...");
+        handleGenericStaticFile(client, path, isCaptivePortalRequest);
     }
     
     // Close the connection

@@ -47,4 +47,10 @@ void handleApiData(WiFiClient& client, const String& path);
 void handleApiSettingsGet(WiFiClient& client);
 void handleApiSettingsPost(WiFiClient& client, const String& contentLength);
 
+// Static file handler functions
+void handleStaticHtmlFile(WiFiClient& client, const String& path, const String& filename);
+void handleLargeJsFile(WiFiClient& client, const String& filename);
+void handleCaptivePortalDetection(WiFiClient& client);
+void handleGenericStaticFile(WiFiClient& client, const String& path, bool isCaptivePortalRequest);
+
 #endif // WEBSERVER_H 
