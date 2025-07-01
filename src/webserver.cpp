@@ -1048,56 +1048,49 @@ void setupWebserver() {
     log("Webserver task created on Core 0");
 }
 
-// Process HTTP requests
-void handleClient(WiFiClient client) {
+/**
+ * Parse HTTP request from client into structured format
+ */
+HttpRequest parseHttpRequest(WiFiClient& client) {
+    HttpRequest request;
+    
     // Wait for data to be available
     unsigned long timeout = millis() + 5000; // 5 second timeout
     while (!client.available() && millis() < timeout) {
         delay(10);
     }
     
-    // If no data, close connection and return
+    // If no data, return empty request
     if (!client.available()) {
-        client.stop();
-        return;
+        return request;
     }
     
-    // Read the complete HTTP request
-    String httpRequest = "";
-    String line = "";
-    String method = "";
-    String path = "";
-    String host = "";
-    String contentLength = "";
-    
     // Read request line
-    line = client.readStringUntil('\n');
-    httpRequest += line;
+    String line = client.readStringUntil('\n');
     
     // Extract method and path from first line
     int firstSpace = line.indexOf(' ');
     int secondSpace = line.indexOf(' ', firstSpace + 1);
     
     if (firstSpace != -1 && secondSpace != -1) {
-        method = line.substring(0, firstSpace);
-        path = line.substring(firstSpace + 1, secondSpace);
+        request.method = line.substring(0, firstSpace);
+        request.path = line.substring(firstSpace + 1, secondSpace);
     }
     
-    log(("Request: " + method + " " + path).c_str());
+    log(("Request: " + request.method + " " + request.path).c_str());
     
     // Read headers
     while (client.connected()) {
         line = client.readStringUntil('\n');
         line.trim();
-        httpRequest += line + "\n";
         
         if (line.startsWith("Host: ")) {
-            host = line.substring(6);
-            log(("Host: " + host).c_str());
+            request.host = line.substring(6);
+            log(("Host: " + request.host).c_str());
         }
         
         if (line.startsWith("Content-Length: ")) {
-            contentLength = line.substring(16);
+            request.contentLength = line.substring(16);
         }
         
         // Empty line indicates end of headers
@@ -1107,11 +1100,32 @@ void handleClient(WiFiClient client) {
     }
     
     // Check if this is a captive portal detection request
-    bool isCaptivePortalRequest = host.length() > 0 && 
-                                 !host.equals(apIP.toString()) &&
-                                 !host.startsWith("4.3.2.") &&
-                                 !host.equals("localhost") &&
-                                 !host.equals("captive.apple.com");
+    request.isCaptivePortalRequest = request.host.length() > 0 && 
+                                   !request.host.equals(apIP.toString()) &&
+                                   !request.host.startsWith("4.3.2.") &&
+                                   !request.host.equals("localhost") &&
+                                   !request.host.equals("captive.apple.com");
+    
+    return request;
+}
+
+// Process HTTP requests
+void handleClient(WiFiClient client) {
+    // Parse the HTTP request using structured approach
+    HttpRequest request = parseHttpRequest(client);
+    
+    // If no valid request, close connection and return
+    if (request.method.length() == 0) {
+        client.stop();
+        return;
+    }
+    
+    // Extract variables for compatibility with existing code
+    String method = request.method;
+    String path = request.path;
+    String host = request.host;
+    String contentLength = request.contentLength;
+    bool isCaptivePortalRequest = request.isCaptivePortalRequest;
     
     // Handle the request based on the path
     if (path == "/" || path == "/index.html") {
