@@ -1048,10 +1048,6 @@ void setupWebserver() {
     log("Webserver task created on Core 0");
 }
 
-// ============================================================================
-// REFACTORED HELPER FUNCTIONS
-// ============================================================================
-
 /**
  * Parse HTTP request from client into structured format
  */
@@ -1187,63 +1183,6 @@ String parseQueryParameter(const String& queryString, const String& paramName) {
     
     return value;
 }
-
-// ============================================================================
-// REFACTORED HANDLECLIENT METHOD EXAMPLE
-// ============================================================================
-
-/*
-// This is how the refactored handleClient method would look:
-void handleClientRefactored(WiFiClient client) {
-    // 1. Parse the HTTP request using new structured approach
-    HttpRequest request = parseHttpRequest(client);
-    
-    // 2. Early return if no valid request
-    if (request.method.length() == 0) {
-        client.stop();
-        return;
-    }
-    
-    // 3. Handle captive portal detection
-    if (request.isCaptivePortalRequest) {
-        sendHttpResponse(client, 302, "text/plain", "Redirecting...");
-        client.stop();
-        return;
-    }
-    
-    // 4. Route to appropriate handlers
-    if (request.path == "/" || request.path == "/index.html") {
-        handleStaticFile(client, request, "/index.html");
-    } else if (request.path == "/api/status") {
-        handleApiStatus(client, request);
-    } else if (request.path == "/api/data") {
-        handleApiData(client, request);
-    } else if (request.path.startsWith("/api/sessions")) {
-        handleApiSessions(client, request);
-    } else if (request.path == "/api/settings") {
-        handleApiSettings(client, request);
-    } else if (request.path == "/api/motor") {
-        handleApiMotor(client, request);
-    } else if (request.path == "/api/lamp") {
-        handleApiLamp(client, request);
-    } else if (request.path == "/api/beeper") {
-        handleApiBeeper(client, request);
-    } else if (request.path == "/api/version") {
-        handleApiVersion(client, request);
-    } else {
-        // Try static file serving
-        if (!handleStaticFile(client, request, request.path)) {
-            sendErrorResponse(client, 404, "Not Found");
-        }
-    }
-    
-    client.stop();
-}
-*/
-
-// ============================================================================
-// ORIGINAL HANDLECLIENT METHOD (TO BE REFACTORED)
-// ============================================================================
 
 // Process HTTP requests
 void handleClient(WiFiClient client) {

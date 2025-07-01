@@ -39,8 +39,6 @@ void webserverTask(void *pvParameters);
 void handleClient(WiFiClient client);
 bool loadFromSPIFFS(WiFiClient client, String path);
 void sendHttpResponse(WiFiClient client, int statusCode, const char* contentType, const char* content);
-
-// New refactored functions
 HttpRequest parseHttpRequest(WiFiClient& client);
 void sendJsonResponse(WiFiClient& client, const String& json);
 void sendErrorResponse(WiFiClient& client, int statusCode, const String& message);
