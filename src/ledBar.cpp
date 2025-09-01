@@ -5,6 +5,8 @@
 #include "settings.h"
 #include "log.h"
 #include "battery.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 
 /**
 * Code that controls the two led strips
@@ -28,8 +30,33 @@ static int lastDisplayedSpeed = -1;
 static int lastDisplayedMotorState = -1;
 static int lastDisplayedBattery = -1;
 
-// Mutex-like flag to prevent concurrent LED updates
-static bool ledUpdateInProgress = false;
+// Real mutex to prevent concurrent LED updates across cores/tasks
+static SemaphoreHandle_t ledBarMutex = nullptr;
+static volatile unsigned long lastStripShowMicros = 0;
+static const unsigned long MIN_UPDATE_INTERVAL_US = 1000; // Rate limit strip.show() calls
+
+static bool tryLockLedBar() {
+  if (ledBarMutex == nullptr) {
+    return true; // If not initialized yet, proceed (setup will create it)
+  }
+  return xSemaphoreTake(ledBarMutex, 0) == pdTRUE;
+}
+
+static void unlockLedBar() {
+  if (ledBarMutex != nullptr) {
+    xSemaphoreGive(ledBarMutex);
+  }
+}
+
+static void safeStripShow() {
+  unsigned long now = micros();
+  unsigned long elapsed = now - lastStripShowMicros;
+  if (elapsed < MIN_UPDATE_INTERVAL_US) {
+    delayMicroseconds(MIN_UPDATE_INTERVAL_US - elapsed);
+  }
+  strip.show();
+  lastStripShowMicros = micros();
+}
 
 // Helper function to safely get LED strip boundaries
 void getStripBoundaries(int stripNumber, int& startIndex, int& endIndex) {
@@ -93,16 +120,23 @@ int calculateBrightnessCorrectedValue(int red, int green, int blue, int targetBr
 void ledBarSetup(){
   // Neopixel
   strip.begin();
+  // Initialize mutex
+  if (ledBarMutex == nullptr) {
+    ledBarMutex = xSemaphoreCreateMutex();
+  }
   
   // Explicitly clear both strips first
   int ledBarNum = getLedBarNum();
   if (ledBarNum == 0) ledBarNum = 10; // Fallback
   int totalLEDs = ledBarNum + LedBar2_Num;
   
-  for (int i = 0; i < totalLEDs; i++) {
-    safeSetPixelColor(i, strip.Color(0, 0, 0));
+  if (tryLockLedBar()) {
+    for (int i = 0; i < totalLEDs; i++) {
+      safeSetPixelColor(i, strip.Color(0, 0, 0));
+    }
+    safeStripShow(); // Turn off all LEDs
+    unlockLedBar();
   }
-  strip.show(); // Turn off all LEDs
   
   // Proper delay to ensure LEDs are initialized
   delay(250);
@@ -111,10 +145,13 @@ void ledBarSetup(){
   knightRiderStartup();
   
   // Single thorough clearing after animation
-  for (int i = 0; i < totalLEDs; i++) {
-    safeSetPixelColor(i, strip.Color(0, 0, 0));
+  if (tryLockLedBar()) {
+    for (int i = 0; i < totalLEDs; i++) {
+      safeSetPixelColor(i, strip.Color(0, 0, 0));
+    }
+    safeStripShow();
+    unlockLedBar();
   }
-  strip.show();
   
   // Force refresh to clear any cached states
   forceRefreshLedBar();
@@ -144,16 +181,15 @@ void ledBarSetup(){
 
 void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
   // Prevent concurrent updates
-  if (ledUpdateInProgress) {
+  if (!tryLockLedBar()) {
     log("WARNING: LED update already in progress, skipping");
     return;
   }
-  ledUpdateInProgress = true;
   
   // Make sure that stripNumber is valid (1 for the first strip, 2 for the second strip)
   if (stripNumber != 1 && stripNumber != 2) {
     log("ERROR: Invalid stripNumber: " + String(stripNumber));
-    ledUpdateInProgress = false;
+    unlockLedBar();
     return; // Unauthorized value, do nothing
   }
 
@@ -196,8 +232,8 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     safeSetPixelColor(i, strip.Color(redOff * correctedBrightnessOff / 100, greenOff * correctedBrightnessOff / 100, blueOff * correctedBrightnessOff / 100));
   }
 
-  strip.show();  // Update LED strips
-  ledUpdateInProgress = false;
+  safeStripShow();  // Update LED strips
+  unlockLedBar();
 }
 
 void setBarStandby() {
@@ -246,11 +282,10 @@ void setBarSpeedCruise(int num) {
     num = constrain(num, 1, maxLEDs);
     
     // Prevent concurrent updates
-    if (ledUpdateInProgress) {
+    if (!tryLockLedBar()) {
         log("WARNING: LED update already in progress in setBarSpeedCruise");
         return;
     }
-    ledUpdateInProgress = true;
     
     // Clear all LEDs in strip 1 first
     for (int i = startIndex; i < endIndex; i++) {
@@ -274,8 +309,8 @@ void setBarSpeedCruise(int num) {
         safeSetPixelColor(lastLEDIndex, strip.Color(redValue, 0, 0));
     }
     
-    strip.show();
-    ledUpdateInProgress = false;
+    safeStripShow();
+    unlockLedBar();
 }
 
 void setBarBattery(int num) {
@@ -387,11 +422,10 @@ void knightRiderStartup() {
   if (ledBarNum == 0) ledBarNum = 10; // Fallback if settings not loaded
   
   // Prevent concurrent updates
-  if (ledUpdateInProgress) {
+  if (!tryLockLedBar()) {
     log("WARNING: LED update already in progress during Knight Rider");
     return;
   }
-  ledUpdateInProgress = true;
   
   // Calculate total LED count for boundary checking
   int totalLEDs = ledBarNum + LedBar2_Num;
@@ -426,7 +460,7 @@ void knightRiderStartup() {
         }
       }
       
-      strip.show();
+      safeStripShow();
       delay(delayTime);
     }
 
@@ -458,7 +492,7 @@ void knightRiderStartup() {
         }
       }
       
-      strip.show();
+      safeStripShow();
       delay(delayTime);
     }
   }
@@ -467,7 +501,7 @@ void knightRiderStartup() {
   for (int i = 0; i < totalLEDs; i++) {
     safeSetPixelColor(i, strip.Color(0, 0, 0));
   }
-  strip.show();
+  safeStripShow();
   
   // Small delay to ensure the clear is visible
   delay(100);
@@ -476,7 +510,7 @@ void knightRiderStartup() {
   for (int i = 0; i < totalLEDs; i++) {
     safeSetPixelColor(i, strip.Color(0, 0, 0));
   }
-  strip.show();
+  safeStripShow();
   
-  ledUpdateInProgress = false;
+  unlockLedBar();
 }
