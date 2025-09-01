@@ -269,11 +269,11 @@ def main():
     
     version = sys.argv[1]
     
-    # Get base tag for diff: prefer nearest reachable; fallback to previous semver tag below current
-    last_tag = get_last_release_tag()
+    # Get base tag for diff: prefer previous semver tag below the target version;
+    # fallback to nearest reachable tag if none is found
+    last_tag = get_previous_semver_tag(version)
     if not last_tag:
-        # Try previous semver tag below the current version
-        last_tag = get_previous_semver_tag(version)
+        last_tag = get_last_release_tag()
     print(f"Last release tag: {last_tag or 'None found'}", file=sys.stderr)
     
     # Get commits since last release
