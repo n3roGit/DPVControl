@@ -22,17 +22,17 @@ def run_git_command(cmd: List[str]) -> str:
         return ""
 
 def get_last_release_tag() -> str:
-    """Get the last release tag (robust against missing fetched tags)."""
-    # Try version-sorted tag list first
+    """Get the nearest tag reachable from HEAD (preferred for diff base)."""
+    # Prefer the nearest/most recent reachable tag (by topology), not highest semver
+    describe = run_git_command(['describe', '--tags', '--abbrev=0'])
+    if describe and describe.startswith('v'):
+        return describe
+    # Fallback: version-sorted list of tags reachable from HEAD
     tags = run_git_command(['tag', '--sort=-version:refname', '--merged'])
     if tags:
         for tag in tags.split('\n'):
             if tag.startswith('v'):
                 return tag
-    # Fallback to most recent reachable tag
-    describe = run_git_command(['describe', '--tags', '--abbrev=0'])
-    if describe and describe.startswith('v'):
-        return describe
     return ""
 
 def get_commits_since_tag(tag: str) -> List[Dict[str, str]]:
