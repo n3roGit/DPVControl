@@ -35,6 +35,35 @@ def get_last_release_tag() -> str:
                 return tag
     return ""
 
+def parse_semver(tag: str):
+    """Parse tags like vMAJOR.MINOR.PATCH to a comparable tuple."""
+    try:
+        if not tag or not tag.startswith('v'):
+            return None
+        parts = tag[1:].split('.')
+        if len(parts) != 3:
+            return None
+        return tuple(int(p) for p in parts)
+    except Exception:
+        return None
+
+def get_previous_semver_tag(current_version: str) -> str:
+    """Find the highest version tag lower than the current version (by semver), regardless of reachability."""
+    tags_output = run_git_command(['tag', '--list', 'v*'])
+    if not tags_output:
+        return ""
+    current_tuple = parse_semver('v' + current_version) or (0, 0, 0)
+    candidates = []
+    for t in tags_output.split('\n'):
+        tv = parse_semver(t)
+        if tv and tv < current_tuple:
+            candidates.append((tv, t))
+    if not candidates:
+        return ""
+    # Return tag with the largest version below current
+    candidates.sort(reverse=True)
+    return candidates[0][1]
+
 def get_commits_since_tag(tag: str) -> List[Dict[str, str]]:
     """Get commits since the specified tag"""
     if not tag:
@@ -240,8 +269,11 @@ def main():
     
     version = sys.argv[1]
     
-    # Get last release tag
+    # Get base tag for diff: prefer nearest reachable; fallback to previous semver tag below current
     last_tag = get_last_release_tag()
+    if not last_tag:
+        # Try previous semver tag below the current version
+        last_tag = get_previous_semver_tag(version)
     print(f"Last release tag: {last_tag or 'None found'}", file=sys.stderr)
     
     # Get commits since last release
