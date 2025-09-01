@@ -221,4 +221,8 @@ jobs:
           draft: false
           prerelease: false
           allowUpdates: true
+          replacesArtifacts: true
+          removeArtifacts: true
+          omitBodyDuringUpdate: false
+          omitNameDuringUpdate: false
           token: ${{ secrets.GITHUB_TOKEN }}
