@@ -1294,7 +1294,7 @@ void dataloggerTask(void *pvParameters) {
 
 /**
  * Setup function for the datalogger
- * Starts the datalogger task on Core 1
+ * Starts the datalogger task on Core 0 (non time-critical core)
  */
 void datalogSetup() {
   log("=== DATALOG SETUP START ===");
@@ -1309,7 +1309,7 @@ void datalogSetup() {
   
   log("Buffer variables initialized");
   
-  // Create task on Core 1 (not Core 0, where the webserver runs)
+  // Create task on Core 0 (Main loop with time-critical tasks runs on Core 1)
   BaseType_t taskResult = xTaskCreatePinnedToCore(
     dataloggerTask,        // Task function
     "DataloggerTask",      // Task name
@@ -1317,11 +1317,11 @@ void datalogSetup() {
     NULL,                  // Task parameters
     1,                     // Task priority (1 is low)
     &dataloggerTaskHandle, // Task handle
-    1                      // Core ID (1)
+    0                      // Core ID (0)
   );
   
   if (taskResult == pdPASS) {
-    log("Datalogger-Task SUCCESSFULLY created on Core 1");
+    log("Datalogger-Task SUCCESSFULLY created on Core 0");
   } else {
     log("ERROR: Failed to create Datalogger-Task!");
   }
