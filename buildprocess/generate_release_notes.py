@@ -22,20 +22,18 @@ def run_git_command(cmd: List[str]) -> str:
         return ""
 
 def get_last_release_tag() -> str:
-    """Get the last release tag"""
-    try:
-        # Get all tags sorted by version
-        tags = run_git_command(['tag', '--sort=-version:refname', '--merged'])
-        if not tags:
-            return ""
-        
-        # Find first tag that starts with 'v'
+    """Get the last release tag (robust against missing fetched tags)."""
+    # Try version-sorted tag list first
+    tags = run_git_command(['tag', '--sort=-version:refname', '--merged'])
+    if tags:
         for tag in tags.split('\n'):
             if tag.startswith('v'):
                 return tag
-        return ""
-    except:
-        return ""
+    # Fallback to most recent reachable tag
+    describe = run_git_command(['describe', '--tags', '--abbrev=0'])
+    if describe and describe.startswith('v'):
+        return describe
+    return ""
 
 def get_commits_since_tag(tag: str) -> List[Dict[str, str]]:
     """Get commits since the specified tag"""
@@ -83,38 +81,41 @@ def filter_commits(commits: List[Dict[str, str]]) -> List[Dict[str, str]]:
     return filtered
 
 def generate_ai_summary(commits: List[Dict[str, str]], version: str) -> str:
-    """Generate AI summary using Claude API"""
-    
-    # Get API configuration from organization secrets/variables
+    """Generate AI summary using configured LLM provider (OpenAI/Anthropic)."""
     api_key = os.getenv('LLM_API_KEY')
     base_url = os.getenv('LLM_BASE_URL', '').strip()
     model = os.getenv('LLM_MODEL', 'gpt-4o-mini').strip()
-    
-    # Handle empty base_url or ensure it's properly formatted for OpenAI
-    if not base_url or base_url == '':
-        base_url = 'https://api.openai.com'
-    elif not base_url.startswith('http'):
-        base_url = f'https://{base_url}'
-    
-    # Remove 'openai/' prefix from model if present (for direct OpenAI API)
-    if model.startswith('openai/'):
-        model = model[7:]
-    
+    provider = os.getenv('LLM_PROVIDER', '').strip().lower()  # optional explicit provider
+
     if not api_key:
         print("No LLM_API_KEY found, generating basic summary", file=sys.stderr)
         return generate_basic_summary(commits, version)
-    
-    # Debug info for logs (not included in release notes)
+
+    # Normalize base_url
+    if not base_url:
+        base_url = 'https://api.openai.com'
+    elif not base_url.startswith('http'):
+        base_url = f'https://{base_url}'
+    base_url = base_url.rstrip('/')
+
+    # Infer provider if not set
+    if not provider:
+        if 'anthropic' in base_url or model.lower().startswith('claude'):
+            provider = 'anthropic'
+        else:
+            provider = 'openai'
+
+    # Debug info to stderr
+    print(f"LLM provider: {provider}", file=sys.stderr)
     print(f"Using API: {base_url}", file=sys.stderr)
     print(f"Using model: {model}", file=sys.stderr)
-    print(f"API key present: {bool(api_key)}", file=sys.stderr)
-    
+
     # Prepare commits text
     commits_text = "\n".join([
         f"- {commit['hash']}: {commit['message']} (by {commit['author']})"
         for commit in commits
     ])
-    
+
     prompt = f"""You are generating release notes for DPV Control version {version}, an Arduino/ESP32 project for controlling an underwater scooter (Dive Propulsion Vehicle).
 
 Please analyze these commits and create professional release notes in Markdown format:
@@ -130,50 +131,62 @@ Instructions:
 - Use bullet points for each change
 - Don't mention commit hashes or authors in the final output
 
-Format example:
-# Release Notes
-
-## What's New in Version {version}
-
-🚀 **New Features**
-- Description of new functionality
-
-🐛 **Bug Fixes**  
-- Fixed issues and problems
-
-🔧 **Improvements**
-- Performance and code improvements
-
-If there are no significant changes, write: "Minor improvements and bug fixes."
-"""
+If there are no significant changes, write: "Minor improvements and bug fixes."""  # Simplified heading
 
     try:
-        # Use OpenAI-compatible API format (as configured in organization variables)
-        headers = {
-            'Authorization': f'Bearer {api_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        data = {
-            'model': model,
-            'messages': [
-                {
-                    'role': 'user', 
-                    'content': prompt
-                }
-            ],
-            'max_tokens': 1000,
-            'temperature': 0.7
-        }
-        
-        response = requests.post(f'{base_url}/v1/chat/completions', headers=headers, json=data, timeout=30)
-        response.raise_for_status()
-        result = response.json()
-        
-        # Extract content from OpenAI-compatible response
-        content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-        return content.strip() if content else generate_basic_summary(commits, version)
-        
+        if provider == 'anthropic':
+            # Anthropic Messages API
+            headers = {
+                'x-api-key': api_key,
+                'anthropic-version': '2023-06-01',
+                'content-type': 'application/json',
+            }
+            data = {
+                'model': model,
+                'max_tokens': 1000,
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt,
+                    }
+                ],
+            }
+            resp = requests.post(f'{base_url}/v1/messages', headers=headers, json=data, timeout=45)
+            resp.raise_for_status()
+            result = resp.json()
+            # Extract text segments
+            content_parts = []
+            for block in result.get('content', []):
+                if isinstance(block, dict) and block.get('type') == 'text':
+                    content_parts.append(block.get('text', ''))
+            content = "\n".join(content_parts).strip()
+            return content if content else generate_basic_summary(commits, version)
+        else:
+            # OpenAI-compatible Chat Completions
+            if model.startswith('openai/'):
+                model_to_use = model[7:]
+            else:
+                model_to_use = model
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'Content-Type': 'application/json'
+            }
+            data = {
+                'model': model_to_use,
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': prompt
+                    }
+                ],
+                'max_tokens': 1000,
+                'temperature': 0.7
+            }
+            resp = requests.post(f'{base_url}/v1/chat/completions', headers=headers, json=data, timeout=45)
+            resp.raise_for_status()
+            result = resp.json()
+            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            return content.strip() if content else generate_basic_summary(commits, version)
     except Exception as e:
         print(f"AI generation failed: {e}", file=sys.stderr)
         return generate_basic_summary(commits, version)
