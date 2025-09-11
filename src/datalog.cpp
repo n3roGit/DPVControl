@@ -679,7 +679,13 @@ void logStorageStats() {
   size_t usedBytes = LittleFS.usedBytes();
   size_t freeBytes = totalBytes - usedBytes;
   
-  String storageMsg = "Storage: " + String(freeBytes/1024) + "KB free / " + String(totalBytes/1024) + "KB total (" + String((freeBytes*100)/totalBytes) + "% free)";
+  // Guard against division by zero if filesystem is not properly initialized
+  int percentFree = 0;
+  if (totalBytes > 0) {
+    percentFree = (int)((freeBytes * 100) / totalBytes);
+  }
+  
+  String storageMsg = "Storage: " + String(freeBytes/1024) + "KB free / " + String(totalBytes/1024) + "KB total (" + String(percentFree) + "% free)";
   log(storageMsg.c_str());
   
   if (LittleFS.exists("/trip_log.bin")) {
@@ -803,6 +809,16 @@ void appendToTripLog(LogdataRow datapoint) {
   // Log storage stats every 5000 writes (every ~7 hours at 5s interval)
   if (writeCounter % 5000 == 0) {
     logStorageStats();
+  }
+  
+  // Guard: skip write when filesystem is unavailable or out of space
+  size_t totalBytes = LittleFS.totalBytes();
+  size_t usedBytes = LittleFS.usedBytes();
+  size_t freeBytes = (totalBytes > usedBytes) ? (totalBytes - usedBytes) : 0;
+  if (totalBytes == 0 || freeBytes < sizeof(LogdataRow)) {
+    log("WARNING: Skipping trip log write due to insufficient LittleFS space or unavailable FS");
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+    return;
   }
   
   // Open current session file for each write to ensure data is saved immediately
