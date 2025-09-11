@@ -416,7 +416,7 @@ void applyLedBarSettings() {
 
 // Knight Rider startup animation
 void knightRiderStartup() {
-  const int delayTime = 60; // ms between steps
+  const int delayTime = 30; // ms between steps 
   const int maxBrightness = 80; // Maximum brightness for the effect
   int ledBarNum = getLedBarNum();
   if (ledBarNum == 0) ledBarNum = 10; // Fallback if settings not loaded
