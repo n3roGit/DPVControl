@@ -33,3 +33,6 @@ RELEASE_NOTES.md
 
 # Generated embedded web files (created by embed_webfiles.py)
 src/generated/
+
+# Local test reports (created by run_all_tests.ps1)
+test_report_*.txt
