@@ -194,7 +194,7 @@ String generateSessionDataJson(String sessionFile) {
     }
     
     // Calculate optimal number of points based on duration
-    const int maxPoints = 1000; // Increased from 100 to support larger sessions (memory allows up to 1000 points)
+    const int maxPoints = 500; // Reduce to keep memory usage low for large sessions
     int targetPoints = maxPoints;
     
     if (realSessionDurationSeconds > 0) {
