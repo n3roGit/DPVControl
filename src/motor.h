@@ -21,8 +21,6 @@ extern unsigned long lastActionTime;
 
 extern const bool HAS_MOTOR;//Indicates that we have an actual motor plugged in.
 
-VescUart& getVescUart();//Accessor
-
 // Motor control functions
 void setMotorSpeed(int speed);
 void updateMotorState();

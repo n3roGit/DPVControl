@@ -139,13 +139,19 @@ void recordVoltage(float voltage) {
 
 float getAvergageVoltage() {
   float sum = 0.0;
-  int i = 0;
-  while (i < MEASUREMENTS && voltageHistory[i] != EMPTY) {
-    sum += voltageHistory[i];
-    i++;
+  int count = 0;
+  
+  // Iterate through all measurements and only sum valid ones
+  for (int i = 0; i < MEASUREMENTS; i++) {
+    // Check for exact match with EMPTY or close enough due to float precision
+    if (voltageHistory[i] > 0.0) { // Assume valid voltage is positive
+      sum += voltageHistory[i];
+      count++;
+    }
   }
-  if (i == 0) return 0.0;
-  return sum / i;
+  
+  if (count == 0) return 0.0;
+  return sum / count;
 }
 
 /**

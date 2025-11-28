@@ -4,6 +4,7 @@
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
@@ -32,6 +33,7 @@
 #include "webserver.h"  // Include webserver header
 #include "data_upload.h" // Include data upload header
 #include "settings.h" // Include DPV settings system
+#include "vesc_task.h" // Include VESC task
 #include <LittleFS.h> // For settings storage
 
 // Global variables
@@ -95,10 +97,15 @@ void setup() {
   log("---");
 
   // Initialize hardware subsystems (now with settings available)
-  motorSetup();     // Motor control and VESC communication
+  // Must be initialized BEFORE startVescTask because vescTask might use them (e.g. battery level updates)
+  motorSetup();     // Motor control logic
   ledLampSetup();   // Main LED lamp PWM control
   ledBarSetup();    // LED status bar (now with proper settings)
   batterySetup();   // Battery monitoring
+
+  // Start VESC communication task on Core 0
+  // This handles all UART communication with the motor controller
+  startVescTask();
   
   // Initialize datalogger (will re-initialize LittleFS if needed)
   datalogSetup();
@@ -129,7 +136,7 @@ void loop() {
   buttonLoop();           // Process button inputs and actions
   motorLoop();           // Update motor control and speed
   checkForLeak();        // Monitor leak sensors
-  GetVESCValues();       // Read motor controller data
+  // GetVESCValues();    // REMOVED: Now handled by background task
   logVehicleState();     // Log current system state
   FromTimeToTimeExecution(); // Periodic maintenance tasks
   beepLoop();            // Handle beeper sequences
@@ -145,4 +152,3 @@ void loop() {
   
   delay(1);  // Small delay to prevent watchdog issues
 }
-

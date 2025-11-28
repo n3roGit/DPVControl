@@ -7,6 +7,8 @@
 #include <cstdint>
 #include "mock_arduino.h"
 #include <vector>
+#include "../src/vesc_task.h" // Include actual VescData struct
+
 // Mock hardware variables
 extern int LED_State;
 extern int currentMotorStep;
@@ -85,4 +87,12 @@ void mock_resetAllStates();
 std::string mockHandleApiStatus();
 bool mockIsInputValid(const std::string& input);
 
-#endif 
+// VESC Task Mocks
+VescData getVescData();
+void setVescTargetRpm(float rpm);
+void startVescTask();
+
+// Helper to set mock VESC data for tests
+void mock_setVescData(const VescData& data);
+
+#endif

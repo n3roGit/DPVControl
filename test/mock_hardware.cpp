@@ -42,6 +42,10 @@ std::mutex mockMutex;
 bool motorOverload = false;
 unsigned long mockTime = 0;
 
+// VESC Mock variables
+VescData mockVescData;
+float mockVescTargetRpm = 0.0;
+
 // Helper functions
 uint32_t mock_color(uint8_t r, uint8_t g, uint8_t b) {
     return ((uint32_t)r << 16) | ((uint32_t)g << 8) | b;
@@ -502,6 +506,8 @@ void mock_resetAllStates() {
     mockDHTValid = true;
     mockDHTError = false;
     mockDHTTimeout = false;
+    mockVescData = {0};
+    mockVescTargetRpm = 0.0f;
 }
 
 std::string mockHandleApiStatus() {
@@ -531,4 +537,24 @@ void resetMockTime() {
 // Time control functions for testing
 void setMockMillis(unsigned long ms) {
     mockMillisValue = ms;
-} 
+}
+
+// VESC Task Mock Implementations
+VescData getVescData() {
+    std::lock_guard<std::mutex> lock(mockMutex);
+    return mockVescData;
+}
+
+void setVescTargetRpm(float rpm) {
+    std::lock_guard<std::mutex> lock(mockMutex);
+    mockVescTargetRpm = rpm;
+}
+
+void startVescTask() {
+    // No-op in mock environment
+}
+
+void mock_setVescData(const VescData& data) {
+    std::lock_guard<std::mutex> lock(mockMutex);
+    mockVescData = data;
+}

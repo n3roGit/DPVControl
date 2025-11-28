@@ -6,6 +6,7 @@
 #include "button.h"
 #include "ledLamp.h"
 #include "settings.h"
+#include "vesc_task.h" // Include VESC task interface
 
 /**
 *
@@ -15,11 +16,6 @@
 MotorState motorState = standby;
 bool remoteControlActive = false; // Flag for remote control override
 const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
-
-VescUart UART;
-
-VescUart& getVescUart(){return UART;}
-
 
 /*
 *  CONSTANTS
@@ -55,17 +51,8 @@ unsigned long lastStandbyBeepTime = 0;
 
 
 void motorSetup(){
-  // Initialize VESC UART communication
-  Serial1.begin(115200, SERIAL_8N1, VESCRX, VESCTX);
-  while (!Serial1) { ; }
-  delay(500);
-  getVescUart().setSerialPort(&Serial1);
-  delay(500);
-  if (getVescUart().getVescValues()) {
-    log("Connected to VESC.");
-  } else {
-    log("Failed to connect to VESC.");
-  }
+  // VESC initialization is now handled in vescTask (vesc_task.cpp)
+  log("Motor setup complete (VESC handled by task)");
 }
 
 void speedUp(){
@@ -153,9 +140,10 @@ void setSoftMotorSpeed() {
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   double effectiveSpeed = currentMotorSpeed * getMaxSpeedRpm();
-  if(abs(effectiveSpeed) > 0.0){
-    getVescUart().setRPM(effectiveSpeed);
-  }
+  
+  // Use the thread-safe function to set target RPM in the VESC task
+  setVescTargetRpm(effectiveSpeed);
+  
   currentMotorTime = micros();
 
   if(EnableDebugLog && abs(currentMotorSpeed - lastPrintedMotorSpeed) >= 0.01){
@@ -186,8 +174,8 @@ void controlMotor() {
 
 
 float getMotorPower(){
-  //return 50.0*currentMotorSpeed;//Great for testing with no motor.
-  return getVescUart().data.avgInputCurrent;
+  // Use thread-safe data access
+  return getVescData().avgInputCurrent;
 }
 
 /**
@@ -260,8 +248,11 @@ void checkJam(){
   float jamThreshold = getJamDetectionThreshold();
   float maxSpeedRpm = getMaxSpeedRpm();
   
+  // Get VESC RPM safely
+  float currentRpm = getVescData().rpm;
+  
   if (motorState != jammed && currentMotorSpeed >= jamMin
-  && getVescUart().data.rpm/currentMotorSpeed/maxSpeedRpm < jamThreshold){
+  && currentRpm/currentMotorSpeed/maxSpeedRpm < jamThreshold){
     log("MOTOR JAMMED!");
     beep("211");
     motorState = jammed;

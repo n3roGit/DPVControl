@@ -13,7 +13,6 @@
 * For code that I did not find a better place for.
 */
 
-void GetVESCValues();
 void checkForLeak();
 void FromTimeToTimeExecution();
 

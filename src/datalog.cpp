@@ -9,6 +9,7 @@
 #include "button.h"   // For button states
 #include "settings.h" // For getBeeperEnabled()
 #include "beep.h"     // For isBeeperActive()
+#include "vesc_task.h" // Include VESC task interface
 
 // External variables
 extern int LED_State; // From ledLamp.cpp
@@ -561,12 +562,15 @@ LogdataRow createOptimizedDatapoint(unsigned long currentTime) {
   }
   
   if (HAS_MOTOR) {
-    dp.tempMotor = getVescUart().data.tempMotor;
-    dp.tempMosfet = getVescUart().data.tempMosfet;
-    dp.current = getVescUart().data.avgInputCurrent;
-    dp.avgMotorCurrent = getVescUart().data.avgMotorCurrent;
-    dp.erpm = getVescUart().data.rpm;
-    dp.dutyCycle = getVescUart().data.dutyCycleNow;
+    // Get VESC data safely
+    VescData vescData = getVescData();
+    
+    dp.tempMotor = vescData.tempMotor;
+    dp.tempMosfet = vescData.tempMosfet;
+    dp.current = vescData.avgInputCurrent;
+    dp.avgMotorCurrent = vescData.avgMotorCurrent;
+    dp.erpm = vescData.rpm;
+    dp.dutyCycle = vescData.dutyCycleNow;
   } else {
     // Fallback values if no motor
     dp.tempMotor = 25.0;
@@ -1407,8 +1411,8 @@ LogdataRow* interpolateData(LogdataRow* rawData, int rawCount, int targetCount) 
   static LogdataRow interpolatedData[150]; 
   if (targetCount > 150) targetCount = 150; // Reduced safety limit
   
+  // If we have enough raw data, just copy it
   if (rawCount >= targetCount) {
-    // If we have enough raw data, just copy it
     for (int i = 0; i < targetCount; i++) {
       interpolatedData[i] = rawData[i];
     }
