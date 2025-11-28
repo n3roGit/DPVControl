@@ -170,6 +170,12 @@ float getBatteryVoltage() {
 void updateBatteryLevel(float voltage) {
   recordVoltage(voltage);
   batteryLevel = calculateStateOfCharge(getAvergageVoltage());
+  // NO LED update here! This function is called from VESC task (Core 0).
+  // LED updates must happen on Core 1 to prevent conflicts.
+}
+
+void updateBatteryDisplay() {
+  // This function should be called from the main loop (Core 1)
   int steps = (batteryLevel + 5) / LedBar2_Num;
   steps = constrain(steps, 0, LedBar2_Num);
   setBarBattery(steps);

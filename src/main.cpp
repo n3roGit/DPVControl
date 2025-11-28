@@ -142,6 +142,10 @@ void loop() {
   beepLoop();            // Handle beeper sequences
   ledLampLoop();         // Update LED lamp states
   datalogLoop();         // Data logging operations
+  
+  // Update battery display on Core 1 (Main Loop)
+  // This ensures LED hardware access is thread-safe and consistent
+  updateBatteryDisplay();
 
   // Performance monitoring
   long loopEnd = millis();
