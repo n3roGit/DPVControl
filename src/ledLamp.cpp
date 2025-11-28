@@ -146,6 +146,7 @@ void ledLampLoop(){
   // Check if 10 seconds have passed since last status change
   if (isStatusRestorationPending && millis() - lastStatusChangeTime >= 10000) {
     isInStandby = (motorState == standby); // Update standby state
+    forceRefreshLedBar(); // Force refresh to ensure display update
     if (isInStandby) {
       setBarStandby(); // Keep standby display
     } else {
