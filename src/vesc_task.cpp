@@ -84,7 +84,7 @@ void startVescTask() {
   xTaskCreatePinnedToCore(
     vescTask,
     "VescTask",
-    4096,
+    8192, // Increased stack size to prevent overflow
     NULL,
     1, // Priority 1
     &vescTaskHandle,

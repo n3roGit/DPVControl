@@ -179,7 +179,7 @@ void ledBarSetup(){
 }
 
 
-void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn, String hexColorOff, int brightnessOff) {
+void setBar(int stripNumber, int numLEDsOn, uint32_t colorOn, int brightnessOn, uint32_t colorOff, int brightnessOff) {
   // Prevent concurrent updates
   if (!tryLockLedBar()) {
     log("WARNING: LED update already in progress, skipping");
@@ -201,11 +201,10 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
   int maxLEDs = endIndex - startIndex;
   numLEDsOn = constrain(numLEDsOn, 0, maxLEDs);
 
-  // Convert the hex color value to RGB color values for the switched-on color
-  long numberOn = (long)strtol(&hexColorOn[1], NULL, 16);
-  int redOn = numberOn >> 16;
-  int greenOn = (numberOn >> 8) & 0xFF;
-  int blueOn = numberOn & 0xFF;
+  // Extract RGB from uint32_t
+  int redOn = (uint8_t)(colorOn >> 16);
+  int greenOn = (uint8_t)(colorOn >> 8);
+  int blueOn = (uint8_t)colorOn;
 
   // Apply brightness correction for ON color
   int correctedBrightnessOn = calculateBrightnessCorrectedValue(redOn, greenOn, blueOn, brightnessOn);
@@ -218,11 +217,10 @@ void setBar(int stripNumber, int numLEDsOn, String hexColorOn, int brightnessOn,
     safeSetPixelColor(i, strip.Color(dimmed_color_r, dimmed_color_g, dimmed_color_b));
   }
 
-    // Convert the hex color value to RGB color values for the switched off color
-    long numberOff = (long)strtol(&hexColorOff[1], NULL, 16);
-    int redOff = numberOff >> 16;
-    int greenOff = (numberOff >> 8) & 0xFF;
-    int blueOff = numberOff & 0xFF;
+  // Extract RGB from uint32_t
+  int redOff = (uint8_t)(colorOff >> 16);
+  int greenOff = (uint8_t)(colorOff >> 8);
+  int blueOff = (uint8_t)colorOff;
 
   // Apply brightness correction for OFF color
   int correctedBrightnessOff = calculateBrightnessCorrectedValue(redOff, greenOff, blueOff, brightnessOff);
@@ -250,7 +248,7 @@ void setBarStandby() {
     if (ledBarNum == 0) ledBarNum = 10;  // Default LED bar length
     if (brightness == 0) brightness = 3; // Default brightness
     
-    setBar(1, ledBarNum, "#e38f09", brightness, "#000000", 0);
+    setBar(1, ledBarNum, 0xe38f09, brightness, 0x000000, 0);
 }
 
 void setBarSpeed(int num) {
@@ -262,14 +260,14 @@ void setBarSpeed(int num) {
         if (motorState == cruise) {
             setBarSpeedCruise(num);
         } else {
-            setBar(1, num, "#cb1bf2", getLedBarBrightness(), "#000000", 0);
+            setBar(1, num, 0xcb1bf2, getLedBarBrightness(), 0x000000, 0);
         }
     }
 }
 
 void setBarSpeedCruise(int num) {
     if (num <= 0) {
-        setBar(1,0,"#000000", 0, "#000000", 0);
+        setBar(1, 0, 0x000000, 0, 0x000000, 0);
         return;
     }
     
@@ -318,7 +316,7 @@ void setBarBattery(int num) {
   if (num != lastDisplayedBattery) {
     lastDisplayedBattery = num;
     int calc = getLedBarNum() - num;
-    setBar(2, calc, "#e30b0b", getLedBarBrightnessSecond(), "#0a9e08", getLedBarBrightness());
+    setBar(2, calc, 0xe30b0b, getLedBarBrightnessSecond(), 0x0a9e08, getLedBarBrightness());
   }
 }
 
@@ -331,21 +329,21 @@ void setBarLeak() {
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
     if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(1, getLedBarNum(), "#0000FF", getLedBarBrightness(), "#0000FF", 0);
+      setBar(1, getLedBarNum(), 0x0000FF, getLedBarBrightness(), 0x0000FF, 0);
     } else if (backLeakState == LOW) {
-      setBar(1, getLedBarNum()/2, "#0000FF", getLedBarBrightness(), "#0000FF", 0);
+      setBar(1, getLedBarNum()/2, 0x0000FF, getLedBarBrightness(), 0x0000FF, 0);
     } else if(frontLeakState == LOW) {
-      setBar(1, getLedBarNum()/2, "#0000FF", 0, "#0000FF", getLedBarBrightness());
+      setBar(1, getLedBarNum()/2, 0x0000FF, 0, 0x0000FF, getLedBarBrightness());
     }
 }
 
 void setBarPowerBank(bool status) {
   int numLeds = getLedBarNum() - 1;
   if (status){
-      setBar(1, numLeds, "#000000", 0, "#036ffc", getLedBarBrightness());
+      setBar(1, numLeds, 0x000000, 0, 0x036ffc, getLedBarBrightness());
   }
   else {
-      setBar(1, numLeds, "#000000", 0, "#ff0000", getLedBarBrightness());
+      setBar(1, numLeds, 0x000000, 0, 0xff0000, getLedBarBrightness());
   }  
 }
 
@@ -360,7 +358,7 @@ void setBarLED(int num) {
     
     // Display: OFF LEDs on left (black), ON LEDs on right (white)
     // This makes the brightness build up from right to left
-    setBar(1, numOff, "#000000", 0, "#FFFFFF", getLedBarBrightness());
+    setBar(1, numOff, 0x000000, 0, 0xFFFFFF, getLedBarBrightness());
 }
 
 void setBarFlasher(bool status) {
@@ -368,7 +366,7 @@ void setBarFlasher(bool status) {
     // Reset cache when entering special mode
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
-    setBar(1, getLedBarNum(), "#FFFFFF", getLedBarBrightness(), "#000000", 0); // All LEDs white
+    setBar(1, getLedBarNum(), 0xFFFFFF, getLedBarBrightness(), 0x000000, 0); // All LEDs white
   } else {
     // Reset cache when leaving special mode to force refresh
     lastDisplayedSpeed = -1;
