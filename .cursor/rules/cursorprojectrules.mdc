@@ -1,57 +1,110 @@
 ---
-description: 
-globs: 
+description: >
+  Cursor rules for the DPVControl project (ESP32 + VESC DPV, REST API + webserver).
+  These rules apply to all AI-assisted edits in this repo.
+globs:
+  - "**/*"
 alwaysApply: true
 ---
-This project involves a watercraft - a so-called Diver-Purpose Vehicle (DPV). It is controlled by an ESP32, a VESC and other components.
 
+This project involves a watercraft - a so-called Diver-Purpose Vehicle (DPV).
+It is controlled by an ESP32, a VESC and other components.
 
-You can find information about the project in my blog: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
+Project information:
+- Blog: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
+- GitHub: https://github.com/BubTec/DPVControl
 
+Core project rules
+- The code and comments are always in English.
+- Always prefer small, isolated changes over large refactorings.
+- For any non-trivial change, perform a full rebuild using PlatformIO.
+- Follow the existing coding style (see .clang-format, .clang-tidy, .cpplint).
+- Respect the existing module boundaries in src/ and test/.
 
+API and webserver rules
+- The project exposes a REST API documented in api-specification.yaml in the repo root.
+- Whenever you change API behaviour in the webserver implementation (any C++ code in src/ that handles /api/... routes):
+  - Ensure the OpenAPI file api-specification.yaml is updated accordingly.
+  - Increment the API version in api-specification.yaml (and any related version field used by the web UI, e.g. in version.js, if applicable).
+  - Keep request/response schemas in the spec exactly in sync with the actual JSON structures returned by the firmware.
+- When adding a new endpoint or removing an existing one:
+  - Update all relevant sections in api-specification.yaml (paths, schemas, examples, error responses).
+  - Document authentication/authorization and possible error codes if applicable.
 
-Tasks:
-- Remember to update the API documentation (api-specification.yaml) every time you do something on the webserver and increment the api version!
-- If you install serial logging, make sure you use the existing function for this!
-- Always compile independently for major changes
-- The code and comments are always in English!
-- For every change, include in the chat a suggested git commit message in English.
-- Always run and update tests when making code changes (python -m platformio test -e native or run_all_tests.ps1 to test all)
-- Tests must be adapted when API or functionality changes
-- Test failures must be fixed before proceeding with changes 
-- Dont ask to test something. just test it! If you find an error, fix it without asking!
-- If you've fixed a bug, check to see if a test already exists for it. If not, see if you can implement one.
-- If, during the course of this project, you have learned anything relevant to it that should be incorporated into these rules, please let me know.
+Logging rules
+- If you add or extend serial logging:
+  - Always use the existing logging/serial output helper function(s) already used in the project instead of introducing new ad-hoc Serial.print() calls.
+  - Keep log messages concise and in English.
+  - Avoid logging sensitive information (e.g. secrets, raw calibration values that should not be exposed).
 
+Testing and automation rules
+- This project uses PlatformIO tests and a pre-commit hook concept (see README).
+- When any file under src/ or test/ is modified:
+  - Run at least: `python -m platformio test -e native`.
+  - For bigger or cross-cutting changes, prefer running the full test matrix via `run_all_tests.ps1` (present in the repo root).
+  - If tests fail, analyse and fix the problem before making further changes.
+  - Do not propose a commit until all tests pass again.
+- Never ask the user whether tests should be run; just assume that tests must be executed.
+- When you fix a bug:
+  - Check whether a test already exists that covers this bug.
+  - If no such test exists, add a new test that reproduces the bug and verifies the fix.
 
+API test coverage rules
+- When modifying API endpoints (handlers for /api/status, /api/data, /api/trip-log, /api/settings, /api/settings/restore, etc.):
+  - Ensure there is at least one dedicated test in the API test suite under test/ that exercises this endpoint.
+    - If there is an existing API test module (e.g. a file with "api" in its name), extend it.
+    - Otherwise, create a new API test module following the structure and naming conventions of existing tests.
+  - For every endpoint, tests must cover:
+    - At least one success case (valid input, expected JSON structure and HTTP status).
+    - At least one error case (invalid or missing input, boundary conditions, or internal error).
+  - JSON validation in tests must:
+    - Check presence of required fields.
+    - Validate value types.
+    - If applicable, validate ranges or enums (e.g. state/status fields).
+- If you change the JSON structure of any endpoint:
+  - Update the corresponding tests under test/ accordingly.
+  - Update api-specification.yaml so that the documented schema matches the new structure.
 
+Mock and hardware abstraction rules
+- The project controls real hardware (VESC, motor, sensors, LEDs, battery, etc.).
+- Tests must never depend on real hardware.
+- When adding new hardware-dependent functionality in src/:
+  - Follow the existing pattern for hardware abstraction and mocking found in the test/ tree
+    (e.g. mock_* headers and a central mock hardware implementation file, if present).
+  - Add or extend mock_* files under test/ so that unit tests can simulate the new hardware behaviour.
+  - Ensure that the tests for the new functionality use these mocks instead of real hardware APIs.
+- When modifying existing hardware interaction code:
+  - Keep hardware-specific code in dedicated modules (e.g. motor control, sensor reading, battery management), not mixed with business logic or API handlers.
+  - Update corresponding mocks in test/ so that existing tests continue to reflect the new behaviour.
 
-// Test automation rules
-When any file in src/ is modified:
-  - Run all tests in test/ directory
-  - If tests fail, show error message and prevent commit
+Test structure rules
+- When adding new tests:
+  - Place them in the appropriate subdirectory under test/ according to the existing structure (e.g. by domain: API, motor, sensors, state machine, etc.).
+  - Include proper setup/teardown logic for shared state (e.g. global controller objects, mocks).
+  - Use the Unity test framework conventions already used by PlatformIO tests (TEST_SETUP, TEST_TEAR_DOWN, etc.).
+  - Follow existing naming conventions for test files and test cases (e.g. test_<module>.cpp, test_<feature>_<behaviour>).
+- Tests must be deterministic:
+  - No reliance on real time, random values, or external network/hardware.
+  - If timing is relevant, use mocks or injected clocks.
 
-// API test coverage rules
-When modifying any API endpoint in src/webserver.cpp:
-  - Ensure corresponding test exists in test/test_api.cpp
-  - Test must cover both success and error cases
-  - Test must validate JSON response structure
+Build and tooling rules
+- The primary build system is PlatformIO (see platformio.ini).
+- For significant changes (API, core control logic, hardware abstraction):
+  - Perform a full rebuild using PlatformIO before suggesting a commit.
+- Respect existing helper scripts in the repo root:
+  - `run_all_tests.ps1`: used to run the complete test matrix.
+  - `lint-check.ps1` and `check.cppcheck`: keep code compatible with the configured static analysis.
+  - If your changes obviously break formatting or linting rules, adjust the code accordingly.
 
-// Mock implementation rules
-When adding new hardware dependencies:
-  - Create corresponding mock implementation in test/mock_*.h
-  - Update mock_hardware.cpp with new mock functions
-  - Ensure mocks are used in tests
+Git and commit message rules
+- For every logical change you perform, propose a single, clear English commit message in the chat.
+- Commit messages should:
+  - Be written in imperative mood (e.g. "Add API test for /api/status error handling").
+  - Describe both code and test changes (if tests were added or updated).
+  - Mention "API" in the subject if an API-visible behaviour changed.
+- Do not bundle unrelated changes into a single commit.
 
-// Test structure rules
-When adding new tests:
-  - Place in appropriate test/ subdirectory
-  - Include setup/teardown functions
-  - Use Unity test framework
-  - Follow existing test naming conventions
-
-// Hardware abstraction rules
-When modifying hardware interactions:
-  - Use mock implementations for testing
-  - Keep hardware-specific code in separate files
-  - Document hardware dependencies 
+Continuous improvement of these rules
+- If, during work on this project, you learn something that should be enforced systematically
+  (for example, a new invariant, a problematic pattern, or a specific test requirement),
+  propose an update to this rules file in the chat so the user can decide whether to adopt it.
