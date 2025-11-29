@@ -129,12 +129,8 @@ void ledLampLoop(){
         break;
       case 3: // Step 3: Turn off for 1 second
         setLEDState(LAMP_OFF);
-        flashStepTime = millis() + 1000;
-        flashStep = 4;
-        break;
-      case 4: // Step 4: Restore original state
-        LED_State = preBlinkLEDState;
-        setLEDState(LED_State);
+        
+        // Restore LED Bar immediately after flash (at start of pause)
         setBarFlasher(false); // Deactivate flasher
         isInStandby = (motorState == standby);
         if (!isStatusRestorationPending) { // Only start timer if not already pending
@@ -142,11 +138,18 @@ void ledLampLoop(){
           isStatusRestorationPending = true;
         }
         if (isInStandby) {
-          setBarStandby(false); // Restore standby display, NO IMMEDIATE SHOW
+          setBarStandby(true); // Restore standby display immediately
         } else {
-          setBarSpeed(currentMotorStep, false); // Restore speed display, NO IMMEDIATE SHOW
+          setBarSpeed(currentMotorStep, true); // Restore speed display immediately
         }
         updateBatteryDisplay(); // Ensure battery display is correct and SHOW all changes
+        
+        flashStepTime = millis() + 1000;
+        flashStep = 4;
+        break;
+      case 4: // Step 4: Restore original state
+        LED_State = preBlinkLEDState;
+        setLEDState(LED_State);
         isFlashing = false;
         flashStep = 0;
         break;
@@ -201,9 +204,9 @@ void setLampLevel(int level) {
       // Immediate revert to standard display
       forceRefreshLedBar();
       if (motorState == standby) {
-          setBarStandby(false); // NO IMMEDIATE SHOW
+          setBarStandby(true); // Restore standby display immediately
       } else {
-          setBarSpeed(currentMotorStep, false); // NO IMMEDIATE SHOW
+          setBarSpeed(currentMotorStep, true); // Restore speed display immediately
       }
       updateBatteryDisplay(); // Ensure battery display is also refreshed (implicitly calls show())
       isStatusRestorationPending = false;
