@@ -141,6 +141,7 @@ void loop() {
   FromTimeToTimeExecution(); // Periodic maintenance tasks
   beepLoop();            // Handle beeper sequences
   ledLampLoop();         // Update LED lamp states
+  ledBarLoop();          // Update LED bar states (handles requests from other cores)
   datalogLoop();         // Data logging operations
   
   // Update battery display on Core 1 (Main Loop)

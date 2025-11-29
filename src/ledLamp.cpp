@@ -7,6 +7,7 @@
 #include "ledBar.h"
 #include "log.h"
 #include "motor.h"
+#include "battery.h" // Include battery header
 #include "beep.h"
 #include "Arduino.h"
 #include "button.h"
@@ -41,6 +42,12 @@ static unsigned long lastStatusChangeTime = 0;
 static bool isInStandby = false;
 static bool isStatusRestorationPending = false; // New flag to track if restoration is pending
 extern int currentMotorStep; // Declare external variable
+static volatile int pendingLampLevel = -1; // For cross-core requests
+
+void requestSetLampLevel(int level) {
+    pendingLampLevel = level;
+}
+
 
 
 void setLEDState(int state);
@@ -61,6 +68,10 @@ long lampDuration(char c){
 }
 
 BlinkSequence lampSequence = BlinkSequence(lampBlinker, lampDuration, LAMP_BLINK_PAUSE);
+
+bool isLampSequenceActive() {
+  return isStatusRestorationPending || isFlashing || shouldRestoreLED;
+}
 
 void ledLampSetup(){
     // Initialize LED PWM
@@ -93,6 +104,13 @@ void applyLampSettings() {
 }
 
 void ledLampLoop(){
+  // Process pending requests from other cores (e.g. webserver)
+  if (pendingLampLevel != -1) {
+    int level = pendingLampLevel;
+    pendingLampLevel = -1; // Atomic enough for int
+    setLampLevel(level);
+  }
+
   lampSequence.loop();
   lampBlinker.loop();
   
@@ -124,10 +142,11 @@ void ledLampLoop(){
           isStatusRestorationPending = true;
         }
         if (isInStandby) {
-          setBarStandby(); // Restore standby display
+          setBarStandby(false); // Restore standby display, NO IMMEDIATE SHOW
         } else {
-          setBarSpeed(currentMotorStep); // Restore speed display
+          setBarSpeed(currentMotorStep, false); // Restore speed display, NO IMMEDIATE SHOW
         }
+        updateBatteryDisplay(); // Ensure battery display is correct and SHOW all changes
         isFlashing = false;
         flashStep = 0;
         break;
@@ -148,10 +167,11 @@ void ledLampLoop(){
     isInStandby = (motorState == standby); // Update standby state
     forceRefreshLedBar(); // Force refresh to ensure display update
     if (isInStandby) {
-      setBarStandby(); // Keep standby display
+      setBarStandby(false); // Keep standby display, NO IMMEDIATE SHOW
     } else {
-      setBarSpeed(currentMotorStep); // Restore speed display
+      setBarSpeed(currentMotorStep, false); // Restore speed display, NO IMMEDIATE SHOW
     }
+    updateBatteryDisplay(); // Ensure battery display is also refreshed (implicitly calls show())
     isStatusRestorationPending = false; // Reset pending flag
   }
 }
@@ -167,12 +187,40 @@ void flash(){
   }
 }
 
-void toggleLED(){
-  LED_State++;
-  int maxLevel = getLampMaxLevels() - 1; // Maximum valid level is maxLevels-1
-  if (LED_State > maxLevel) LED_State = LAMP_OFF;
+void setLampLevel(int level) {
+  int maxLevels = getLampMaxLevels();
+  // Validate level
+  if (level < 0) level = 0;
+  if (level >= maxLevels) level = maxLevels - 1;
+  
+  LED_State = level;
   setLEDState(LED_State);
-  setBarLED(LED_State);
+  
+  // Handle LED Bar display
+  if (LED_State == LAMP_OFF) {
+      // Immediate revert to standard display
+      forceRefreshLedBar();
+      if (motorState == standby) {
+          setBarStandby(false); // NO IMMEDIATE SHOW
+      } else {
+          setBarSpeed(currentMotorStep, false); // NO IMMEDIATE SHOW
+      }
+      updateBatteryDisplay(); // Ensure battery display is also refreshed (implicitly calls show())
+      isStatusRestorationPending = false;
+  } else {
+      // Show lamp level and start timeout
+      setBarLED(LED_State);
+      lastStatusChangeTime = millis();
+      isStatusRestorationPending = true;
+  }
+}
+
+void toggleLED(){
+  int nextState = LED_State + 1;
+  int maxLevel = getLampMaxLevels() - 1; 
+  if (nextState > maxLevel) nextState = LAMP_OFF;
+  
+  setLampLevel(nextState);
   log("LED_State", LED_State, true);
 }
 

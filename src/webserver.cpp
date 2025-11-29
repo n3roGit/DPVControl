@@ -1500,7 +1500,7 @@ void handleClient(WiFiClient client) {
             lastActionTime = micros();
             
             // Update LED bar to show new speed
-            setBarSpeed(currentMotorStep);
+            requestLedBarUpdate(); // Use thread-safe request
             
             String speedMsg = "Remote control set motor to step " + String(currentMotorStep) + " (speed " + String(speed) + "%)";
             log(speedMsg.c_str());
@@ -1510,7 +1510,7 @@ void handleClient(WiFiClient client) {
             remoteControlActive = false;
             motorState = off;
             lastActionTime = micros(); // Prevent immediate standby
-            setBarSpeed(currentMotorStep); // Update display but keep step setting
+            requestLedBarUpdate(); // Update display safely but keep step setting
             
             log("Remote control stopped motor");
         }
@@ -1584,10 +1584,8 @@ void handleClient(WiFiClient client) {
         String controlMsg = "Remote lamp control - Requested Level: " + String(requestedLevel) + ", Actual Level: " + String(actualLevel);
         log(controlMsg.c_str());
         
-        // Set level
-        LED_State = actualLevel;
-        setLEDState(LED_State);
-        setBarLED(LED_State);
+        // Set level safely via request
+        requestSetLampLevel(actualLevel);
         
         String levelMsg = "Remote control set lamp to level " + String(actualLevel) + " (max: " + String(maxLevels - 1) + ")";
         log(levelMsg.c_str());

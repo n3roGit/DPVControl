@@ -35,6 +35,9 @@ static SemaphoreHandle_t ledBarMutex = nullptr;
 static volatile unsigned long lastStripShowMicros = 0;
 static const unsigned long MIN_UPDATE_INTERVAL_US = 1000; // Rate limit strip.show() calls
 
+// Critical section mux for LED timing
+static portMUX_TYPE ledMux = portMUX_INITIALIZER_UNLOCKED;
+
 static bool tryLockLedBar() {
   if (ledBarMutex == nullptr) {
     return true; // If not initialized yet, proceed (setup will create it)
@@ -54,8 +57,33 @@ static void safeStripShow() {
   if (elapsed < MIN_UPDATE_INTERVAL_US) {
     delayMicroseconds(MIN_UPDATE_INTERVAL_US - elapsed);
   }
+  
+  // Critical section removed due to boot loop issues with PSRAM/GPIO12
+  // portENTER_CRITICAL(&ledMux);
   strip.show();
+  // portEXIT_CRITICAL(&ledMux);
+  
   lastStripShowMicros = micros();
+}
+
+static volatile bool ledBarUpdateRequested = false;
+
+void requestLedBarUpdate() {
+    ledBarUpdateRequested = true;
+}
+
+void ledBarLoop() {
+    if (ledBarUpdateRequested) {
+        ledBarUpdateRequested = false;
+        
+        // Re-apply current state based on motor state
+        // Note: motorState and currentMotorStep are externs available via motor.h
+        if (motorState == standby) {
+            setBarStandby();
+        } else {
+            setBarSpeed(currentMotorStep);
+        }
+    }
 }
 
 // Helper function to safely get LED strip boundaries
@@ -179,7 +207,7 @@ void ledBarSetup(){
 }
 
 
-void setBar(int stripNumber, int numLEDsOn, uint32_t colorOn, int brightnessOn, uint32_t colorOff, int brightnessOff) {
+void setBar(int stripNumber, int numLEDsOn, uint32_t colorOn, int brightnessOn, uint32_t colorOff, int brightnessOff, bool immediateShow) {
   // Prevent concurrent updates
   if (!tryLockLedBar()) {
     log("WARNING: LED update already in progress, skipping");
@@ -230,11 +258,13 @@ void setBar(int stripNumber, int numLEDsOn, uint32_t colorOn, int brightnessOn, 
     safeSetPixelColor(i, strip.Color(redOff * correctedBrightnessOff / 100, greenOff * correctedBrightnessOff / 100, blueOff * correctedBrightnessOff / 100));
   }
 
-  safeStripShow();  // Update LED strips
+  if (immediateShow) {
+    safeStripShow();  // Update LED strips
+  }
   unlockLedBar();
 }
 
-void setBarStandby() {
+void setBarStandby(bool immediateShow) {
     // Reset cache when entering special mode (only for Strip 1)
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
@@ -248,26 +278,26 @@ void setBarStandby() {
     if (ledBarNum == 0) ledBarNum = 10;  // Default LED bar length
     if (brightness == 0) brightness = 3; // Default brightness
     
-    setBar(1, ledBarNum, 0xe38f09, brightness, 0x000000, 0);
+    setBar(1, ledBarNum, 0xe38f09, brightness, 0x000000, 0, immediateShow);
 }
 
-void setBarSpeed(int num) {
+void setBarSpeed(int num, bool immediateShow) {
     // Only update if speed or motor state has changed
     if (num != lastDisplayedSpeed || motorState != lastDisplayedMotorState) {
         lastDisplayedSpeed = num;
         lastDisplayedMotorState = motorState;
         
         if (motorState == cruise) {
-            setBarSpeedCruise(num);
+            setBarSpeedCruise(num, immediateShow);
         } else {
-            setBar(1, num, 0xcb1bf2, getLedBarBrightness(), 0x000000, 0);
+            setBar(1, num, 0xcb1bf2, getLedBarBrightness(), 0x000000, 0, immediateShow);
         }
     }
 }
 
-void setBarSpeedCruise(int num) {
+void setBarSpeedCruise(int num, bool immediateShow) {
     if (num <= 0) {
-        setBar(1, 0, 0x000000, 0, 0x000000, 0);
+        setBar(1, 0, 0x000000, 0, 0x000000, 0, immediateShow);
         return;
     }
     
@@ -307,20 +337,22 @@ void setBarSpeedCruise(int num) {
         safeSetPixelColor(lastLEDIndex, strip.Color(redValue, 0, 0));
     }
     
-    safeStripShow();
+    if (immediateShow) {
+        safeStripShow();
+    }
     unlockLedBar();
 }
 
-void setBarBattery(int num) {
+void setBarBattery(int num, bool immediateShow) {
   // Only update if battery level has changed
   if (num != lastDisplayedBattery) {
     lastDisplayedBattery = num;
     int calc = getLedBarNum() - num;
-    setBar(2, calc, 0xe30b0b, getLedBarBrightnessSecond(), 0x0a9e08, getLedBarBrightness());
+    setBar(2, calc, 0xe30b0b, getLedBarBrightnessSecond(), 0x0a9e08, getLedBarBrightness(), immediateShow);
   }
 }
 
-void setBarLeak() {
+void setBarLeak(bool immediateShow) {
     // Reset cache when entering special mode
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
@@ -329,25 +361,25 @@ void setBarLeak() {
     int backLeakState = digitalRead(PIN_LEAK_BACK);
 
     if (backLeakState == LOW && frontLeakState == LOW) {
-      setBar(1, getLedBarNum(), 0x0000FF, getLedBarBrightness(), 0x0000FF, 0);
+      setBar(1, getLedBarNum(), 0x0000FF, getLedBarBrightness(), 0x0000FF, 0, immediateShow);
     } else if (backLeakState == LOW) {
-      setBar(1, getLedBarNum()/2, 0x0000FF, getLedBarBrightness(), 0x0000FF, 0);
+      setBar(1, getLedBarNum()/2, 0x0000FF, getLedBarBrightness(), 0x0000FF, 0, immediateShow);
     } else if(frontLeakState == LOW) {
-      setBar(1, getLedBarNum()/2, 0x0000FF, 0, 0x0000FF, getLedBarBrightness());
+      setBar(1, getLedBarNum()/2, 0x0000FF, 0, 0x0000FF, getLedBarBrightness(), immediateShow);
     }
 }
 
-void setBarPowerBank(bool status) {
+void setBarPowerBank(bool status, bool immediateShow) {
   int numLeds = getLedBarNum() - 1;
   if (status){
-      setBar(1, numLeds, 0x000000, 0, 0x036ffc, getLedBarBrightness());
+      setBar(1, numLeds, 0x000000, 0, 0x036ffc, getLedBarBrightness(), immediateShow);
   }
   else {
-      setBar(1, numLeds, 0x000000, 0, 0xff0000, getLedBarBrightness());
+      setBar(1, numLeds, 0x000000, 0, 0xff0000, getLedBarBrightness(), immediateShow);
   }  
 }
 
-void setBarLED(int num) {
+void setBarLED(int num, bool immediateShow) {
     int ledBarNum = getLedBarNum();
     if (ledBarNum == 0) ledBarNum = 10; // Fallback
     
@@ -358,15 +390,15 @@ void setBarLED(int num) {
     
     // Display: OFF LEDs on left (black), ON LEDs on right (white)
     // This makes the brightness build up from right to left
-    setBar(1, numOff, 0x000000, 0, 0xFFFFFF, getLedBarBrightness());
+    setBar(1, numOff, 0x000000, 0, 0xFFFFFF, getLedBarBrightness(), immediateShow);
 }
 
-void setBarFlasher(bool status) {
+void setBarFlasher(bool status, bool immediateShow) {
   if (status) {
     // Reset cache when entering special mode
     lastDisplayedSpeed = -1;
     lastDisplayedMotorState = -1;
-    setBar(1, getLedBarNum(), 0xFFFFFF, getLedBarBrightness(), 0x000000, 0); // All LEDs white
+    setBar(1, getLedBarNum(), 0xFFFFFF, getLedBarBrightness(), 0x000000, 0, immediateShow); // All LEDs white
   } else {
     // Reset cache when leaving special mode to force refresh
     lastDisplayedSpeed = -1;

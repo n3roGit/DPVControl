@@ -130,7 +130,7 @@ void checkForLeak() {
   }
   
   // Set LED bar if any leak detected
-  if (leakSensorFront || leakSensorBack) {
+  if ((leakSensorFront || leakSensorBack) && !isLampSequenceActive()) {
     setBarLeak();
   }
   

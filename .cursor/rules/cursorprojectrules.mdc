@@ -108,3 +108,9 @@ Continuous improvement of these rules
 - If, during work on this project, you learn something that should be enforced systematically
   (for example, a new invariant, a problematic pattern, or a specific test requirement),
   propose an update to this rules file in the chat so the user can decide whether to adopt it.
+
+
+Hardware Concurrency & LED Rules
+- **Single-Core LED Updates:** ALL NeoPixel/WS2812B LED updates (e.g., `strip.show()`, `setBar`) MUST be executed exclusively in the main `loop()` (Core 1). NEVER call LED hardware functions from background FreeRTOS tasks (Core 0) to prevent RMT driver conflicts and "color mush."
+- **State-Based Decoupling:** Background tasks (e.g., VESC communication) must ONLY update global state variables (e.g., `batteryLevel`). The visualization of this state must happen separately in the main loop.
+- **Color Data Types:** Always use `uint32_t` (e.g., `0xFF0000`) for color values instead of `String` (e.g., `"#FF0000"`) to prevent heap
