@@ -42,9 +42,10 @@ Testing and automation rules
 - When any file under src/ or test/ is modified:
   - Run at least: `python -m platformio test -e native`.
   - For bigger or cross-cutting changes, prefer running the full test matrix via `run_all_tests.ps1` (present in the repo root).
+  - When a shell/terminal is available in this workspace, execute these commands yourself rather than only suggesting them.
   - If tests fail, analyse and fix the problem before making further changes.
   - Do not propose a commit until all tests pass again.
-- Never ask the user whether tests should be run; just assume that tests must be executed.
+- Never ask the user whether tests should be run; always assume that tests must be executed.
 - When you fix a bug:
   - Check whether a test already exists that covers this bug.
   - If no such test exists, add a new test that reproduces the bug and verifies the fix.
@@ -102,6 +103,8 @@ Git and commit message rules
   - Be written in imperative mood (e.g. "Add API test for /api/status error handling").
   - Describe both code and test changes (if tests were added or updated).
   - Mention "API" in the subject if an API-visible behaviour changed.
+- Never run `git commit`, `git push`, `git pull`, or modify Git configuration/branches from tools, tasks, or scripts triggered by these rules.
+- Only propose commit messages in the chat; all Git operations are performed manually by the user.
 - Do not bundle unrelated changes into a single commit.
 
 Continuous improvement of these rules
@@ -109,8 +112,12 @@ Continuous improvement of these rules
   (for example, a new invariant, a problematic pattern, or a specific test requirement),
   propose an update to this rules file in the chat so the user can decide whether to adopt it.
 
-
 Hardware Concurrency & LED Rules
-- **Single-Core LED Updates:** ALL NeoPixel/WS2812B LED updates (e.g., `strip.show()`, `setBar`) MUST be executed exclusively in the main `loop()` (Core 1). NEVER call LED hardware functions from background FreeRTOS tasks (Core 0) to prevent RMT driver conflicts and "color mush."
-- **State-Based Decoupling:** Background tasks (e.g., VESC communication) must ONLY update global state variables (e.g., `batteryLevel`). The visualization of this state must happen separately in the main loop.
-- **Color Data Types:** Always use `uint32_t` (e.g., `0xFF0000`) for color values instead of `String` (e.g., `"#FF0000"`) to prevent heap
+- Single-Core LED Updates:
+  - ALL NeoPixel/WS2812B LED updates (e.g., `strip.show()`, `setBar`) MUST be executed exclusively in the main `loop()` (Core 1).
+  - NEVER call LED hardware functions from background FreeRTOS tasks (Core 0) to prevent RMT driver conflicts and corrupted LED data ("color mush").
+- State-Based Decoupling:
+  - Background tasks (e.g., VESC communication) must ONLY update global state variables (e.g., `batteryLevel`).
+  - The visualization of this state must happen separately in the main loop based on these variables.
+- Color Data Types:
+  - Always use `uint32_t` (e.g., `0xFF0000`) for color values instead of `String` (e.g., `"#FF0000"`) to prevent heap fragmentation, reduce allocations, and avoid unnecessary string-to-color conversions.
