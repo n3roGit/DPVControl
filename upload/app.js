@@ -774,6 +774,13 @@ function updateChartData() {
         return Math.max(0, timeValue); // Ensure no negative times
     });
     
+    if (xData.length === 0) {
+        console.log('No data points to display');
+        charts.combinedChart.data.datasets.forEach(ds => ds.data = []);
+        charts.combinedChart.update();
+        return;
+    }
+    
     console.log(`Chart time range: ${Math.min(...xData).toFixed(1)}s to ${Math.max(...xData).toFixed(1)}s (${(Math.max(...xData)/60).toFixed(1)} minutes)`);
     console.log(`Time axis values (first 10):`, xData.slice(0, 10).map(t => t.toFixed(1)));
     console.log(`Time axis values (last 10):`, xData.slice(-10).map(t => t.toFixed(1)));
@@ -955,8 +962,11 @@ function enableRemoteControlInterface() {
 function loadDataWithLiveSession() { 
     loadData(); 
     
+    // Find current session object
+    const currentSessionObj = availableSessions.find(s => s.filename === selectedSession);
+    
     // If we're viewing the current live session, refresh with truly live data from RAM buffer
-    if (selectedSession && selectedSession.includes('current')) {
+    if (currentSessionObj && currentSessionObj.isCurrent) {
         console.log('Refreshing live session with current RAM data');
         
         // Use /api/data endpoint to get current RAM buffer data instead of session file
