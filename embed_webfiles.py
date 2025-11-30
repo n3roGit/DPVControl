@@ -175,8 +175,12 @@ const char embedded_{var_name}_checksum[] = "{content_hash}";
             if isinstance(content, bytes):
                 content = content.decode('utf-8', errors='replace')
             
+            # Escape any raw literal delimiters in content
+            # Replace )" with )" + " to break potential delimiter sequences
+            escaped_content = content.replace(')"', ')" "')
+            
             header_content += f'''// Text content stored in PROGMEM
-const char embedded_{var_name}_data[] PROGMEM = R"rawliteral({content})rawliteral";
+const char embedded_{var_name}_data[] PROGMEM = R"rawliteral({escaped_content})rawliteral";
 
 const size_t embedded_{var_name}_size = {len(content)};
 const char embedded_{var_name}_content_type[] = "{content_type}";
@@ -272,14 +276,18 @@ const EmbeddedFile* findEmbeddedFile(const char* path) {
 
 def main():
     """Main function to embed all files from upload directory."""
+    # Force unbuffered output for better visibility
+    sys.stdout.reconfigure(line_buffering=True) if hasattr(sys.stdout, 'reconfigure') else None
+    sys.stderr.reconfigure(line_buffering=True) if hasattr(sys.stderr, 'reconfigure') else None
+    
     # Get paths
     workspace_root = os.path.dirname(os.path.abspath(__file__))
     upload_dir = os.path.join(workspace_root, 'upload')
     generated_dir = os.path.join(workspace_root, 'src', 'generated')
     
-    print("Embedding Web Files for DPV Control")
-    print(f"Source directory: {upload_dir}")
-    print(f"Output directory: {generated_dir}")
+    print("Embedding Web Files for DPV Control", flush=True)
+    print(f"Source directory: {upload_dir}", flush=True)
+    print(f"Output directory: {generated_dir}", flush=True)
     
     # Check if upload directory exists
     if not os.path.exists(upload_dir):
@@ -292,10 +300,14 @@ def main():
     # Create generated directory
     os.makedirs(generated_dir, exist_ok=True)
     
-    # Clean old generated files
-    for old_file in os.listdir(generated_dir):
-        if old_file.startswith('embedded_') and old_file.endswith('.h'):
-            os.remove(os.path.join(generated_dir, old_file))
+    # Clean old generated files (including registry files)
+    try:
+        for old_file in os.listdir(generated_dir):
+            if old_file.startswith('embedded_') and (old_file.endswith('.h') or old_file.endswith('.cpp')):
+                os.remove(os.path.join(generated_dir, old_file))
+    except OSError:
+        # Directory might be empty or not accessible, ignore
+        pass
     
     embedded_files = []
     total_size = 0
@@ -306,7 +318,7 @@ def main():
             file_path = os.path.join(root, filename)
             relative_path = os.path.relpath(file_path, upload_dir)
             
-            print(f"📄 Processing: {relative_path}")
+            print(f"📄 Processing: {relative_path}", flush=True)
             
             # Determine if file is binary
             is_binary = False
@@ -339,17 +351,29 @@ def main():
                 header_filename = f'embedded_{var_name}.h'
                 header_path = os.path.join(generated_dir, header_filename)
                 
-                with open(header_path, 'w', encoding='utf-8') as f:
-                    f.write(header_content)
-                
-                embedded_files.append((var_name, will_use_binary))
-                file_size = len(content) if isinstance(content, (bytes, str)) else 0
-                total_size += file_size
-                
-                print(f"   ✓ Generated: {header_filename} ({file_size} bytes)")
+                try:
+                    with open(header_path, 'w', encoding='utf-8') as f:
+                        f.write(header_content)
+                    
+                    # Verify file was created successfully
+                    if not os.path.exists(header_path):
+                        raise IOError(f"Failed to create file: {header_path}")
+                    
+                    embedded_files.append((var_name, will_use_binary))
+                    file_size = len(content) if isinstance(content, (bytes, str)) else 0
+                    total_size += file_size
+                    
+                    print(f"   ✓ Generated: {header_filename} ({file_size} bytes)", flush=True)
+                except Exception as write_error:
+                    print(f"   ❌ Error writing {header_filename}: {write_error}", flush=True)
+                    import traceback
+                    traceback.print_exc()
+                    continue
                 
             except Exception as e:
-                print(f"   ❌ Error processing {filename}: {e}")
+                print(f"   ❌ Error processing {filename}: {e}", flush=True)
+                import traceback
+                traceback.print_exc()
                 continue
     
     if embedded_files:
@@ -364,16 +388,16 @@ def main():
         with open(os.path.join(generated_dir, 'embedded_files_registry.cpp'), 'w', encoding='utf-8') as f:
             f.write(registry_cpp)
         
-        print(f"\n✅ Successfully embedded {len(embedded_files)} files")
-        print(f"📊 Total embedded size: {total_size:,} bytes ({total_size/1024:.1f} KB)")
-        print(f"📝 Generated files in: {generated_dir}")
-        print("   - embedded_files_registry.h")
-        print("   - embedded_files_registry.cpp")
+        print(f"\n✅ Successfully embedded {len(embedded_files)} files", flush=True)
+        print(f"📊 Total embedded size: {total_size:,} bytes ({total_size/1024:.1f} KB)", flush=True)
+        print(f"📝 Generated files in: {generated_dir}", flush=True)
+        print("   - embedded_files_registry.h", flush=True)
+        print("   - embedded_files_registry.cpp", flush=True)
         for var_name, is_binary in embedded_files:
             embed_type = "binary" if is_binary else "text"
-            print(f"   - embedded_{var_name}.h ({embed_type})")
+            print(f"   - embedded_{var_name}.h ({embed_type})", flush=True)
     else:
-        print("⚠️  No files found to embed")
+        print("⚠️  No files found to embed", flush=True)
     
     return 0
 

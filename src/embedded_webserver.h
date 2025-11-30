@@ -18,8 +18,8 @@ struct EmbeddedFile {
     const char* content_type;
     const uint8_t* data;
     size_t size;
+    const char* checksum;
     bool is_binary;
-    uint32_t checksum;
 };
 
 // Fallback function that always returns nullptr

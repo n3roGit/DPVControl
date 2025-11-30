@@ -28,17 +28,22 @@ def pre_build_embed_webfiles(source, target, env):
             embed_env["LANG"] = "C.UTF-8"
             
             # Run the embed script with explicit UTF-8 encoding and environment
-            result = subprocess.run([sys.executable, embed_script], 
+            # Use unbuffered output for better visibility
+            embed_env["PYTHONUNBUFFERED"] = "1"
+            result = subprocess.run([sys.executable, "-u", embed_script], 
                                   capture_output=True, text=True, cwd=project_dir,
                                   encoding='utf-8', errors='replace', env=embed_env)
             
-            if result.returncode == 0:
-                # Print the successful output
+            # Always print output, even if successful
+            if result.stdout:
                 print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
+            
+            if result.returncode == 0:
                 print("✅ Web files embedded successfully!")
             else:
-                print("❌ Error embedding web files:")
-                print(result.stderr)
+                print(f"❌ Error embedding web files (exit code: {result.returncode})")
                 print("⚠️  Build will continue but web files may not be available")
                 
         except Exception as e:
