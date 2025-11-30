@@ -97,6 +97,20 @@ Build and tooling rules
   - `lint-check.ps1` and `check.cppcheck`: keep code compatible with the configured static analysis.
   - If your changes obviously break formatting or linting rules, adjust the code accordingly.
 
+Web files embedding rules
+- The webserver serves HTML, CSS, JavaScript, and images embedded directly in the firmware (not from LittleFS).
+- All web files are stored in the `upload/` directory and converted to C++ headers by `embed_webfiles.py`.
+- **IMPORTANT:** Whenever you modify any file in the `upload/` directory (HTML, CSS, JS, images, etc.):
+  - You MUST run `python embed_webfiles.py` to regenerate the embedded files in `src/generated/`.
+  - The generated files in `src/generated/` are auto-generated and should NOT be edited manually.
+  - After running the embed script, perform a full rebuild with PlatformIO.
+- The embed script uses binary-safe encoding (hex arrays) to prevent any string escaping issues.
+- The `extra_script.py` runs the embed script automatically during PlatformIO builds, but:
+  - It only runs on the first build after a clean.
+  - If you change web files and click "Build" without "Clean", the script may not run.
+  - **Best practice:** Always run `python embed_webfiles.py` manually after web file changes.
+- Never modify files in `src/generated/` directly - they will be overwritten.
+
 Git and commit message rules
 - For every logical change you perform, propose a single, clear English commit message in the chat.
 - Commit messages should:
