@@ -143,6 +143,14 @@
                         <button class="button" onclick="applyDataFilter('all')" style="background-color: #FF9800;">Show All</button>
                         <button class="button" onclick="applyDataFilter('none')" style="background-color: #607D8B;">Hide All</button>
                         <div style="display: flex; align-items: center; gap: 8px; margin-left: 20px;">
+                            <label for="autoZoomToggle" style="color: #b0b0b0; font-size: 14px;">Live Auto-Zoom:</label>
+                            <label class="switch">
+                                <input type="checkbox" id="autoZoomToggle" checked onchange="toggleAutoZoom()">
+                                <span class="slider"></span>
+                            </label>
+                            <span id="autoZoomLabel" style="color: #4fc3f7; font-size: 12px;">ON</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <label for="tooltipModeToggle" style="color: #b0b0b0; font-size: 14px;">Tooltip Mode:</label>
                             <label class="switch">
                                 <input type="checkbox" id="tooltipModeToggle" onchange="toggleTooltipMode()">

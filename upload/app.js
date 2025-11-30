@@ -9,6 +9,7 @@ let selectedSession = null; // No "all sessions" option
 let currentTimeRange = 'recent'; // Default time range
 const FIXED_TIME_RANGE_MINUTES = 5; // Fixed 5-minute window
 const FIXED_UPDATE_INTERVAL_MS = 10000; // Fixed 10-second updates
+let autoZoomEnabled = true; // Auto-zoom to recent data for live sessions
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
@@ -889,12 +890,40 @@ function updateChartData() {
     const minTime = Math.min(...xData);
     const maxTime = Math.max(...xData);
     
-    console.log(`Set X-axis range to ${minTime.toFixed(1)}s - ${maxTime.toFixed(1)}s`);
+    // For live data: intelligently adjust view window
+    let viewMinTime = minTime;
+    let viewMaxTime = maxTime;
+    
+    if (sessionMetadata && sessionMetadata.isLiveData && autoZoomEnabled) {
+        // For live sessions with auto-zoom enabled: zoom to recent data
+        const totalDuration = maxTime - minTime;
+        
+        if (totalDuration > 600) {
+            // If session is longer than 10 minutes, show last 10 minutes
+            viewMinTime = maxTime - 600;
+            viewMaxTime = maxTime + 30; // Add 30s padding for incoming data
+        } else if (totalDuration > 60) {
+            // If session is 1-10 minutes, show all data with some padding
+            viewMinTime = minTime;
+            viewMaxTime = maxTime + Math.max(30, totalDuration * 0.1); // 10% padding or 30s
+        } else {
+            // For very short sessions (< 1 minute), show all with generous padding
+            viewMinTime = Math.max(0, minTime - 10);
+            viewMaxTime = maxTime + 60; // 1 minute forward padding
+        }
+        
+        console.log(`Live data auto-zoom: showing ${viewMinTime.toFixed(1)}s - ${viewMaxTime.toFixed(1)}s (total span: ${totalDuration.toFixed(1)}s)`);
+    } else {
+        // For historical sessions or when auto-zoom is disabled: show full range
+        console.log(`Full range view: showing ${minTime.toFixed(1)}s - ${maxTime.toFixed(1)}s`);
+    }
+    
+    console.log(`Set X-axis range to ${viewMinTime.toFixed(1)}s - ${viewMaxTime.toFixed(1)}s`);
     console.log(`X-axis data: min=${minTime}, max=${maxTime}, first 5 values:`, xData.slice(0, 5));
     
     // Update X-axis configuration
-    charts.combinedChart.options.scales.x.min = minTime;
-    charts.combinedChart.options.scales.x.max = maxTime;
+    charts.combinedChart.options.scales.x.min = viewMinTime;
+    charts.combinedChart.options.scales.x.max = viewMaxTime;
     
     // Force chart to recalculate scales by calling update with scale recalculation
     charts.combinedChart.update('resize');
@@ -1852,6 +1881,27 @@ function toggleTooltipMode() {
     
     // Update chart configuration
     charts.combinedChart.update('none');
+}
+
+// Toggle auto-zoom for live data
+function toggleAutoZoom() {
+    const toggle = document.getElementById('autoZoomToggle');
+    const label = document.getElementById('autoZoomLabel');
+    
+    autoZoomEnabled = toggle.checked;
+    
+    if (autoZoomEnabled) {
+        label.textContent = 'ON';
+        label.style.color = '#4fc3f7';
+        console.log('Auto-zoom enabled: live data will zoom to recent timeframe');
+    } else {
+        label.textContent = 'OFF';
+        label.style.color = '#b0b0b0';
+        console.log('Auto-zoom disabled: showing full data range');
+    }
+    
+    // Immediately update chart with new zoom setting
+    updateChartData();
 }
 
 // Reset front sensor persistent leak alarm
