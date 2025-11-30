@@ -713,10 +713,85 @@ function loadSessionList() {
         });
 }
 
+// Refresh session list without changing the current selection (unless it's no longer valid)
+function refreshSessionListQuietly() {
+    fetch('/api/sessions')
+        .then(response => response.json())
+        .then(sessions => {
+            availableSessions = sessions;
+            const select = document.getElementById('sessionSelect');
+            
+            // Remember current selection
+            const currentSelection = selectedSession;
+            
+            // Clear and rebuild options
+            select.innerHTML = '';
+            
+            let selectionStillValid = false;
+            sessions.forEach(session => {
+                const option = document.createElement('option');
+                option.value = session.filename;
+                option.text = session.displayName;
+                
+                // Keep the user's selection if it still exists
+                if (session.filename === currentSelection) {
+                    option.selected = true;
+                    selectionStillValid = true;
+                }
+                
+                select.appendChild(option);
+            });
+            
+            // If the previously selected session no longer exists, select the current one
+            if (!selectionStillValid) {
+                const currentSession = sessions.find(s => s.isCurrent);
+                if (currentSession) {
+                    selectedSession = currentSession.filename;
+                    select.value = currentSession.filename;
+                    // Reload chart data with new session
+                    loadChartData();
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing session list:', error);
+        });
+}
+
 function loadChartData() {
     if (!selectedSession) return;
     
     console.log('Loading chart data for session:', selectedSession);
+    
+    // Check if this is the current live session
+    const currentSessionObj = availableSessions.find(s => s.filename === selectedSession);
+    
+    // If viewing current live session, load RAM data directly (file might not exist yet)
+    if (currentSessionObj && currentSessionObj.isCurrent) {
+        console.log('Current session detected, loading live RAM data directly');
+        fetch('/api/data?count=500')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Live RAM data loaded:', data.length, 'points');
+                
+                // Create minimal metadata for live data
+                sessionMetadata = {
+                    isLiveData: true,
+                    totalDatapoints: data.length,
+                    chartDatapoints: data.length
+                };
+                allDataPoints = data;
+                
+                // Update chart with live data
+                updateChartData();
+            })
+            .catch(error => {
+                console.error('Error loading live RAM data:', error);
+            });
+        return;
+    }
+    
+    // For historical sessions, load from file
     fetch(`/api/sessions/${selectedSession}/data`)
         .then(response => response.json())
         .then(data => {
@@ -961,6 +1036,9 @@ function enableRemoteControlInterface() {
 
 function loadDataWithLiveSession() { 
     loadData(); 
+    
+    // Refresh session list to update "(Current)" marker and detect new sessions
+    refreshSessionListQuietly();
     
     // Find current session object
     const currentSessionObj = availableSessions.find(s => s.filename === selectedSession);

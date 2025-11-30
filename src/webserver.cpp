@@ -78,6 +78,26 @@ String generateSessionListJson() {
         currentSession = currentSession.substring(9); // Remove "/datalog/"
     }
     
+    // Check if current session exists in the list
+    bool currentSessionInList = false;
+    for (int i = 0; i < count; i++) {
+        if (sessions[i] == currentSession) {
+            currentSessionInList = true;
+            break;
+        }
+    }
+    
+    // If current session is not in the list (file not yet created), add it
+    if (!currentSessionInList && currentSession.length() > 0) {
+        // Shift all sessions down by one
+        for (int i = count; i > 0; i--) {
+            sessions[i] = sessions[i - 1];
+        }
+        sessions[0] = currentSession;
+        count++;
+        log("Added current session to list (file not yet created on disk)");
+    }
+    
     // Sort sessions with current session first, then newest first
     // First, sort by filename (newest first for 4-digit numbering)
     for (int i = 0; i < count - 1; i++) {
@@ -1619,6 +1639,11 @@ void handleClient(WiFiClient client) {
                 log("Version read from LittleFS");
             }
         }
+        
+        // Remove any control characters (newlines, carriage returns, etc.) from version string
+        version.replace("\r", "");
+        version.replace("\n", "");
+        version.replace("\t", "");
         
         String jsonVersion = "{\"version\":\"" + version + "\"}";
         sendHttpResponse(client, 200, "application/json", jsonVersion.c_str());
