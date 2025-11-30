@@ -1249,6 +1249,8 @@ function exportAllSessionsAsZip() {
 // Time slider functionality removed - using native Chart.js zoom instead
 
 // Remote Control Functions
+let motorIsRunning = false; // Track motor state
+
 function updateMotorSpeed(value) {
     // Show current value in UI
     document.getElementById('motorSpeedValue').textContent = value;
@@ -1258,22 +1260,35 @@ function updateMotorSpeed(value) {
 }
 
 function setMotorSpeed(value) {
-    // Send value to API
+    // Only send speed changes if motor is running
+    if (!motorIsRunning) {
+        return; // Ignore slider changes when motor is off
+    }
+    
+    const speed = parseInt(value);
+    
+    // If speed is set to 0 while running, stop the motor
+    if (speed === 0) {
+        toggleMotor(); // Stop the motor
+        return;
+    }
+    
+    // Send speed update to API (motor stays enabled)
     fetch('/api/motor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            enabled: value > 0,
-            speed: parseInt(value)
+            enabled: true,
+            speed: speed
         })
     }).then(() => {
         if (document.getElementById('remoteLastCommand')) {
-            document.getElementById('remoteLastCommand').textContent = 'Set speed to ' + value + '%';
+            document.getElementById('remoteLastCommand').textContent = 'Set speed to ' + speed + '%';
         }
         
         // Update motor status
         if (document.getElementById('remoteMotorStatus')) {
-            document.getElementById('remoteMotorStatus').textContent = value > 0 ? 'RUNNING' : 'STOPPED';
+            document.getElementById('remoteMotorStatus').textContent = 'RUNNING';
         }
     }).catch(error => {
         console.error('Error updating motor speed:', error);
@@ -1292,10 +1307,11 @@ function toggleMotor() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ enabled: false, speed: 0 })
         }).then(() => {
+            motorIsRunning = false;
             button.textContent = 'START MOTOR';
             button.style.backgroundColor = '#4caf50';
             
-            // Update UI
+            // Update UI - set slider to 0
             if (document.getElementById('motorSpeedSlider')) {
                 document.getElementById('motorSpeedSlider').value = 0;
             }
@@ -1316,14 +1332,27 @@ function toggleMotor() {
         });
     } else {
         // Start motor
-        const speed = document.getElementById('motorSpeedSlider') ? 
+        let speed = document.getElementById('motorSpeedSlider') ? 
                      parseInt(document.getElementById('motorSpeedSlider').value) : 50;
+        
+        // If slider is at 0, set to 10% as default start speed
+        if (speed === 0) {
+            speed = 10;
+            if (document.getElementById('motorSpeedSlider')) {
+                document.getElementById('motorSpeedSlider').value = speed;
+            }
+            if (document.getElementById('motorSpeedValue')) {
+                document.getElementById('motorSpeedValue').textContent = speed;
+            }
+        }
+        // Otherwise use the slider value as-is
         
         fetch('/api/motor', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ enabled: true, speed: speed })
         }).then(() => {
+            motorIsRunning = true;
             button.textContent = 'STOP MOTOR';
             button.style.backgroundColor = '#f44336';
             
@@ -1350,6 +1379,8 @@ function emergencyStop() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ enabled: false, speed: 0 })
     }).then(() => {
+        motorIsRunning = false; // Update state
+        
         // Update UI
         const button = document.getElementById('motorToggle');
         if (button) {
