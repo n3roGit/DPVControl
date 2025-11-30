@@ -22,7 +22,7 @@ bool serveEmbeddedFile(WiFiClient client, const char* path) {
     }
     
     // Log the file being served
-    String logMsg = "Serving embedded file: " + String(file->filename) + " (" + String(file->size) + " bytes, binary=" + String(file->is_binary) + ", checksum=" + String(file->checksum) + ")";
+    String logMsg = "Serving embedded file: " + String(file->filename) + " (" + String(file->size) + " bytes, checksum=" + String(file->checksum) + ")";
     log(logMsg.c_str());
     
     // Send the response - always use PROGMEM for embedded files
