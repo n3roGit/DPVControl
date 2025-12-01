@@ -168,14 +168,16 @@ void performActions(){
   // Handle reverse mode toggle and battery info / other 4-click actions
   bool reverseHandled = false;
   // Reverse mode: both switches perform a 4-click within tolerance
-  if (leftButton.clicks == 4 && lastRightClick.clicks == 4 &&
-      millis() - lastRightClick.time <= BOTH_HAND_CLICK_TOLERANCE) {
-    toggleReverseMode();
-    reverseHandled = true;
-  } else if (rightButton.clicks == 4 && lastLeftClick.clicks == 4 &&
-             millis() - lastLeftClick.time <= BOTH_HAND_CLICK_TOLERANCE) {
-    toggleReverseMode();
-    reverseHandled = true;
+  if (motorState != standby) {
+    if (leftButton.clicks == 4 && lastRightClick.clicks == 4 &&
+        millis() - lastRightClick.time <= BOTH_HAND_CLICK_TOLERANCE) {
+      toggleReverseMode();
+      reverseHandled = true;
+    } else if (rightButton.clicks == 4 && lastLeftClick.clicks == 4 &&
+               millis() - lastLeftClick.time <= BOTH_HAND_CLICK_TOLERANCE) {
+      toggleReverseMode();
+      reverseHandled = true;
+    }
   }
 
   if (rightButton.clicks == 3) {

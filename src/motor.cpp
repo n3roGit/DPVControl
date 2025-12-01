@@ -5,6 +5,7 @@
 #include "ledBar.h"
 #include "button.h"
 #include "ledLamp.h"
+#include "battery.h"
 #include "settings.h"
 #include "vesc_task.h" // Include VESC task interface
 
@@ -254,14 +255,18 @@ void leaveCruiseMode(){
 
 void enterTurboMode(){
   log("enter turbo mode", 0);
-  setBarSpeed(getSpeedSteps());
   motorState = turbo;
+  forceRefreshLedBar();
+  setBarSpeed(getSpeedSteps());
+  updateBatteryDisplay();
 }
 
 void leaveTurboMode(){
   log("leaving turbo mode", 0);
-  setBarSpeed(currentMotorStep);
   motorState = off;
+  forceRefreshLedBar();
+  setBarSpeed(currentMotorStep);
+  updateBatteryDisplay();
   lastActionTime = micros();//Prevent standby right after leaving turbo
 }
 
