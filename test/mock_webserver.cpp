@@ -25,10 +25,36 @@ void sendHttpResponse(const char* response) {
 // Dummy API handler implementations for native tests
 extern "C" {
     void handleApiStatus() {
-        mockResponse = "{\"status\":\"online\",\"uptime\":10," + 
-                       String("\"totalUptime\":") + String("1010") + 
-                       ",\"motor\":false,\"lamp\":false,\"beeper\":true,\"erpm\":0," +
-                       "\"leftButton\":false,\"rightButton\":false}";
+        mockResponse =
+            "{"
+            "\"status\":\"online\","
+            "\"uptime\":10,"
+            "\"totalUptime\":1010,"
+            "\"dataPoints\":5,"
+            "\"motor\":false,"
+            "\"lamp\":false,"
+            "\"lampLevel\":0,"
+            "\"beeper\":true,"
+            "\"beeperEnabled\":true,"
+            "\"beeperActive\":false,"
+            "\"erpm\":0,"
+            "\"leftButton\":false,"
+            "\"rightButton\":false,"
+            "\"waterSensorFront\":false,"
+            "\"waterSensorBack\":false,"
+            "\"leakAlarmPersistent\":false,"
+            "\"leakAlarmFrontPersistent\":false,"
+            "\"leakAlarmBackPersistent\":false,"
+            "\"batteryVoltage\":48.2,"
+            "\"motorTemperature\":25.0,"
+            "\"mosfetTemperature\":30.0,"
+            "\"current\":0.0,"
+            "\"motorCurrent\":0.0,"
+            "\"dutyCycle\":0.0,"
+            "\"temperature\":22.5,"
+            "\"humidity\":50.0,"
+            "\"batteryLevel\":85"
+            "}";
     }
 
     void handleApiMotor() {
@@ -50,6 +76,30 @@ extern "C" {
 
     void handleApiVersion() {
         mockResponse = "{\"version\":\"test-1.0.0\"}";
+    }
+
+    void handleApiLeakAlarmResetAll() {
+        mockResponse =
+            "{"
+            "\"success\":true,"
+            "\"message\":\"All persistent leak alarms cleared\""
+            "}";
+    }
+
+    void handleApiLeakAlarmResetFront() {
+        mockResponse =
+            "{"
+            "\"success\":true,"
+            "\"message\":\"Front sensor leak alarm cleared\""
+            "}";
+    }
+
+    void handleApiLeakAlarmResetBack() {
+        mockResponse =
+            "{"
+            "\"success\":true,"
+            "\"message\":\"Back sensor leak alarm cleared\""
+            "}";
     }
 }
 

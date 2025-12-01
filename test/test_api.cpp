@@ -36,6 +36,14 @@ void test_api_status() {
   TEST_ASSERT_TRUE(doc["lamp"].is<bool>());
   TEST_ASSERT_TRUE(doc["beeper"].is<bool>());
 
+  // Extended status fields
+  TEST_ASSERT_TRUE(doc["beeperEnabled"].is<bool>());
+  TEST_ASSERT_TRUE(doc["beeperActive"].is<bool>());
+  TEST_ASSERT_TRUE(doc["batteryLevel"].is<int>());
+  TEST_ASSERT_TRUE(doc["leakAlarmPersistent"].is<bool>());
+  TEST_ASSERT_TRUE(doc["leakAlarmFrontPersistent"].is<bool>());
+  TEST_ASSERT_TRUE(doc["leakAlarmBackPersistent"].is<bool>());
+
   // Check new uptime fields
   TEST_ASSERT_TRUE_MESSAGE(doc.containsKey("uptime"), "Missing uptime field in status API");
   TEST_ASSERT_TRUE_MESSAGE(doc.containsKey("totalUptime"), "Missing totalUptime field in status API");
@@ -75,6 +83,36 @@ void test_api_version() {
   JsonDocument doc;
   deserializeJson(doc, mockResponse);
   TEST_ASSERT_TRUE(doc["version"].is<const char*>());
+}
+
+void test_api_leak_alarm_reset_all() {
+  handleApiLeakAlarmResetAll();
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, mockResponse);
+  TEST_ASSERT_FALSE(error);
+  TEST_ASSERT_TRUE(doc["success"].is<bool>());
+  TEST_ASSERT_TRUE(doc["success"]);
+  TEST_ASSERT_TRUE(doc["message"].is<const char*>());
+}
+
+void test_api_leak_alarm_reset_front() {
+  handleApiLeakAlarmResetFront();
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, mockResponse);
+  TEST_ASSERT_FALSE(error);
+  TEST_ASSERT_TRUE(doc["success"].is<bool>());
+  TEST_ASSERT_TRUE(doc["success"]);
+  TEST_ASSERT_TRUE(doc["message"].is<const char*>());
+}
+
+void test_api_leak_alarm_reset_back() {
+  handleApiLeakAlarmResetBack();
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, mockResponse);
+  TEST_ASSERT_FALSE(error);
+  TEST_ASSERT_TRUE(doc["success"].is<bool>());
+  TEST_ASSERT_TRUE(doc["success"]);
+  TEST_ASSERT_TRUE(doc["message"].is<const char*>());
 }
 
 void test_status_api_uptime_fields() {
@@ -157,6 +195,9 @@ int main(int argc, char** argv) {
   RUN_TEST(test_status_api_uptime_fields);
   RUN_TEST(test_status_api_all_required_fields);
   RUN_TEST(test_api_responses_are_valid_json);
+  RUN_TEST(test_api_leak_alarm_reset_all);
+  RUN_TEST(test_api_leak_alarm_reset_front);
+  RUN_TEST(test_api_leak_alarm_reset_back);
   UNITY_END();
   return 0;
 } 

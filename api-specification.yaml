@@ -123,10 +123,6 @@ paths:
                     type: number
                     description: Current duty cycle (0.0 to 1.0)
                     example: 0.75
-                  erpm:
-                    type: number
-                    description: Current motor speed in electrical RPM
-                    example: 12500
                   temperature:
                     type: number
                     description: Ambient temperature in Celsius from DHT sensor
@@ -135,6 +131,26 @@ paths:
                     type: number
                     description: Ambient humidity percentage from DHT sensor
                     example: 65.2
+                  beeperActive:
+                    type: boolean
+                    description: Whether the beeper is currently active (sounding)
+                    example: false
+                  batteryLevel:
+                    type: integer
+                    description: Estimated battery charge level in percent (0-100)
+                    example: 85
+                  leakAlarmPersistent:
+                    type: boolean
+                    description: Global persistent leak alarm flag (true if any leak alarm is stored)
+                    example: false
+                  leakAlarmFrontPersistent:
+                    type: boolean
+                    description: Persistent leak alarm state for the front sensor
+                    example: false
+                  leakAlarmBackPersistent:
+                    type: boolean
+                    description: Persistent leak alarm state for the back sensor
+                    example: false
               example:
                 status: "ok"
                 uptime: 3654000
@@ -156,9 +172,13 @@ paths:
                 current: 15.3
                 motorCurrent: 20.1
                 dutyCycle: 0.75
-                erpm: 12500
                 temperature: 22.5
                 humidity: 65.2
+                beeperActive: false
+                batteryLevel: 85
+                leakAlarmPersistent: false
+                leakAlarmFrontPersistent: false
+                leakAlarmBackPersistent: false
 
   /api/data:
     get:
@@ -642,6 +662,82 @@ paths:
                 success: true
                 deleted: 5
                 message: "Successfully deleted 5 session files"
+
+  /api/leak-alarm/reset:
+    post:
+      tags:
+        - Status
+      summary: Reset all persistent leak alarms
+      description: |
+        Clear all stored leak alarm flags (front and back sensors).
+        This is typically triggered from the web UI after the cause of a leak
+        has been fixed and the housing has been checked and dried.
+      responses:
+        '200':
+          description: Leak alarms successfully cleared
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        description: Human readable confirmation message
+              example:
+                success: true
+                message: "All persistent leak alarms cleared"
+
+  /api/leak-alarm/reset-front:
+    post:
+      tags:
+        - Status
+      summary: Reset front sensor persistent leak alarm
+      description: |
+        Clear only the persistent leak alarm flag for the front water sensor.
+        The global leak alarm flag will be updated according to remaining alarms.
+      responses:
+        '200':
+          description: Front leak alarm successfully cleared
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        description: Human readable confirmation message
+              example:
+                success: true
+                message: "Front sensor leak alarm cleared"
+
+  /api/leak-alarm/reset-back:
+    post:
+      tags:
+        - Status
+      summary: Reset back sensor persistent leak alarm
+      description: |
+        Clear only the persistent leak alarm flag for the back water sensor.
+        The global leak alarm flag will be updated according to remaining alarms.
+      responses:
+        '200':
+          description: Back leak alarm successfully cleared
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        description: Human readable confirmation message
+              example:
+                success: true
+                message: "Back sensor leak alarm cleared"
 
 components:
   schemas:

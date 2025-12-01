@@ -14,6 +14,9 @@ extern "C" {
     void handleApiBeeper();
     void handleApiSettings();
     void handleApiVersion();
+    void handleApiLeakAlarmResetAll();
+    void handleApiLeakAlarmResetFront();
+    void handleApiLeakAlarmResetBack();
 }
 
 // Mock session data generation functions for testing
