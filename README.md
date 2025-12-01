@@ -140,7 +140,7 @@ The DPV Control system provides a comprehensive REST API for system monitoring, 
 | 3 Clicks | 3 Clicks | PowerBank ON/OFF|
 | 3 Clicks |          | Short light flash |
 |          | 3 Clicks | Light Level 1, 2, 3, 4, OFF |
-| 4 Clicks | 4 Clicks | reverse drive mode |
+| 4 Clicks | 4 Clicks | toggle reverse drive mode (fixed low speed) |
 | 4 Clicks |          | beep Battery level |
 |          | 4 Clicks |  |
 

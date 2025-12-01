@@ -16,6 +16,7 @@
 MotorState motorState = standby;
 bool remoteControlActive = false; // Flag for remote control override
 const bool HAS_MOTOR = true;//Indicates that we have an actual motor plugged in.
+bool reverseModeActive = false;    // Reverse drive mode flag
 
 /*
 *  CONSTANTS
@@ -53,6 +54,24 @@ unsigned long lastStandbyBeepTime = 0;
 void motorSetup(){
   // VESC initialization is now handled in vescTask (vesc_task.cpp)
   log("Motor setup complete (VESC handled by task)");
+}
+
+void toggleReverseMode(){
+  reverseModeActive = !reverseModeActive;
+  if (reverseModeActive) {
+    log("Reverse mode enabled", 0);
+    beep("2"); // Long beep for reverse enabled
+  } else {
+    log("Reverse mode disabled", 0);
+    beep("1"); // Short beep for reverse disabled
+  }
+  // Force LED bar to refresh to show or hide reverse indication
+  forceRefreshLedBar();
+  setBarSpeed(currentMotorStep);
+}
+
+bool isReverseModeActive(){
+  return reverseModeActive;
 }
 
 void speedUp(){
@@ -140,6 +159,10 @@ void setSoftMotorSpeed() {
     currentMotorSpeed = max(currentMotorSpeed, targetMotorSpeed);
   }
   double effectiveSpeed = currentMotorSpeed * getMaxSpeedRpm();
+  // Apply direction based on reverse mode
+  if (reverseModeActive) {
+    effectiveSpeed = -effectiveSpeed;
+  }
   
   // Use the thread-safe function to set target RPM in the VESC task
   setVescTargetRpm(effectiveSpeed);
@@ -156,12 +179,17 @@ void controlMotor() {
   if (motorState == standby || motorState == off || motorState == jammed) {
     // Motor is off
     targetMotorSpeed = 0.0;
-  } else if (motorState == on || motorState == cruise) {
+  } else if (motorState == on || motorState == cruise || motorState == turbo) {
     float minSpeedPercent = getMinSpeedPercent();
     int speedSteps = getSpeedSteps();
-    targetMotorSpeed = minSpeedPercent + ((double)currentMotorStep-1)/(speedSteps-1) * (1-minSpeedPercent);
-  } else if (motorState == turbo) {
-    targetMotorSpeed = 1.0;
+    if (reverseModeActive) {
+      // In reverse mode we always run with the first forward speed step
+      targetMotorSpeed = minSpeedPercent;
+    } else if (motorState == turbo) {
+      targetMotorSpeed = 1.0;
+    } else {
+      targetMotorSpeed = minSpeedPercent + ((double)currentMotorStep-1)/(speedSteps-1) * (1-minSpeedPercent);
+    }
   } else{
     log("Unhandled motorstate: " + String(motorState));
   }
@@ -250,9 +278,10 @@ void checkJam(){
   
   // Get VESC RPM safely
   float currentRpm = getVescData().rpm;
+  float rpmEffective = fabs(currentRpm);
   
   if (motorState != jammed && currentMotorSpeed >= jamMin
-  && currentRpm/currentMotorSpeed/maxSpeedRpm < jamThreshold){
+  && rpmEffective/currentMotorSpeed/maxSpeedRpm < jamThreshold){
     log("MOTOR JAMMED!");
     beep("211");
     motorState = jammed;

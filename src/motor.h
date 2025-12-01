@@ -18,6 +18,7 @@ extern MotorState motorState;
 extern bool remoteControlActive; // Flag for remote control override
 extern int currentMotorStep; // Current speed step (1 to speedSteps)
 extern unsigned long lastActionTime;
+extern bool reverseModeActive; // true if reverse drive mode is enabled
 
 extern const bool HAS_MOTOR;//Indicates that we have an actual motor plugged in.
 
@@ -38,3 +39,5 @@ void enterCruiseMode();
 void leaveCruiseMode();
 void enterTurboMode();
 void leaveTurboMode();
+void toggleReverseMode();
+bool isReverseModeActive();

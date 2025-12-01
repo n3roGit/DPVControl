@@ -38,6 +38,9 @@ static const unsigned long MIN_UPDATE_INTERVAL_US = 1000; // Rate limit strip.sh
 // Critical section mux for LED timing
 static portMUX_TYPE ledMux = portMUX_INITIALIZER_UNLOCKED;
 
+// Forward declaration for special reverse pattern
+static void setBarReversePattern(bool immediateShow);
+
 static bool tryLockLedBar() {
   if (ledBarMutex == nullptr) {
     return true; // If not initialized yet, proceed (setup will create it)
@@ -286,7 +289,10 @@ void setBarSpeed(int num, bool immediateShow) {
         lastDisplayedSpeed = num;
         lastDisplayedMotorState = motorState;
         
-        if (motorState == cruise) {
+        if (isReverseModeActive()) {
+            // In reverse mode we always show a dedicated pattern on strip 1
+            setBarReversePattern(immediateShow);
+        } else if (motorState == cruise) {
             setBarSpeedCruise(num, immediateShow);
         } else {
             setBar(1, num, 0xcb1bf2, getLedBarBrightness(), 0x000000, 0, immediateShow);
@@ -404,6 +410,61 @@ void setBarFlasher(bool status, bool immediateShow) {
     lastDisplayedMotorState = -1;
     // Don't do anything here - the status restoration is handled by the caller
   }  
+}
+
+// Special pattern to indicate reverse mode:
+// All LEDs on strip 1 are lit with alternating red and blue.
+static void setBarReversePattern(bool immediateShow) {
+  int ledBarNum = getLedBarNum();
+  if (ledBarNum == 0) ledBarNum = 10; // Fallback
+
+  // Prevent concurrent updates
+  if (!tryLockLedBar()) {
+    log("WARNING: LED update already in progress in setBarReversePattern");
+    return;
+  }
+
+  int startIndex, endIndex;
+  getStripBoundaries(1, startIndex, endIndex);
+
+  int maxLEDs = endIndex - startIndex;
+  ledBarNum = constrain(ledBarNum, 0, maxLEDs);
+
+  // Clear strip 1
+  for (int i = startIndex; i < endIndex; i++) {
+    safeSetPixelColor(i, strip.Color(0, 0, 0));
+  }
+
+  int brightness = getLedBarBrightness();
+  if (brightness == 0) brightness = LEDBar_Brightness;
+
+  // Pre-compute brightness correction for red and blue
+  int redCorrected = calculateBrightnessCorrectedValue(255, 0, 0, brightness);
+  int blueCorrected = calculateBrightnessCorrectedValue(0, 0, 255, brightness);
+
+  int red_r = 255 * redCorrected / 100;
+  int red_g = 0;
+  int red_b = 0;
+
+  int blue_r = 0;
+  int blue_g = 0;
+  int blue_b = 255 * blueCorrected / 100;
+
+  // Set alternating red/blue pattern across all LEDs on strip 1
+  for (int i = 0; i < ledBarNum; i++) {
+    int idx = startIndex + i;
+    if (i % 2 == 0) {
+      safeSetPixelColor(idx, strip.Color(red_r, red_g, red_b));
+    } else {
+      safeSetPixelColor(idx, strip.Color(blue_r, blue_g, blue_b));
+    }
+  }
+
+  if (immediateShow) {
+    safeStripShow();
+  }
+
+  unlockLedBar();
 }
 
 // Function to force refresh of LED bar (invalidate cache)

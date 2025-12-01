@@ -126,12 +126,16 @@ void performActions(){
   }else if (motorState == jammed) {
     //No special action when jammed.
   }else{
-    if (rightButton.clicks == 2) {
-      speedUp();
+    // Ignore manual speed changes while in reverse mode so that
+    // the forward speed level is preserved for when reverse is disabled.
+    if (!isReverseModeActive()) {
+      if (rightButton.clicks == 2) {
+        speedUp();
+      }
+      if (leftButton.clicks == 2) {
+        speedDown();
+      }
     }
-    if (leftButton.clicks == 2) {
-      speedDown();
-    }  
     if(isDoubleClickHold(lastLeftClick, leftButtonHeldSince) 
       && isDoubleClickHold(lastRightClick, rightButtonHeldSince)){
         enterTurboMode();
@@ -161,13 +165,27 @@ void performActions(){
     }
   }
 
+  // Handle reverse mode toggle and battery info / other 4-click actions
+  bool reverseHandled = false;
+  // Reverse mode: both switches perform a 4-click within tolerance
+  if (leftButton.clicks == 4 && lastRightClick.clicks == 4 &&
+      millis() - lastRightClick.time <= BOTH_HAND_CLICK_TOLERANCE) {
+    toggleReverseMode();
+    reverseHandled = true;
+  } else if (rightButton.clicks == 4 && lastLeftClick.clicks == 4 &&
+             millis() - lastLeftClick.time <= BOTH_HAND_CLICK_TOLERANCE) {
+    toggleReverseMode();
+    reverseHandled = true;
+  }
+
   if (rightButton.clicks == 3) {
     toggleLED();
   }
   if (leftButton.clicks == 3) {
     flash();
   }
-  if (leftButton.clicks == 4) {
+  // Battery info only when not used for reverse toggle
+  if (!reverseHandled && leftButton.clicks == 4) {
     outputBatteryInfo();
   }
 
