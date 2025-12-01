@@ -58,10 +58,9 @@ static void safeStripShow() {
     delayMicroseconds(MIN_UPDATE_INTERVAL_US - elapsed);
   }
   
-  // Critical section removed due to boot loop issues with PSRAM/GPIO12
-  // portENTER_CRITICAL(&ledMux);
+  // Keep this call simple – previous attempts to wrap it in critical
+  // sections or disable interrupts caused stability issues on this board.
   strip.show();
-  // portEXIT_CRITICAL(&ledMux);
   
   lastStripShowMicros = micros();
 }
