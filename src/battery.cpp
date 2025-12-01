@@ -174,11 +174,24 @@ void updateBatteryLevel(float voltage) {
   // LED updates must happen on Core 1 to prevent conflicts.
 }
 
-void updateBatteryDisplay() {
+void updateBatteryDisplay(bool forceRefresh) {
+  static unsigned long lastDisplayUpdateMs = 0;
+  static int lastDisplayedSteps = -1;
+  const unsigned long BATTERY_DISPLAY_INTERVAL_MS = 30000; // 30 seconds
+
   // This function should be called from the main loop (Core 1)
   int steps = (batteryLevel + 5) / LedBar2_Num;
   steps = constrain(steps, 0, LedBar2_Num);
-  setBarBattery(steps);
+
+  unsigned long now = millis();
+  bool intervalElapsed = (now - lastDisplayUpdateMs) >= BATTERY_DISPLAY_INTERVAL_MS;
+  bool stepChanged = (steps != lastDisplayedSteps);
+
+  if (forceRefresh || stepChanged || intervalElapsed) {
+    setBarBattery(steps);
+    lastDisplayedSteps = steps;
+    lastDisplayUpdateMs = now;
+  }
 }
 
 /*

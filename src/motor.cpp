@@ -258,7 +258,7 @@ void enterTurboMode(){
   motorState = turbo;
   forceRefreshLedBar();
   setBarSpeed(getSpeedSteps());
-  updateBatteryDisplay();
+  updateBatteryDisplay(true);
 }
 
 void leaveTurboMode(){
@@ -266,7 +266,7 @@ void leaveTurboMode(){
   motorState = off;
   forceRefreshLedBar();
   setBarSpeed(currentMotorStep);
-  updateBatteryDisplay();
+  updateBatteryDisplay(true);
   lastActionTime = micros();//Prevent standby right after leaving turbo
 }
 

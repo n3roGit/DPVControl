@@ -14,7 +14,7 @@ void BatteryLevelAlert();
 void updateBatteryLevel(float voltage);
 
 // Update the LED display for battery level (call from main loop)
-void updateBatteryDisplay();
+void updateBatteryDisplay(bool forceRefresh = false);
 
 // Function to get the battery voltage
 float getBatteryVoltage();

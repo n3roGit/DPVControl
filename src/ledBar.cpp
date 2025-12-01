@@ -352,8 +352,10 @@ void setBarBattery(int num, bool immediateShow) {
   // Only update if battery level has changed
   if (num != lastDisplayedBattery) {
     lastDisplayedBattery = num;
-    int calc = getLedBarNum() - num;
-    setBar(2, calc, 0xe30b0b, getLedBarBrightnessSecond(), 0x0a9e08, getLedBarBrightness(), immediateShow);
+    int totalBatteryLeds = LedBar2_Num;
+    int greenSegments = constrain(num, 0, totalBatteryLeds);
+    int redSegments = totalBatteryLeds - greenSegments;
+    setBar(2, redSegments, 0xe30b0b, getLedBarBrightnessSecond(), 0x0a9e08, getLedBarBrightness(), immediateShow);
   }
 }
 

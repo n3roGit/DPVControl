@@ -142,7 +142,7 @@ void ledLampLoop(){
         } else {
           setBarSpeed(currentMotorStep, true); // Restore speed display immediately
         }
-        updateBatteryDisplay(); // Ensure battery display is correct and SHOW all changes
+        updateBatteryDisplay(true); // Ensure battery display is correct and SHOW all changes
         
         flashStepTime = millis() + 1000;
         flashStep = 4;
@@ -174,7 +174,7 @@ void ledLampLoop(){
     } else {
       setBarSpeed(currentMotorStep, false); // Restore speed display, NO IMMEDIATE SHOW
     }
-    updateBatteryDisplay(); // Ensure battery display is also refreshed (implicitly calls show())
+    updateBatteryDisplay(true); // Ensure battery display is also refreshed (implicitly calls show())
     isStatusRestorationPending = false; // Reset pending flag
   }
 }
@@ -208,7 +208,7 @@ void setLampLevel(int level) {
       } else {
           setBarSpeed(currentMotorStep, true); // Restore speed display immediately
       }
-      updateBatteryDisplay(); // Ensure battery display is also refreshed (implicitly calls show())
+      updateBatteryDisplay(true); // Ensure battery display is also refreshed (implicitly calls show())
       isStatusRestorationPending = false;
   } else {
       // Show lamp level and start timeout
