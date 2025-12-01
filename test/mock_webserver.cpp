@@ -51,6 +51,14 @@ extern "C" {
     void handleApiVersion() {
         mockResponse = "{\"version\":\"test-1.0.0\"}";
     }
+
+    void handleApiVescBridge() {
+        // Simple, deterministic mock response for bridge status
+        mockResponse =
+            "{\"supported\":true,"
+            "\"active\":false,"
+            "\"mode\":\"normal\"}";
+    }
 }
 
 // Mock session data generation for testing

@@ -144,6 +144,16 @@ void test_api_responses_are_valid_json() {
   handleApiVersion();
   JsonDocument versionDoc;
   TEST_ASSERT_FALSE(deserializeJson(versionDoc, mockResponse));
+
+  mockResponse = "";
+
+  // Test VESC bridge API
+  handleApiVescBridge();
+  JsonDocument bridgeDoc;
+  TEST_ASSERT_FALSE(deserializeJson(bridgeDoc, mockResponse));
+  TEST_ASSERT_TRUE(bridgeDoc["supported"].is<bool>());
+  TEST_ASSERT_TRUE(bridgeDoc["active"].is<bool>());
+  TEST_ASSERT_TRUE(bridgeDoc["mode"].is<const char*>());
 }
 
 int main(int argc, char** argv) {

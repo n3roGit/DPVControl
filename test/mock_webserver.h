@@ -14,6 +14,7 @@ extern "C" {
     void handleApiBeeper();
     void handleApiSettings();
     void handleApiVersion();
+    void handleApiVescBridge();
 }
 
 // Mock session data generation functions for testing

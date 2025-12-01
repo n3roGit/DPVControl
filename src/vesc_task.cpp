@@ -11,6 +11,10 @@ SemaphoreHandle_t vescDataMutex = NULL;
 VescData protectedVescData;
 float targetRpm = 0.0;
 
+// When true, the VESC task will pause all regular control and telemetry
+// communication so that the UART can be used exclusively by the VESC bridge.
+static bool vescBridgeMode = false;
+
 // Task handle
 TaskHandle_t vescTaskHandle = NULL;
 
@@ -54,23 +58,25 @@ void vescTask(void *pvParameters) {
   const unsigned long READ_INTERVAL = 100; // Read every 100ms
 
   while (true) {
-    // 1. Send Control Command (High Priority)
-    // We send this every cycle to keep VESC alive and responsive
-    UART.setRPM(targetRpm);
+    if (!vescBridgeMode) {
+      // 1. Send Control Command (High Priority)
+      // We send this every cycle to keep VESC alive and responsive
+      UART.setRPM(targetRpm);
 
-    // 2. Read Data (Lower Priority, periodic)
-    unsigned long now = millis();
-    if (now - lastReadTime >= READ_INTERVAL) {
-      bool success = UART.getVescValues();
-      
-      if (success) {
-        // Update battery level logic
-        updateBatteryLevel(UART.data.inpVoltage);
+      // 2. Read Data (Lower Priority, periodic)
+      unsigned long now = millis();
+      if (now - lastReadTime >= READ_INTERVAL) {
+        bool success = UART.getVescValues();
+        
+        if (success) {
+          // Update battery level logic
+          updateBatteryLevel(UART.data.inpVoltage);
 
-        // Update protected data structure
-        updateProtectedData();
+          // Update protected data structure
+          updateProtectedData();
+        }
+        lastReadTime = now;
       }
-      lastReadTime = now;
     }
 
     // 3. Wait a bit to allow other tasks on Core 0 to run (Webserver, Datalogger)
@@ -108,4 +114,16 @@ VescData getVescData() {
 
 void setVescTargetRpm(float rpm) {
   targetRpm = rpm;
+}
+
+void setVescBridgeMode(bool enabled) {
+  vescBridgeMode = enabled;
+  if (enabled) {
+    // Ensure motor is not driven when the bridge is active
+    targetRpm = 0.0f;
+  }
+}
+
+bool isVescBridgeMode() {
+  return vescBridgeMode;
 }
