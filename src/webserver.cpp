@@ -20,7 +20,6 @@
 #include "embedded_webserver.h" // For embedded file serving
 #include "other.h" // For leak alarm functions
 #include "vesc_task.h" // Include VESC task interface
-#include "vesc_bridge.h" // Include VESC bridge interface
 
 // Include embedded files registry if available
 #ifdef __has_include
@@ -1257,103 +1256,6 @@ void handleClient(WiFiClient client) {
         
         sendHttpResponse(client, 200, "application/json", json.c_str());
         
-    } else if (path == "/api/vesc-bridge") {
-        // API endpoint for VESC bridge status and control
-        log("API /api/vesc-bridge called");
-
-        if (method == "GET") {
-            // Return current bridge status
-            String json = "{";
-            json += "\"supported\":" + String(vescBridgeIsSupported() ? "true" : "false") + ",";
-            json += "\"active\":" + String(vescBridgeIsActive() ? "true" : "false") + ",";
-            json += "\"mode\":" + String(isVescBridgeMode() ? "\"bridge\"" : "\"normal\"");
-            json += "}";
-
-            sendHttpResponse(client, 200, "application/json", json.c_str());
-        } else if (method == "POST") {
-            // Read POST body if Content-Length is specified
-            String body = "";
-            if (contentLength.length() > 0) {
-                int bodyLength = contentLength.toInt();
-                if (bodyLength > 0 && bodyLength < 1024) {
-                    char* buffer = new char[bodyLength + 1];
-                    int bytesRead = 0;
-                    unsigned long startTime = millis();
-
-                    while (bytesRead < bodyLength && client.connected() &&
-                           (millis() - startTime < 2000)) {
-                        if (client.available()) {
-                            buffer[bytesRead] = client.read();
-                            bytesRead++;
-                        } else {
-                            delay(1);
-                        }
-                    }
-
-                    buffer[bytesRead] = '\0';
-                    body = String(buffer);
-                    delete[] buffer;
-                }
-            } else {
-                // Fallback: read whatever is available
-                delay(50);
-                while (client.available()) {
-                    body += static_cast<char>(client.read());
-                }
-            }
-
-            String bodyMsg = "VESC bridge body: " + body;
-            log(bodyMsg.c_str());
-
-            bool requestedActive = false;
-            bool hasActiveField = false;
-
-            if (body.length() > 0) {
-                JsonDocument doc;
-                DeserializationError error = deserializeJson(doc, body);
-                if (!error && doc["active"].is<bool>()) {
-                    requestedActive = doc["active"];
-                    hasActiveField = true;
-                } else {
-                    log("VESC bridge: invalid JSON body or missing 'active' field");
-                }
-            }
-
-            bool success = false;
-            String errorMessage = "";
-
-            if (!hasActiveField) {
-                errorMessage = "Missing 'active' boolean field in request body";
-            } else if (!vescBridgeIsSupported()) {
-                errorMessage = "VESC bridge not supported on this build";
-            } else {
-                if (requestedActive) {
-                    success = vescBridgeEnable();
-                    if (!success) {
-                        errorMessage = "Failed to enable VESC bridge";
-                    }
-                } else {
-                    vescBridgeDisable();
-                    success = true;
-                }
-            }
-
-            String response = "{";
-            response += "\"success\":" + String(success ? "true" : "false") + ",";
-            response += "\"supported\":" + String(vescBridgeIsSupported() ? "true" : "false") + ",";
-            response += "\"active\":" + String(vescBridgeIsActive() ? "true" : "false");
-            if (!success && errorMessage.length() > 0) {
-                response += ",\"error\":\"" + errorMessage + "\"";
-            }
-            response += "}";
-
-            sendHttpResponse(client, 200, "application/json", response.c_str());
-        } else {
-            // Method not allowed
-            sendHttpResponse(client, 404, "application/json",
-                             "{\"success\":false,\"error\":\"Unsupported method\"}");
-        }
-
     } else if (path == "/api/sessions") {
         // API endpoint for session list
         log("API /api/sessions called");

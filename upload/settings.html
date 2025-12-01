@@ -152,20 +152,6 @@
                     <td><label for="standbyBlinkDurationSeconds">Standby Blink Duration (s):</label><span class="info-icon" title="Duration of each standby blink warning in seconds. Default: 10">?</span></td>
                     <td><input type="number" id="standbyBlinkDurationSeconds" min="1" max="60" value="10"></td>
                 </tr>
-                <tr>
-                    <td>
-                        <label for="vescBridgeToggle">VESC Bridge Mode:</label>
-                        <span class="info-icon" title="Temporarily enable VESC Bluetooth bridge for VESC Tool. Uses the same UART as normal DPV control, so the motor control is paused while the bridge is active. Not persisted across reboot.">?</span>
-                    </td>
-                    <td>
-                        <button type="button" class="button" id="vescBridgeButton" onclick="toggleVescBridge()" style="background-color: #607d8b;">
-                            📡 Enable VESC Bridge
-                        </button>
-                        <div id="vescBridgeStatusText" style="margin-top: 5px; font-size: 0.9em; color: #2c3e50;">
-                            Bridge status: Unknown
-                        </div>
-                    </td>
-                </tr>
             </table>
         </div>
     </form>

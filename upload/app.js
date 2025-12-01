@@ -77,7 +77,6 @@ function loadTabContent() {
             setTimeout(() => {
                 updateLampBrightnessInputs();
                 loadDPVSettings();
-                loadVescBridgeState();
             }, 100);
         })
         .catch(error => {
@@ -1015,87 +1014,6 @@ function loadDPVSettings() {
         })
         .catch(error => {
             console.error('Error loading settings:', error);
-        });
-}
-
-// VESC Bridge control
-function loadVescBridgeState() {
-    const statusElement = document.getElementById('vescBridgeStatusText');
-    const button = document.getElementById('vescBridgeButton');
-    if (!statusElement || !button) {
-        return;
-    }
-
-    fetch('/api/vesc-bridge')
-        .then(response => response.json())
-        .then(data => {
-            const supported = !!data.supported;
-            const active = !!data.active;
-            const mode = data.mode || (active ? 'bridge' : 'normal');
-
-            if (!supported) {
-                statusElement.textContent = 'Bridge not supported in this build';
-                button.disabled = true;
-                button.style.backgroundColor = '#777';
-                button.textContent = '📡 VESC Bridge not available';
-                return;
-            }
-
-            statusElement.textContent = active
-                ? 'Bridge status: ACTIVE (VESC Tool can connect)'
-                : 'Bridge status: INACTIVE (normal DPV control)';
-
-            if (active) {
-                button.textContent = '📡 Disable VESC Bridge';
-                button.style.backgroundColor = '#f44336';
-            } else {
-                button.textContent = '📡 Enable VESC Bridge';
-                button.style.backgroundColor = '#607d8b';
-            }
-        })
-        .catch(error => {
-            console.error('Error loading VESC bridge state:', error);
-            statusElement.textContent = 'Bridge status: Error loading state';
-        });
-}
-
-function toggleVescBridge() {
-    const button = document.getElementById('vescBridgeButton');
-    if (!button) {
-        return;
-    }
-
-    // Optimistic UI: show a short loading hint
-    const statusElement = document.getElementById('vescBridgeStatusText');
-    if (statusElement) {
-        statusElement.textContent = 'Switching bridge state...';
-    }
-
-    // Decide desired new state based on current button text
-    const enable = button.textContent.indexOf('Enable') !== -1;
-
-    fetch('/api/vesc-bridge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active: enable })
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) {
-                console.error('Failed to toggle VESC bridge:', data.error);
-                if (statusElement) {
-                    statusElement.textContent = 'Error: ' + (data.error || 'Failed to toggle bridge');
-                }
-                return;
-            }
-            // Refresh UI with authoritative state
-            loadVescBridgeState();
-        })
-        .catch(error => {
-            console.error('Error toggling VESC bridge:', error);
-            if (statusElement) {
-                statusElement.textContent = 'Error: ' + error.message;
-            }
         });
 }
 

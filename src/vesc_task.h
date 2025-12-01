@@ -35,12 +35,4 @@ VescData getVescData();
 // Set target RPM (thread-safe)
 void setVescTargetRpm(float rpm);
 
-// Enable or disable VESC bridge mode.
-// In bridge mode, the regular VESC control loop is paused so that the
-// VESC UART can be used exclusively by the Bluetooth bridge.
-void setVescBridgeMode(bool enabled);
-
-// Returns true if the VESC bridge mode is currently active.
-bool isVescBridgeMode();
-
 #endif
