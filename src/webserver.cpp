@@ -20,6 +20,11 @@
 #include "embedded_webserver.h" // For embedded file serving
 #include "other.h" // For leak alarm functions
 #include "vesc_task.h" // Include VESC task interface
+#include "ota_update.h"
+
+#ifndef UNITTEST
+#include <Update.h>
+#endif
 
 // Include embedded files registry if available
 #ifdef __has_include
@@ -1113,6 +1118,10 @@ HttpRequest parseHttpRequest(WiFiClient& client) {
         if (line.startsWith("Content-Length: ")) {
             request.contentLength = line.substring(16);
         }
+
+        if (line.startsWith("Content-Type: ")) {
+            request.contentType = line.substring(14);
+        }
         
         // Empty line indicates end of headers
         if (line.length() == 0) {
@@ -1129,6 +1138,32 @@ HttpRequest parseHttpRequest(WiFiClient& client) {
     
     return request;
 }
+
+#ifndef UNITTEST
+class EspUpdateWriter : public ota::IUpdateWriter {
+ public:
+  bool begin(size_t size) override {
+    (void)size;
+    return Update.begin(UPDATE_SIZE_UNKNOWN);
+  }
+
+  size_t write(const uint8_t* data, size_t len) override {
+    return Update.write(const_cast<uint8_t*>(data), len);
+  }
+
+  bool end(bool evenIfRemaining) override {
+    return Update.end(evenIfRemaining);
+  }
+
+  void abort() override {
+    Update.abort();
+  }
+
+  bool hasError() const override {
+    return Update.hasError();
+  }
+};
+#endif
 
 // Process HTTP requests
 void handleClient(WiFiClient client) {
@@ -1156,6 +1191,84 @@ void handleClient(WiFiClient client) {
         } else {
             sendHttpResponse(client, 404, "text/plain", "index.html not found");
         }
+    } else if (path == "/update" && method == "GET") {
+        const char* html = R"rawliteral(
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DPVControl OTA Update</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .box { max-width: 680px; margin: 0 auto; }
+    .hint { color: #555; }
+    .row { margin: 12px 0; }
+    progress { width: 100%; height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>Firmware Update</h1>
+    <p class="hint">Upload a <code>.bin</code> firmware file. The device will reboot after flashing.</p>
+    <form id="fwform" method="POST" action="/update" enctype="multipart/form-data">
+      <div class="row"><input id="fwfile" type="file" name="firmware" accept=".bin" required /></div>
+      <div class="row"><button type="submit">Upload & Flash</button></div>
+      <div class="row"><progress id="p" value="0" max="100" style="display:none"></progress></div>
+      <pre id="msg"></pre>
+    </form>
+    <p><a href="/">Back</a></p>
+  </div>
+  <script>
+    const form = document.getElementById('fwform');
+    const prog = document.getElementById('p');
+    const msg = document.getElementById('msg');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const file = document.getElementById('fwfile').files[0];
+      if (!file) return;
+      const fd = new FormData();
+      fd.append('firmware', file, file.name);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/update', true);
+      prog.style.display = 'block';
+      xhr.upload.onprogress = (evt) => {
+        if (!evt.lengthComputable) return;
+        prog.value = Math.round((evt.loaded / evt.total) * 100);
+      };
+      xhr.onload = () => {
+        msg.textContent = xhr.responseText || ('HTTP ' + xhr.status);
+      };
+      xhr.onerror = () => { msg.textContent = 'Upload failed'; };
+      xhr.send(fd);
+    });
+  </script>
+</body>
+</html>
+)rawliteral";
+        sendHttpResponse(client, 200, "text/html", html);
+
+    } else if (path == "/update" && method == "POST") {
+#ifdef UNITTEST
+        sendHttpResponse(client, 501, "text/plain", "OTA update not available in UNITTEST build");
+#else
+        size_t len = (size_t)contentLength.toInt();
+        String boundary = ota::extractBoundaryFromContentType(request.contentType);
+        EspUpdateWriter writer;
+
+        ota::MultipartUploadResult uploadResult = ota::streamMultipartFirmwareToUpdate(client, len, boundary, writer);
+        if (!uploadResult.success) {
+            String msg = "Update failed: " + uploadResult.error + "\n";
+            sendHttpResponse(client, 400, "text/plain", msg.c_str());
+            return;
+        }
+
+        sendHttpResponse(client, 200, "text/plain", "Update OK. Rebooting...\n");
+        client.stop();
+        delay(500);
+        ESP.restart();
+#endif
+
     } else if (path == "/api/data" || path.startsWith("/api/data?")) {
         // API endpoint for datalogger data
         String range = "recent";

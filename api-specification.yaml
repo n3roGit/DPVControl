@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: DPVControl API
   description: API for controlling and monitoring the Diver Propulsion Vehicle (DPV)
-  version: 1.2.7
+  version: 1.2.8
   contact:
     name: DPV Control Project
     url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
@@ -27,6 +27,8 @@ tags:
     description: Motor and lamp control
   - name: Trip Log
     description: Historical trip data
+  - name: Update
+    description: Firmware update endpoints
 
 paths:
   /api/status:
@@ -630,6 +632,50 @@ paths:
                   - version
               example:
                 version: "2.0.0"
+
+  /update:
+    get:
+      tags:
+        - Update
+      summary: Firmware update page
+      description: HTML form for uploading a firmware `.bin` file.
+      responses:
+        '200':
+          description: HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+    post:
+      tags:
+        - Update
+      summary: Upload firmware via multipart
+      description: |
+        Upload a firmware `.bin` file as `multipart/form-data` under form field `firmware`.
+        The device flashes the firmware and reboots.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                firmware:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Update accepted, reboot initiated
+          content:
+            text/plain:
+              schema:
+                type: string
+        '400':
+          description: Invalid upload
+          content:
+            text/plain:
+              schema:
+                type: string
 
   /api/delete-all-sessions:
     post:

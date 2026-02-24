@@ -26,6 +26,28 @@
             </tr>
         </table>
     </div>
+
+    <div class="settings-group">
+        <h3>Firmware Update</h3>
+        <p style="color: #b0b0b0; margin-bottom: 15px;">
+            Check for new releases on GitHub, or upload a firmware <code>.bin</code> file.
+        </p>
+        <table class="settings-table">
+            <tr>
+                <td>Latest Version:</td>
+                <td id="latestVersion" style="color: #4fc3f7;">Not checked</td>
+            </tr>
+            <tr>
+                <td>Status:</td>
+                <td id="updateStatus" style="color: #b0b0b0;">Idle</td>
+            </tr>
+        </table>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top: 10px;">
+            <button class="button" onclick="checkForUpdates()">Check for Updates</button>
+            <button class="button" onclick="autoUpdateFirmware()">Auto-Update</button>
+            <button class="button" onclick="window.open('/update', '_blank')">Open Update Page</button>
+        </div>
+    </div>
     
     <!-- Button Control Guide -->
     <div class="settings-group">

@@ -954,6 +954,84 @@ function loadVersionInfo() {
         });
 }
 
+let latestReleaseCache = null;
+
+function setUpdateUi(latestVersionText, statusText) {
+    const latestVersion = document.getElementById('latestVersion');
+    if (latestVersion && latestVersionText !== undefined) {
+        latestVersion.textContent = latestVersionText;
+    }
+    const updateStatus = document.getElementById('updateStatus');
+    if (updateStatus && statusText !== undefined) {
+        updateStatus.textContent = statusText;
+    }
+}
+
+async function checkForUpdates() {
+    try {
+        setUpdateUi(undefined, 'Checking GitHub releases...');
+        const res = await fetch('https://api.github.com/repos/BubTec/DPVControl/releases/latest', {
+            headers: { 'Accept': 'application/vnd.github+json' }
+        });
+        if (!res.ok) {
+            throw new Error(`GitHub API error: ${res.status}`);
+        }
+        const release = await res.json();
+        latestReleaseCache = release;
+        const tag = release.tag_name || release.name || 'unknown';
+
+        setUpdateUi(tag, 'Release info loaded');
+
+        const currentRes = await fetch('/api/version');
+        const current = await currentRes.json();
+        if (current && current.version && tag && current.version !== tag) {
+            setUpdateUi(tag, `Update available: ${current.version} -> ${tag}`);
+        }
+    } catch (err) {
+        console.error('Update check failed:', err);
+        setUpdateUi('Error', 'Update check failed');
+    }
+}
+
+async function autoUpdateFirmware() {
+    try {
+        setUpdateUi(undefined, 'Preparing auto-update...');
+        if (!latestReleaseCache) {
+            await checkForUpdates();
+        }
+        const release = latestReleaseCache;
+        if (!release || !Array.isArray(release.assets)) {
+            throw new Error('No release assets found');
+        }
+
+        const asset = release.assets.find(a => (a && a.name && a.name.toLowerCase().endsWith('.bin')));
+        if (!asset || !asset.browser_download_url) {
+            throw new Error('No .bin asset found in latest release');
+        }
+
+        setUpdateUi(undefined, `Downloading ${asset.name}...`);
+        const fwRes = await fetch(asset.browser_download_url);
+        if (!fwRes.ok) {
+            throw new Error(`Firmware download failed: ${fwRes.status}`);
+        }
+        const blob = await fwRes.blob();
+
+        setUpdateUi(undefined, 'Uploading to device...');
+        const fd = new FormData();
+        fd.append('firmware', blob, asset.name);
+        const upRes = await fetch('/update', { method: 'POST', body: fd });
+        const text = await upRes.text();
+        if (!upRes.ok) {
+            throw new Error(text || `Upload failed: ${upRes.status}`);
+        }
+
+        setUpdateUi(undefined, text.trim() || 'Update OK. Rebooting...');
+    } catch (err) {
+        console.error('Auto-update failed:', err);
+        setUpdateUi(undefined, 'Auto-update failed');
+    }
+}
+
 function updateLampBrightnessInputs() {
     fetch('/api/settings')
         .then(response => response.json())

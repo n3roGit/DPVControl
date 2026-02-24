@@ -14,6 +14,7 @@ struct HttpRequest {
     String path;
     String host;
     String contentLength;
+    String contentType;
     bool isCaptivePortalRequest;
     
     // Constructor

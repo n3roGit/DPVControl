@@ -9,6 +9,9 @@
 #include "mock_webserver.h"
 #include "mock_hardware.h"
 #include "../src/webserver.h"
+#include "../src/ota_update.h"
+#include <vector>
+#include <string>
 
 // Mock client for testing
 class MockClient {
@@ -184,6 +187,110 @@ void test_api_responses_are_valid_json() {
   TEST_ASSERT_FALSE(deserializeJson(versionDoc, mockResponse));
 }
 
+class BufferClient {
+ public:
+  explicit BufferClient(std::vector<uint8_t> data) : data_(std::move(data)) {}
+
+  bool connected() { return pos_ < data_.size(); }
+  int available() { return (int)(data_.size() - pos_); }
+
+  int read() {
+    if (pos_ >= data_.size()) return -1;
+    return data_[pos_++];
+  }
+
+  int read(uint8_t* buf, size_t size) {
+    if (pos_ >= data_.size()) return 0;
+    size_t remaining = data_.size() - pos_;
+    size_t toCopy = size < remaining ? size : remaining;
+    memcpy(buf, data_.data() + pos_, toCopy);
+    pos_ += toCopy;
+    return (int)toCopy;
+  }
+
+ private:
+  std::vector<uint8_t> data_;
+  size_t pos_ = 0;
+};
+
+class MockUpdateWriter : public ota::IUpdateWriter {
+ public:
+  bool begin(size_t size) override {
+    (void)size;
+    begun = true;
+    return true;
+  }
+
+  size_t write(const uint8_t* data, size_t len) override {
+    written.insert(written.end(), data, data + len);
+    return len;
+  }
+
+  bool end(bool evenIfRemaining) override {
+    (void)evenIfRemaining;
+    ended = true;
+    return true;
+  }
+
+  void abort() override { aborted = true; }
+  bool hasError() const override { return false; }
+
+  bool begun = false;
+  bool ended = false;
+  bool aborted = false;
+  std::vector<uint8_t> written;
+};
+
+static std::vector<uint8_t> buildMultipart(const std::string& boundary,
+                                           const std::string& filename,
+                                           size_t payloadBytes) {
+  std::string body;
+  body += "--" + boundary + "\r\n";
+  body += "Content-Disposition: form-data; name=\"firmware\"; filename=\"" + filename + "\"\r\n";
+  body += "Content-Type: application/octet-stream\r\n";
+  body += "\r\n";
+  body += std::string(payloadBytes, 'A');
+  body += "\r\n--" + boundary + "--\r\n";
+
+  return std::vector<uint8_t>(body.begin(), body.end());
+}
+
+void test_ota_multipart_success() {
+  const std::string boundary = "BOUNDARY123";
+  const auto data = buildMultipart(boundary, "firmware.bin", 110 * 1024);
+  BufferClient client(data);
+  MockUpdateWriter writer;
+
+  ota::MultipartUploadResult res = ota::streamMultipartFirmwareToUpdate(client, data.size(), boundary.c_str(), writer);
+  TEST_ASSERT_TRUE(res.success);
+  TEST_ASSERT_TRUE(writer.begun);
+  TEST_ASSERT_TRUE(writer.ended);
+  TEST_ASSERT_FALSE(writer.aborted);
+  TEST_ASSERT_EQUAL(110 * 1024, (int)writer.written.size());
+}
+
+void test_ota_reject_small_file() {
+  const std::string boundary = "BOUNDARY123";
+  const auto data = buildMultipart(boundary, "firmware.bin", 10 * 1024);
+  BufferClient client(data);
+  MockUpdateWriter writer;
+
+  ota::MultipartUploadResult res = ota::streamMultipartFirmwareToUpdate(client, data.size(), boundary.c_str(), writer);
+  TEST_ASSERT_FALSE(res.success);
+  TEST_ASSERT_TRUE(writer.aborted);
+}
+
+void test_ota_reject_wrong_extension() {
+  const std::string boundary = "BOUNDARY123";
+  const auto data = buildMultipart(boundary, "firmware.txt", 110 * 1024);
+  BufferClient client(data);
+  MockUpdateWriter writer;
+
+  ota::MultipartUploadResult res = ota::streamMultipartFirmwareToUpdate(client, data.size(), boundary.c_str(), writer);
+  TEST_ASSERT_FALSE(res.success);
+  TEST_ASSERT_FALSE(writer.begun);
+}
+
 int main(int argc, char** argv) {
   UNITY_BEGIN();
   RUN_TEST(test_api_status);
@@ -198,6 +305,9 @@ int main(int argc, char** argv) {
   RUN_TEST(test_api_leak_alarm_reset_all);
   RUN_TEST(test_api_leak_alarm_reset_front);
   RUN_TEST(test_api_leak_alarm_reset_back);
+  RUN_TEST(test_ota_multipart_success);
+  RUN_TEST(test_ota_reject_small_file);
+  RUN_TEST(test_ota_reject_wrong_extension);
   UNITY_END();
   return 0;
-} 
+}
