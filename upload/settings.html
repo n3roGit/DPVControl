@@ -131,6 +131,32 @@
                 </tr>
             </table>
         </div>
+
+        <!-- Home Network (STA) Settings -->
+        <div class="settings-group">
+            <h3>Home Network (STA)</h3>
+            <table class="settings-table">
+                <tr>
+                    <td><label for="staSSID">STA SSID:</label><span class="info-icon" title="Home WiFi SSID. Empty = disabled (AP-only).">?</span></td>
+                    <td><input type="text" id="staSSID" maxlength="31" value=""></td>
+                </tr>
+                <tr>
+                    <td><label for="staPassword">STA Password:</label><span class="info-icon" title="Home WiFi password.">?</span></td>
+                    <td><input type="password" id="staPassword" maxlength="63" value=""></td>
+                </tr>
+                <tr>
+                    <td><label for="apAutoOffMinutes">WiFi auto-off (min):</label><span class="info-icon" title="Minutes without STA connection before disabling WiFi entirely. 0 = disabled.">?</span></td>
+                    <td><input type="number" id="apAutoOffMinutes" min="0" max="1440" value="0"></td>
+                </tr>
+                <tr>
+                    <td><label for="apManualOverride">Keep AP on:</label><span class="info-icon" title="If enabled, AP stays active even when STA is connected.">?</span></td>
+                    <td><input type="checkbox" id="apManualOverride"></td>
+                </tr>
+            </table>
+            <div style="color:#b0b0b0; font-size: 0.9em; margin-top: 8px;">
+                Note: changing STA settings requires a reboot to take effect.
+            </div>
+        </div>
         
         <!-- System Settings -->
         <div class="settings-group">

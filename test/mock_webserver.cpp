@@ -71,7 +71,8 @@ extern "C" {
 
     void handleApiSettings() {
         mockResponse = "{\"motorEnabled\":true,\"lampEnabled\":true,\"beeperEnabled\":true," +
-                       String("\"motorDuration\":30,\"lampDuration\":15,\"beeperDuration\":5}");
+                       String("\"motorDuration\":30,\"lampDuration\":15,\"beeperDuration\":5,") +
+                       String("\"staSSID\":\"\",\"staPassword\":\"\",\"apAutoOffMinutes\":0,\"apManualOverride\":false}");
     }
 
     void handleApiVersion() {

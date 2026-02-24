@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: DPVControl API
   description: API for controlling and monitoring the Diver Propulsion Vehicle (DPV)
-  version: 1.2.8
+  version: 1.2.9
   contact:
     name: DPV Control Project
     url: https://bubtec.de/2024/10/29/diy-scooter-dpv-mit-aquazepp-und-dpvcontrol/
@@ -1058,6 +1058,28 @@ components:
           description: WiFi password (max 31 characters)
           maxLength: 31
           example: "DPVControl"
+
+        # Home Network (STA) Settings
+        staSSID:
+          type: string
+          description: Home network SSID for station mode. Empty disables STA.
+          maxLength: 31
+          example: "MyHomeWiFi"
+        staPassword:
+          type: string
+          description: Home network password for station mode.
+          maxLength: 63
+          example: "supersecret"
+        apAutoOffMinutes:
+          type: integer
+          description: Minutes without STA connection before disabling WiFi entirely. 0 disables auto-off.
+          minimum: 0
+          maximum: 1440
+          example: 0
+        apManualOverride:
+          type: boolean
+          description: Keep AP on even when STA is connected.
+          example: false
         
         # System Settings
         beeperEnabled:

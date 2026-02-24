@@ -35,6 +35,12 @@ struct DPVSettings {
     // WiFi settings
     char wifiSSID[32];
     char wifiPassword[32];
+
+    // Home network (STA) settings
+    char staSSID[32];
+    char staPassword[64];
+    uint16_t apAutoOffMinutes;
+    bool apManualOverride;
     
     // Beeper setting
     bool beeperEnabled;
@@ -78,6 +84,10 @@ int getLampMaxLevels();
 int getLampBrightness(int level);
 const char* getWifiSSID();
 const char* getWifiPassword();
+const char* getStaSSID();
+const char* getStaPassword();
+uint16_t getApAutoOffMinutes();
+bool getApManualOverride();
 bool getBeeperEnabled();
 bool getDebugLoggingEnabled();
 int getStandbyBlinkStart();

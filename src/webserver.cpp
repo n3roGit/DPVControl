@@ -21,6 +21,7 @@
 #include "other.h" // For leak alarm functions
 #include "vesc_task.h" // Include VESC task interface
 #include "ota_update.h"
+#include "wifi_manager.h"
 
 #ifndef UNITTEST
 #include <Update.h>
@@ -579,6 +580,12 @@ String generateSettingsJson() {
     // WiFi settings
     doc["wifiSSID"] = currentSettings.wifiSSID;
     doc["wifiPassword"] = currentSettings.wifiPassword;
+
+    // Home network (STA) settings
+    doc["staSSID"] = currentSettings.staSSID;
+    doc["staPassword"] = currentSettings.staPassword;
+    doc["apAutoOffMinutes"] = currentSettings.apAutoOffMinutes;
+    doc["apManualOverride"] = currentSettings.apManualOverride;
     
     // System settings
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
@@ -735,6 +742,23 @@ bool updateSettingsFromJson(const String& jsonString) {
     if (doc["wifiPassword"].is<const char*>()) {
         strncpy(newSettings.wifiPassword, doc["wifiPassword"], sizeof(newSettings.wifiPassword) - 1);
         newSettings.wifiPassword[sizeof(newSettings.wifiPassword) - 1] = '\0';
+    }
+
+    if (doc["staSSID"].is<const char*>()) {
+        strncpy(newSettings.staSSID, doc["staSSID"], sizeof(newSettings.staSSID) - 1);
+        newSettings.staSSID[sizeof(newSettings.staSSID) - 1] = '\0';
+    }
+    if (doc["staPassword"].is<const char*>()) {
+        strncpy(newSettings.staPassword, doc["staPassword"], sizeof(newSettings.staPassword) - 1);
+        newSettings.staPassword[sizeof(newSettings.staPassword) - 1] = '\0';
+    }
+    if (doc["apAutoOffMinutes"].is<int>()) {
+        newSettings.apAutoOffMinutes = (uint16_t)doc["apAutoOffMinutes"].as<int>();
+        updatedFields++;
+    }
+    if (doc["apManualOverride"].is<bool>()) {
+        newSettings.apManualOverride = doc["apManualOverride"].as<bool>();
+        updatedFields++;
     }
     
     if (doc["beeperEnabled"].is<bool>()) {
@@ -1364,6 +1388,14 @@ void handleClient(WiFiClient client) {
         
         // Add battery level
         json += ",\"batteryLevel\":" + String(batteryLevel);
+
+        // WiFi status fields
+        json += ",\"wifiMode\":\"" + getWifiModeString() + "\"";
+        json += ",\"staStatus\":\"" + getStaStatusString() + "\"";
+        json += ",\"apStatus\":\"" + getApStatusString() + "\"";
+        json += ",\"staSSID\":\"" + String(getStaSSID()) + "\"";
+        json += ",\"staIP\":\"" + getStaIpString() + "\"";
+        json += ",\"apIP\":\"" + getApIpString() + "\"";
         
         json += "}";
         
@@ -2014,16 +2046,7 @@ void handleClient(WiFiClient client) {
 // Webserver task that runs on Core 0
 void webserverTask(void *pvParameters) {
     log("Webserver task started on Core 0");
-    
-    // Setup WiFi Access Point
-    WiFi.mode(WIFI_AP);
-    WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP(getWifiSSID(), getWifiPassword());
-    
-    // Log IP address - convert to String and then to char*
-    String ipString = "IP: " + WiFi.softAPIP().toString();
-    log(ipString.c_str());
-    
+
     // Start DNS Server for captive portal - redirect all requests to our IP
     dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
     dnsServer.start(DNS_PORT, "*", apIP);

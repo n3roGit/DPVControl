@@ -34,6 +34,7 @@
 #include "data_upload.h" // Include data upload header
 #include "settings.h" // Include DPV settings system
 #include "vesc_task.h" // Include VESC task
+#include "wifi_manager.h"
 #include <LittleFS.h> // For settings storage
 
 // Global variables
@@ -116,6 +117,9 @@ void setup() {
   // Debug current alarm states at startup
   debugLeakAlarmStates();
 
+  // Initialize WiFi before the webserver task starts
+  initWiFi();
+
   // Initialize webserver on Core 0
   setupWebserver();
 
@@ -147,6 +151,9 @@ void loop() {
   // Update battery display on Core 1 (Main Loop)
   // This ensures LED hardware access is thread-safe and consistent
   updateBatteryDisplay();
+
+  // WiFi lifetime handler (Core 1). Do not touch LED hardware here.
+  handleWifiLifetime();
 
   // Performance monitoring
   long loopEnd = millis();

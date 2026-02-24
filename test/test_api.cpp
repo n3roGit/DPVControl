@@ -79,6 +79,12 @@ void test_api_settings() {
   TEST_ASSERT_TRUE(doc["motorDuration"].is<int>());
   TEST_ASSERT_TRUE(doc["lampDuration"].is<int>());
   TEST_ASSERT_TRUE(doc["beeperDuration"].is<int>());
+
+  // STA/AP fields
+  TEST_ASSERT_TRUE(doc["staSSID"].is<const char*>());
+  TEST_ASSERT_TRUE(doc["staPassword"].is<const char*>());
+  TEST_ASSERT_TRUE(doc["apAutoOffMinutes"].is<int>());
+  TEST_ASSERT_TRUE(doc["apManualOverride"].is<bool>());
 }
 
 void test_api_version() {

@@ -1089,6 +1089,12 @@ function loadDPVSettings() {
                     }
                 }
             });
+
+            // Ensure new fields have sane defaults in UI when missing
+            const apAutoOff = document.getElementById('apAutoOffMinutes');
+            if (apAutoOff && (settings.apAutoOffMinutes === undefined || settings.apAutoOffMinutes === null)) {
+                apAutoOff.value = 0;
+            }
         })
         .catch(error => {
             console.error('Error loading settings:', error);
@@ -1573,6 +1579,12 @@ function saveDPVSettings() {
         // WiFi Settings
         wifiSSID: document.getElementById('wifiSSID').value,
         wifiPassword: document.getElementById('wifiPassword').value,
+
+        // Home Network (STA) Settings
+        staSSID: document.getElementById('staSSID').value,
+        staPassword: document.getElementById('staPassword').value,
+        apAutoOffMinutes: parseInt(document.getElementById('apAutoOffMinutes').value),
+        apManualOverride: document.getElementById('apManualOverride').checked,
         
         // System Settings
         beeperEnabled: document.getElementById('beeperEnabled').checked,

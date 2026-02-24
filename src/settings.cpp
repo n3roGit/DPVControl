@@ -49,6 +49,12 @@ void initializeDefaultSettings() {
     // WiFi settings
     strncpy(defaultSettings.wifiSSID, "DPVControl", sizeof(defaultSettings.wifiSSID));
     strncpy(defaultSettings.wifiPassword, "DPVControl", sizeof(defaultSettings.wifiPassword));
+
+    // Home network (STA) settings (disabled by default)
+    memset(defaultSettings.staSSID, 0, sizeof(defaultSettings.staSSID));
+    memset(defaultSettings.staPassword, 0, sizeof(defaultSettings.staPassword));
+    defaultSettings.apAutoOffMinutes = 0;
+    defaultSettings.apManualOverride = false;
     
     // Beeper setting
     defaultSettings.beeperEnabled = true;
@@ -119,6 +125,13 @@ bool validateSettings(const DPVSettings& settings) {
     }
     if (settings.speedDownTimeMs < 50 || settings.speedDownTimeMs > 5000) {
         String msg = "VALIDATION FAILED: speedDownTimeMs " + String(settings.speedDownTimeMs) + " not in range 50-5000";
+        log(msg.c_str());
+        return false;
+    }
+
+    // Validate STA/AP lifetime
+    if (settings.apAutoOffMinutes > 24 * 60) {
+        String msg = "VALIDATION FAILED: apAutoOffMinutes " + String(settings.apAutoOffMinutes) + " too large";
         log(msg.c_str());
         return false;
     }
@@ -277,6 +290,11 @@ void loadSettings() {
     
     strncpy(currentSettings.wifiSSID, doc["wifiSSID"] | defaultSettings.wifiSSID, sizeof(currentSettings.wifiSSID));
     strncpy(currentSettings.wifiPassword, doc["wifiPassword"] | defaultSettings.wifiPassword, sizeof(currentSettings.wifiPassword));
+
+    strncpy(currentSettings.staSSID, doc["staSSID"] | defaultSettings.staSSID, sizeof(currentSettings.staSSID));
+    strncpy(currentSettings.staPassword, doc["staPassword"] | defaultSettings.staPassword, sizeof(currentSettings.staPassword));
+    currentSettings.apAutoOffMinutes = doc["apAutoOffMinutes"] | defaultSettings.apAutoOffMinutes;
+    currentSettings.apManualOverride = doc["apManualOverride"] | defaultSettings.apManualOverride;
     
     currentSettings.beeperEnabled = doc["beeperEnabled"] | defaultSettings.beeperEnabled;
     currentSettings.debugLoggingEnabled = doc["debugLoggingEnabled"] | defaultSettings.debugLoggingEnabled;
@@ -351,6 +369,11 @@ void saveSettings() {
     
     doc["wifiSSID"] = currentSettings.wifiSSID;
     doc["wifiPassword"] = currentSettings.wifiPassword;
+
+    doc["staSSID"] = currentSettings.staSSID;
+    doc["staPassword"] = currentSettings.staPassword;
+    doc["apAutoOffMinutes"] = currentSettings.apAutoOffMinutes;
+    doc["apManualOverride"] = currentSettings.apManualOverride;
     
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
     doc["debugLoggingEnabled"] = currentSettings.debugLoggingEnabled;
@@ -428,6 +451,10 @@ int getLampBrightness(int level) {
 }
 const char* getWifiSSID() { return currentSettings.wifiSSID; }
 const char* getWifiPassword() { return currentSettings.wifiPassword; }
+const char* getStaSSID() { return currentSettings.staSSID; }
+const char* getStaPassword() { return currentSettings.staPassword; }
+uint16_t getApAutoOffMinutes() { return currentSettings.apAutoOffMinutes; }
+bool getApManualOverride() { return currentSettings.apManualOverride; }
 bool getBeeperEnabled() { return currentSettings.beeperEnabled; }
 bool getDebugLoggingEnabled() { return currentSettings.debugLoggingEnabled; }
 int getStandbyBlinkStart() { return currentSettings.standbyBlinkStartMinutes; }
