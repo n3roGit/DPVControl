@@ -589,7 +589,8 @@ String generateSettingsJson() {
     
     // System settings
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
-    doc["debugLoggingEnabled"] = currentSettings.debugLoggingEnabled;
+    doc["logLevel"] = currentSettings.logLevel;
+    doc["debugLoggingEnabled"] = (currentSettings.logLevel >= 2);
     doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
     doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
     
@@ -768,10 +769,18 @@ bool updateSettingsFromJson(const String& jsonString) {
         log(msg.c_str());
         updatedFields++;
     }
-    if (doc["debugLoggingEnabled"].is<bool>()) {
+    if (doc["logLevel"].is<int>()) {
+        newSettings.logLevel = (uint8_t)doc["logLevel"].as<int>();
+        if (newSettings.logLevel > 2) newSettings.logLevel = 2;
+        newSettings.debugLoggingEnabled = (newSettings.logLevel >= 2);
+        updatedFields++;
+    } else if (doc["debugLoggingEnabled"].is<bool>()) {
+        // Legacy mapping: true -> Info, false -> Error
         bool oldVal = newSettings.debugLoggingEnabled;
-        newSettings.debugLoggingEnabled = doc["debugLoggingEnabled"];
-        String msg = "Updated debugLoggingEnabled: " + String(oldVal ? "true" : "false") + " -> " + String(newSettings.debugLoggingEnabled ? "true" : "false");
+        bool legacy = doc["debugLoggingEnabled"].as<bool>();
+        newSettings.logLevel = legacy ? 1 : 0;
+        newSettings.debugLoggingEnabled = false;
+        String msg = "Migrated debugLoggingEnabled: " + String(oldVal ? "true" : "false") + " -> logLevel " + String(newSettings.logLevel);
         log(msg.c_str());
         updatedFields++;
     }

@@ -1078,6 +1078,11 @@ function loadDPVSettings() {
     fetch('/api/settings')
         .then(response => response.json())
         .then(settings => {
+            // Backward compatibility: map legacy debugLoggingEnabled to logLevel
+            if ((settings.logLevel === undefined || settings.logLevel === null) && typeof settings.debugLoggingEnabled === 'boolean') {
+                settings.logLevel = settings.debugLoggingEnabled ? 1 : 0;
+            }
+
             // Update all settings inputs
             Object.keys(settings).forEach(key => {
                 const input = document.getElementById(key);
@@ -1588,7 +1593,7 @@ function saveDPVSettings() {
         
         // System Settings
         beeperEnabled: document.getElementById('beeperEnabled').checked,
-        debugLoggingEnabled: document.getElementById('debugLoggingEnabled').checked,
+        logLevel: parseInt(document.getElementById('logLevel').value),
         standbyBlinkStartMinutes: parseInt(document.getElementById('standbyBlinkStartMinutes').value),
         standbyBlinkDurationSeconds: parseInt(document.getElementById('standbyBlinkDurationSeconds').value)
     };

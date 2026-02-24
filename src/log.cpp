@@ -6,6 +6,18 @@
 #include "battery.h"
 #include "vesc_task.h"
 
+static bool shouldLogInfo() {
+  return getLogLevel() >= 1;
+}
+
+static bool shouldLogDebug() {
+  return getLogLevel() >= 2;
+}
+
+static bool shouldLogError() {
+  return getLogLevel() >= 0;
+}
+
 
 void log(const char* label, int value, bool doLog) {
   if (doLog) {
@@ -18,23 +30,47 @@ void log(const char* label, int value, bool doLog) {
 }
 
 void log(const char* label, int value) {
-  log(label, value, EnableDebugLog);
+  log(label, value, shouldLogDebug());
 }
 
 void log(const char* label) {
-  if (EnableDebugLog) {
+  if (shouldLogInfo()) {
     Serial.println(label);
   }
 }
 
 void log(const String& message) {
-  if (EnableDebugLog) {
+  if (shouldLogInfo()) {
+    Serial.println(message);
+  }
+}
+
+void logDebug(const char* label) {
+  if (shouldLogDebug()) {
+    Serial.println(label);
+  }
+}
+
+void logDebug(const String& message) {
+  if (shouldLogDebug()) {
+    Serial.println(message);
+  }
+}
+
+void logError(const char* label) {
+  if (shouldLogError()) {
+    Serial.println(label);
+  }
+}
+
+void logError(const String& message) {
+  if (shouldLogError()) {
     Serial.println(message);
   }
 }
 
 void logVehicleState() {
-  if (EnableDebugLog && loopCount % NormalLogOutputIntervall == 0) {
+  if (shouldLogDebug() && loopCount % NormalLogOutputIntervall == 0) {
     // Get VESC data safely
     VescData vescData = getVescData();
     

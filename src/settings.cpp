@@ -63,8 +63,9 @@ void initializeDefaultSettings() {
     defaultSettings.standbyBlinkStartMinutes = 15;
     defaultSettings.standbyBlinkDurationSeconds = 10;
 
-    // Debug logging setting
-    defaultSettings.debugLoggingEnabled = true;
+    // Logging settings
+    defaultSettings.logLevel = 1; // Info
+    defaultSettings.debugLoggingEnabled = false; // Derived from logLevel
 }
 
 /**
@@ -132,6 +133,12 @@ bool validateSettings(const DPVSettings& settings) {
     // Validate STA/AP lifetime
     if (settings.apAutoOffMinutes > 24 * 60) {
         String msg = "VALIDATION FAILED: apAutoOffMinutes " + String(settings.apAutoOffMinutes) + " too large";
+        log(msg.c_str());
+        return false;
+    }
+
+    if (settings.logLevel > 2) {
+        String msg = "VALIDATION FAILED: logLevel " + String(settings.logLevel) + " not in range 0-2";
         log(msg.c_str());
         return false;
     }
@@ -297,7 +304,21 @@ void loadSettings() {
     currentSettings.apManualOverride = doc["apManualOverride"] | defaultSettings.apManualOverride;
     
     currentSettings.beeperEnabled = doc["beeperEnabled"] | defaultSettings.beeperEnabled;
-    currentSettings.debugLoggingEnabled = doc["debugLoggingEnabled"] | defaultSettings.debugLoggingEnabled;
+
+    // Logging settings migration:
+    // - Prefer logLevel if present
+    // - Else map debugLoggingEnabled: true -> Info(1), false -> Error(0)
+    if (doc["logLevel"].is<int>()) {
+        currentSettings.logLevel = (uint8_t)doc["logLevel"].as<int>();
+    } else if (doc["debugLoggingEnabled"].is<bool>()) {
+        currentSettings.logLevel = doc["debugLoggingEnabled"].as<bool>() ? 1 : 0;
+    } else {
+        currentSettings.logLevel = defaultSettings.logLevel;
+    }
+    if (currentSettings.logLevel > 2) {
+        currentSettings.logLevel = 2;
+    }
+    currentSettings.debugLoggingEnabled = (currentSettings.logLevel >= 2);
     
     currentSettings.standbyBlinkStartMinutes = doc["standbyBlinkStartMinutes"] | defaultSettings.standbyBlinkStartMinutes;
     currentSettings.standbyBlinkDurationSeconds = doc["standbyBlinkDurationSeconds"] | defaultSettings.standbyBlinkDurationSeconds;
@@ -376,7 +397,10 @@ void saveSettings() {
     doc["apManualOverride"] = currentSettings.apManualOverride;
     
     doc["beeperEnabled"] = currentSettings.beeperEnabled;
-    doc["debugLoggingEnabled"] = currentSettings.debugLoggingEnabled;
+
+    // Persist log level and keep legacy flag for compatibility
+    doc["logLevel"] = currentSettings.logLevel;
+    doc["debugLoggingEnabled"] = (currentSettings.logLevel >= 2);
     
     doc["standbyBlinkStartMinutes"] = currentSettings.standbyBlinkStartMinutes;
     doc["standbyBlinkDurationSeconds"] = currentSettings.standbyBlinkDurationSeconds;
@@ -457,5 +481,6 @@ uint16_t getApAutoOffMinutes() { return currentSettings.apAutoOffMinutes; }
 bool getApManualOverride() { return currentSettings.apManualOverride; }
 bool getBeeperEnabled() { return currentSettings.beeperEnabled; }
 bool getDebugLoggingEnabled() { return currentSettings.debugLoggingEnabled; }
+uint8_t getLogLevel() { return currentSettings.logLevel; }
 int getStandbyBlinkStart() { return currentSettings.standbyBlinkStartMinutes; }
 int getStandbyBlinkDuration() { return currentSettings.standbyBlinkDurationSeconds; } 

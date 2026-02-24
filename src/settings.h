@@ -45,7 +45,10 @@ struct DPVSettings {
     // Beeper setting
     bool beeperEnabled;
     
-    // Debug logging setting
+    // Logging settings
+    // 0 = Error, 1 = Info, 2 = Debug
+    uint8_t logLevel;
+    // Backward compatibility flag (derived from logLevel)
     bool debugLoggingEnabled;
     
     // Standby blink settings
@@ -90,6 +93,7 @@ uint16_t getApAutoOffMinutes();
 bool getApManualOverride();
 bool getBeeperEnabled();
 bool getDebugLoggingEnabled();
+uint8_t getLogLevel();
 int getStandbyBlinkStart();
 int getStandbyBlinkDuration();
 

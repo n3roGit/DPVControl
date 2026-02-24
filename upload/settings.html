@@ -167,8 +167,14 @@
                     <td><input type="checkbox" id="beeperEnabled" checked></td>
                 </tr>
                 <tr>
-                    <td><label for="debugLoggingEnabled">Debug Logging Enabled:</label><span class="info-icon" title="Enable/disable detailed debug logging for troubleshooting. Default: enabled">?</span></td>
-                    <td><input type="checkbox" id="debugLoggingEnabled" checked></td>
+                    <td><label for="logLevel">Log Level:</label><span class="info-icon" title="0=Error, 1=Info, 2=Debug. Default: Info">?</span></td>
+                    <td>
+                        <select id="logLevel">
+                            <option value="0">Error</option>
+                            <option value="1" selected>Info</option>
+                            <option value="2">Debug</option>
+                        </select>
+                    </td>
                 </tr>
                 <tr>
                     <td><label for="standbyBlinkStartMinutes">Standby Blink Start (min):</label><span class="info-icon" title="Minutes of inactivity before standby blink warning starts. Default: 15">?</span></td>

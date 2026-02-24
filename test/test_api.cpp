@@ -85,6 +85,8 @@ void test_api_settings() {
   TEST_ASSERT_TRUE(doc["staPassword"].is<const char*>());
   TEST_ASSERT_TRUE(doc["apAutoOffMinutes"].is<int>());
   TEST_ASSERT_TRUE(doc["apManualOverride"].is<bool>());
+
+  TEST_ASSERT_TRUE(doc["logLevel"].is<int>());
 }
 
 void test_api_version() {
