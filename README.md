@@ -23,7 +23,8 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 
 # Development
 
-## PlatformIO with VS Code (all platforms)
+## PlatformIO with VS Code
+
 This project uses **PlatformIO** for development, which provides better dependency management and build system compared to the Arduino IDE.
 
 1. **Install VS Code**: Download from [code.visualstudio.com](https://code.visualstudio.com/)
@@ -55,23 +56,13 @@ Install system dependencies first:
 sudo apt update
 sudo apt install python3 python3-venv git   # Debian/Ubuntu
 ```
+### Run make
 
 Then set up the project:
 ```bash
 git clone https://github.com/BubTec/DPVControl.git
 cd DPVControl
 make install   # creates .venv, installs PlatformIO, sets up pre-commit hook
-make test      # run unit tests
-make build     # build the firmware
-make upload    # upload firmware to the ESP32
-```
-
-### Windows
-
-```cmd
-git clone https://github.com/BubTec/DPVControl.git
-cd DPVControl
-make install   # installs PlatformIO, sets up pre-commit hook
 make test      # run unit tests
 make build     # build the firmware
 make upload    # upload firmware to the ESP32
