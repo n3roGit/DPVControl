@@ -23,10 +23,8 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 
 # Development
 
-## PlatformIO with VS Code
+## PlatformIO with VS Code (all platforms)
 This project uses **PlatformIO** for development, which provides better dependency management and build system compared to the Arduino IDE.
-
-### Setup Instructions (Windows)
 
 1. **Install VS Code**: Download from [code.visualstudio.com](https://code.visualstudio.com/)
 
@@ -46,61 +44,40 @@ This project uses **PlatformIO** for development, which provides better dependen
    - Click "Upload" (→) to flash to ESP32
    - Click "Serial Monitor" to view debug output
 
-### Setup Instructions (Ubuntu / Linux)
+## Command-Line Setup
 
-1. **Install system dependencies**:
-   ```bash
-   sudo apt update
-   sudo apt install python3 python3-venv git
-   ```
+If you prefer working from the terminal, or need to run tests in CI, use the Makefile workflow below.
 
-2. **Clone and set up the project**:
-   ```bash
-   git clone https://github.com/BubTec/DPVControl.git
-   cd DPVControl
-   ```
+### Linux / macOS
 
-3. **Create a Python virtual environment and install PlatformIO**:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install --upgrade pip platformio requests
-   ```
-
-4. **Run unit tests**:
-   ```bash
-   source .venv/bin/activate
-   pio test -e native
-   ```
-
-5. **Build firmware**:
-   ```bash
-   source .venv/bin/activate
-   pio run -e esp32dev
-   ```
-
-6. **Upload firmware** (with ESP32 connected via USB):
-   ```bash
-   source .venv/bin/activate
-   pio run -e esp32dev -t upload
-   ```
-
-> **Tip:** You can also use VS Code with the PlatformIO extension on Linux — install it the same way as on Windows. The venv-based CLI setup above is an alternative that works without an IDE.
-
-### Pre-commit Hook for Automated Testing
-
-To ensure code quality, a pre-commit hook is provided that automatically runs all tests before each commit. This prevents commits if any test fails.
-
-The hook is installed automatically as part of `make install`, or you can install it separately:
-
+Install system dependencies first:
 ```bash
-make hook
+sudo apt update
+sudo apt install python3 python3-venv git   # Debian/Ubuntu
 ```
 
-This works on both Windows and Linux/macOS — the Makefile generates the appropriate hook script for your platform.
+Then set up the project:
+```bash
+git clone https://github.com/BubTec/DPVControl.git
+cd DPVControl
+make install   # creates .venv, installs PlatformIO, sets up pre-commit hook
+make test      # run unit tests
+make build     # build the firmware
+make upload    # upload firmware to the ESP32
+```
 
-> **Note:**
-> The pre-commit hook only works if you commit from the terminal. Many GUIs like GitHub Desktop do not execute local hooks.
+### Windows
+
+```cmd
+git clone https://github.com/BubTec/DPVControl.git
+cd DPVControl
+make install   # installs PlatformIO, sets up pre-commit hook
+make test      # run unit tests
+make build     # build the firmware
+make upload    # upload firmware to the ESP32
+```
+
+Use `make` without arguments to list all available targets.
 
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:
@@ -110,22 +87,11 @@ All required libraries are automatically managed through `platformio.ini`:
 
 No manual library installation required!
 
-### Makefile Usage
+### Pre-commit Hook
 
-For a quick command-line workflow, a `Makefile` is provided.  The most common
-tasks can be run with:
+A pre-commit hook that runs all tests before each commit is installed automatically by `make install`. You can also install it separately with `make hook`.
 
-```bash
-# On Linux, activate the venv first:
-source .venv/bin/activate
-
-make install   # install PlatformIO and Python dependencies
-make test      # run unit tests
-make build     # build the firmware
-make upload    # upload firmware to the ESP32
-```
-
-Use `make` without arguments to list all available targets.
+> **Note:** The hook only works when committing from the terminal. Many GUIs like GitHub Desktop do not execute local hooks.
 
 
 # API Documentation
