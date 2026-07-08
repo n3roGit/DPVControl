@@ -24,9 +24,8 @@ I would greatly appreciate support for my project. Every $ contributes to enhanc
 # Development
 
 ## PlatformIO with VS Code
-This project uses **PlatformIO** for development, which provides better dependency management and build system compared to the Arduino IDE.
 
-### Setup Instructions
+This project uses **PlatformIO** for development, which provides better dependency management and build system compared to the Arduino IDE.
 
 1. **Install VS Code**: Download from [code.visualstudio.com](https://code.visualstudio.com/)
 
@@ -46,30 +45,30 @@ This project uses **PlatformIO** for development, which provides better dependen
    - Click "Upload" (→) to flash to ESP32
    - Click "Serial Monitor" to view debug output
 
-### Pre-commit Hook for Automated Testing
+## Command-Line Setup
 
-To ensure code quality, a pre-commit hook is provided that automatically runs all tests before each commit. This prevents commits if any test fails.
+If you prefer working from the terminal, or need to run tests in CI, use the Makefile workflow below.
 
-**Installation:**
-1. Make sure the file `pre-commit.ps1` is located in the project root (it is versioned).
-2. In the `.git/hooks/` directory, create a file named `pre-commit.bat` with the following content:
-   ```bat
-   @echo off
-   REM pre-commit hook: runs all PlatformIO tests and prevents commit on failure
-   echo Running all tests before commit...
-   python -m platformio test -e native
-   if errorlevel 1 (
-       echo.
-       echo ERROR: Some tests failed. Commit aborted!
-       exit /b 1
-   )
-   echo All tests passed. Commit allowed.
-   exit /b 0
-   ```
-3. From now on, all tests will be run automatically before each commit. The commit will be aborted if any test fails.
+### Linux / macOS
 
-> **Note:**
-> The pre-commit hook only works if you commit from the terminal (CMD). Many GUIs like GitHub Desktop or VSCode-Git do not execute local hooks or do not support batch/shell scripts as hooks.
+Install system dependencies first:
+```bash
+sudo apt update
+sudo apt install python3 python3-venv git   # Debian/Ubuntu
+```
+### Run make
+
+Then set up the project:
+```bash
+git clone https://github.com/BubTec/DPVControl.git
+cd DPVControl
+make install   # creates .venv, installs PlatformIO, sets up pre-commit hook
+make test      # run unit tests
+make build     # build the firmware
+make upload    # upload firmware to the ESP32
+```
+
+Use `make` without arguments to list all available targets.
 
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:
@@ -79,19 +78,11 @@ All required libraries are automatically managed through `platformio.ini`:
 
 No manual library installation required!
 
-### Makefile Usage
+### Pre-commit Hook
 
-For a quick command-line workflow, a `Makefile` is provided.  The most common
-tasks can be run with:
+A pre-commit hook that runs all tests before each commit is installed automatically by `make install`. You can also install it separately with `make hook`.
 
-```bash
-make install   # install PlatformIO and Python dependencies
-make test      # run unit tests
-make build     # build the firmware
-make upload    # upload firmware to the ESP32
-```
-
-Use `make` without arguments to list all available targets.
+> **Note:** The hook only works when committing from the terminal. Many GUIs like GitHub Desktop do not execute local hooks.
 
 
 # API Documentation

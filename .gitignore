@@ -23,6 +23,9 @@ check-cppcheck-build-dir
 # Local configuration file for DPVController
 DPVController/localConfig.h
 
+# Python virtual environment
+.venv/
+
 # PlatformIO directories
 .pio/
 .pioenvs/
