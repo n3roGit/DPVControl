@@ -91,55 +91,16 @@ This project uses **PlatformIO** for development, which provides better dependen
 
 To ensure code quality, a pre-commit hook is provided that automatically runs all tests before each commit. This prevents commits if any test fails.
 
-<details>
-<summary><strong>Windows (CMD / PowerShell)</strong></summary>
+The hook is installed automatically as part of `make install`, or you can install it separately:
 
-1. Make sure the file `pre-commit.ps1` is located in the project root (it is versioned).
-2. In the `.git/hooks/` directory, create a file named `pre-commit.bat` with the following content:
-   ```bat
-   @echo off
-   REM pre-commit hook: runs all PlatformIO tests and prevents commit on failure
-   echo Running all tests before commit...
-   python -m platformio test -e native
-   if errorlevel 1 (
-       echo.
-       echo ERROR: Some tests failed. Commit aborted!
-       exit /b 1
-   )
-   echo All tests passed. Commit allowed.
-   exit /b 0
-   ```
+```bash
+make hook
+```
+
+This works on both Windows and Linux/macOS — the Makefile generates the appropriate hook script for your platform.
 
 > **Note:**
-> The pre-commit hook only works if you commit from the terminal (CMD). Many GUIs like GitHub Desktop or VSCode-Git do not execute local hooks or do not support batch/shell scripts as hooks.
-
-</details>
-
-<details>
-<summary><strong>Linux / macOS</strong></summary>
-
-Create the file `.git/hooks/pre-commit` with the following content and make it executable:
-```bash
-#!/usr/bin/env bash
-set -e
-
-# Activate venv if present
-SCRIPT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-if [ -f "$SCRIPT_DIR/.venv/bin/activate" ]; then
-    source "$SCRIPT_DIR/.venv/bin/activate"
-fi
-
-echo "Running all tests before commit..."
-python3 -m platformio test -e native
-echo "All tests passed. Commit allowed."
-```
-
-Then run:
-```bash
-chmod +x .git/hooks/pre-commit
-```
-
-</details>
+> The pre-commit hook only works if you commit from the terminal. Many GUIs like GitHub Desktop do not execute local hooks.
 
 ### Dependencies
 All required libraries are automatically managed through `platformio.ini`:
